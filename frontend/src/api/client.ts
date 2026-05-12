@@ -83,4 +83,10 @@ export const api = {
     request<Record<string, unknown>>(`/v1/overdrive/health/${lane}?healthy=${healthy}`, {
       method: 'POST',
     }),
+
+  tokenize: (text: string, mode: 'approximate' | 'real' = 'approximate') =>
+    request<Record<string, unknown>>('/v1/tokenize', {
+      method: 'POST',
+      body: JSON.stringify({ text, mode }),
+    }),
 };

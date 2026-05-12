@@ -10,6 +10,7 @@ import Operations from './pages/Operations';
 import GovernanceAudit from './pages/GovernanceAudit';
 import Overdrive from './pages/Overdrive';
 import Docs from './pages/Docs';
+import Tokenizer from './pages/Tokenizer';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -31,6 +32,7 @@ export default function App() {
             <Route path="/operations" element={<Operations />} />
             <Route path="/governance" element={<GovernanceAudit />} />
             <Route path="/overdrive" element={<Overdrive />} />
+            <Route path="/tokenizer" element={<Tokenizer />} />
             <Route path="/docs" element={<Docs />} />
           </Route>
         </Routes>

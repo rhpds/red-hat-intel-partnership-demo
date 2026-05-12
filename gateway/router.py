@@ -846,6 +846,71 @@ async def overdrive_set_health(lane_id: str, healthy: bool = True):
     return {"lane": lane_id, "healthy": healthy}
 
 
+_tokenizer_cache: dict = {}
+
+TOKENIZER_MODELS = {
+    "granite-4-0-h-tiny": {"cost_per_1k": 0.0004, "multiplier": 1.3},
+    "codellama-7b-instruct": {"cost_per_1k": 0.0004, "multiplier": 1.35},
+    "llama-scout-17b": {"cost_per_1k": 0.001, "multiplier": 1.25},
+}
+
+
+def _approximate_tokenize(text: str) -> dict:
+    """Split text into approximate tokens using whitespace + punctuation."""
+    import re as _re
+    raw = _re.findall(r"\w+|[^\w\s]", text)
+    return raw if raw else [""]
+
+
+def _real_tokenize(text: str, model_name: str) -> list[str]:
+    """Tokenize using a real HuggingFace tokenizer, cached after first load."""
+    if model_name not in _tokenizer_cache:
+        try:
+            from transformers import AutoTokenizer
+            hf_name = {
+                "granite-4-0-h-tiny": "ibm-granite/granite-3.0-2b-instruct",
+                "codellama-7b-instruct": "codellama/CodeLlama-7b-Instruct-hf",
+                "llama-scout-17b": "meta-llama/Llama-3.2-3B-Instruct",
+            }.get(model_name, model_name)
+            _tokenizer_cache[model_name] = AutoTokenizer.from_pretrained(
+                hf_name, trust_remote_code=True
+            )
+        except Exception:
+            return _approximate_tokenize(text)
+    tokenizer = _tokenizer_cache[model_name]
+    ids = tokenizer.encode(text)
+    return [tokenizer.decode([tid]) for tid in ids]
+
+
+class TokenizeRequest(BaseModel):
+    text: str = Field(min_length=1, max_length=5000)
+    mode: str = Field(default="approximate", pattern=r"^(approximate|real)$")
+
+
+@app.post("/v1/tokenize")
+async def tokenize_text(req: TokenizeRequest, raw_request: Request):
+    check_rate_limit(raw_request.client.host)
+    req.text = _sanitize_prompt(req.text)
+    results = {}
+    for model_name, meta in TOKENIZER_MODELS.items():
+        if req.mode == "real":
+            tokens = _real_tokenize(req.text, model_name)
+        else:
+            base_tokens = _approximate_tokenize(req.text)
+            multiplier = meta["multiplier"]
+            count = max(1, int(len(base_tokens) * multiplier))
+            tokens = base_tokens[:count] if count <= len(base_tokens) else base_tokens + base_tokens[:count - len(base_tokens)]
+        token_count = len(tokens)
+        cost = round((token_count / 1000) * meta["cost_per_1k"], 6)
+        results[model_name] = {
+            "token_count": token_count,
+            "tokens": tokens,
+            "mode": req.mode,
+            "cost_estimate": cost,
+        }
+    return {"models": results}
+
+
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
     import uvicorn

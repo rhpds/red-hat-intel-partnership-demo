@@ -31,6 +31,7 @@ const navItems = [
   { path: '/operations', label: 'Operations' },
   { path: '/governance', label: 'Governance' },
   { path: '/overdrive', label: 'Overdrive' },
+  { path: '/tokenizer', label: 'Tokenizer' },
   { path: '/docs', label: 'Documentation' },
 ];
 
