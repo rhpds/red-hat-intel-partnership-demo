@@ -24,13 +24,13 @@ const useCases = [
       { label: 'Rerank candidates', hw: 'Xeon 6', time: '<10ms' },
       { label: 'Generate answer', hw: 'Gaudi', time: '<2s' },
     ],
-    insight: 'Xeon 6 handles 3 of 4 stages. Gaudi only activates for heavyweight generation.',
+    insight: 'Embedding, search, and reranking are fast — Xeon 6 handles them at <10ms. Gaudi only activates for the generation step where throughput matters.',
     color: 'red' as const,
   },
   {
     title: 'AIOps Copilot',
     subtitle: 'From alert to governed action',
-    message: 'Intel + Red Hat can power governed AIOps from signal to action.',
+    message: 'Alerts flood in. Xeon 6 classifies and correlates in milliseconds. Gaudi generates root cause analysis. All under governance.',
     steps: [
       { label: 'Classify severity', hw: 'Xeon 6', time: '<5ms' },
       { label: 'Find similar incidents', hw: 'Xeon 6', time: '<10ms' },
@@ -70,10 +70,10 @@ export default function UseCases() {
         <Content>
           <Content component={"h1"}>What Can You Build?</Content>
           <Content component={"p"} style={{ maxWidth: '720px' }}>
-            Three proof-of-concept applications built on the inference platform.
-            Each routes multiple AI tasks across hardware tiers — showing that
-            enterprise AI is not one model on one accelerator, but a governed
-            pipeline across the right hardware for each stage.
+            Three applications built on this platform. Each one proves a key point:
+            enterprise AI isn't a single model on a single GPU. It's a multi-step pipeline
+            where different steps have different hardware needs — and intelligent routing
+            across Intel Xeon 6 and Gaudi makes the difference.
           </Content>
         </Content>
       </PageSection>

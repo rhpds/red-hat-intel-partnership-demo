@@ -12,6 +12,7 @@ import Overdrive from './pages/Overdrive';
 import Docs from './pages/Docs';
 import Tokenizer from './pages/Tokenizer';
 import WorkloadDemo from './pages/WorkloadDemo';
+import ResearchAgent from './pages/ResearchAgent';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -35,6 +36,7 @@ export default function App() {
             <Route path="/overdrive" element={<Overdrive />} />
             <Route path="/tokenizer" element={<Tokenizer />} />
             <Route path="/workload" element={<WorkloadDemo />} />
+            <Route path="/agent" element={<ResearchAgent />} />
             <Route path="/docs" element={<Docs />} />
           </Route>
         </Routes>

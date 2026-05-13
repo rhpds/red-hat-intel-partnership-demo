@@ -29,10 +29,11 @@ const navItems = [
   { path: '/try-it', label: 'Try It' },
   { path: '/use-cases', label: 'Use Cases' },
   { path: '/operations', label: 'Operations' },
-  { path: '/governance', label: 'Governance' },
+  { path: '/governance', label: 'Governance Audit' },
   { path: '/overdrive', label: 'Overdrive' },
   { path: '/tokenizer', label: 'Tokenizer' },
   { path: '/workload', label: 'Workload Demo' },
+  { path: '/agent', label: 'Research Agent' },
   { path: '/docs', label: 'Documentation' },
 ];
 

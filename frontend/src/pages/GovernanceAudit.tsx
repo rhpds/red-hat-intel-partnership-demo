@@ -43,8 +43,8 @@ export default function GovernanceAudit() {
     <PageSection>
       <Title headingLevel="h1" size="xl">Governance Audit Trail</Title>
       <Alert variant="info" title="No governance decisions yet" style={{ marginTop: '1rem' }}>
-        Run the AIOps Copilot or Governed Agent workflow from the Try It page to generate governance audit entries.
-        Each governance and policy step creates a decision record with risk assessment, evidence, and approval status.
+        AI-generated actions need approval. Run a governed workflow (AIOps Copilot or Governed Agent)
+        from the Try It page to see how every decision is logged, risk-scored, and approved before execution.
       </Alert>
     </PageSection>
   );

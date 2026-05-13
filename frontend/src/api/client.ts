@@ -101,4 +101,18 @@ export const api = {
 
   workloadStatus: (runId: string) =>
     request<Record<string, unknown>>(`/v1/workload/status/${runId}`),
+
+  agentResearch: (question: string, governance_mode: string) =>
+    request<Record<string, unknown>>('/v1/agent/research', {
+      method: 'POST',
+      body: JSON.stringify({ question, governance_mode }),
+    }),
+
+  agentStatus: (runId: string) =>
+    request<Record<string, unknown>>(`/v1/agent/status/${runId}`),
+
+  agentApprove: (runId: string, stepName: string) =>
+    request<Record<string, unknown>>(`/v1/agent/approve/${runId}/${stepName}`, {
+      method: 'POST',
+    }),
 };

@@ -112,7 +112,8 @@ export default function BuildYourOwn() {
         <CardTitle>Build Your Own Request</CardTitle>
         <CardBody>
           <Content component="p" style={{ marginBottom: '1rem', color: 'var(--pf-t--global--text--color--subtle)' }}>
-            Change the task type and model size to see how the gateway routing decision changes.
+            Pick a task and a model size. Watch how the routing decision changes — lightweight
+            tasks stay on Xeon 6, heavy models route to Gaudi. This is intelligent routing in action.
           </Content>
 
           {/* Task selector */}

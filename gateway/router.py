@@ -927,6 +927,58 @@ async def workload_status(run_id: str):
     return _workload_runs[run_id]
 
 
+_agent_runs: dict = {}
+
+
+class AgentResearchRequest(BaseModel):
+    question: str = Field(min_length=5, max_length=500)
+    governance_mode: str = Field(default="open", pattern=r"^(open|supervised|locked)$")
+
+
+@app.post("/v1/agent/research")
+async def agent_research(req: AgentResearchRequest, raw_request: Request):
+    check_rate_limit(raw_request.client.host)
+    import uuid
+    run_id = f"agent-{uuid.uuid4().hex[:8]}"
+    run_state = {"run_id": run_id, "status": "running", "steps": []}
+    _agent_runs[run_id] = run_state
+
+    def _run():
+        try:
+            from overdrive.research_agent import run_research_agent
+            run_research_agent(
+                question=_sanitize_prompt(req.question),
+                governance_mode=req.governance_mode,
+                run_state=run_state,
+            )
+        except Exception as e:
+            run_state["status"] = "error"
+            run_state["error"] = str(e)
+
+    thread = threading.Thread(target=_run, daemon=True)
+    thread.start()
+    return {"run_id": run_id, "status": "running"}
+
+
+@app.get("/v1/agent/status/{run_id}")
+async def agent_status(run_id: str):
+    if run_id not in _agent_runs:
+        raise HTTPException(status_code=404, detail=f"Agent run '{run_id}' not found")
+    return _agent_runs[run_id]
+
+
+@app.post("/v1/agent/approve/{run_id}/{step_name}")
+async def agent_approve(run_id: str, step_name: str):
+    if run_id not in _agent_runs:
+        raise HTTPException(status_code=404, detail=f"Agent run '{run_id}' not found")
+    run = _agent_runs[run_id]
+    for step in run.get("steps", []):
+        if step["name"] == step_name and step["status"] == "awaiting_approval":
+            step["status"] = "approved"
+            return {"approved": True, "step": step_name}
+    return {"approved": False, "detail": f"Step '{step_name}' not awaiting approval"}
+
+
 _tokenizer_cache: dict = {}
 
 TOKENIZER_MODELS = {

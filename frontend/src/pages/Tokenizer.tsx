@@ -97,9 +97,9 @@ export default function Tokenizer() {
         <Content>
           <Content component="h1">Tokenization & Cost Explorer</Content>
           <Content component="p" style={{ maxWidth: '780px', fontSize: '1.05rem' }}>
-            See how text is broken into tokens — the fundamental unit that drives inference cost
-            and hardware selection. Different models tokenize the same text differently, which
-            means different token counts, different costs, and different hardware requirements.
+            Text gets split into tokens — small chunks the model processes. More tokens means
+            higher cost. Different models split the same text differently. Token count is the
+            trigger that decides whether Intel Xeon 6 or Gaudi handles the request.
           </Content>
         </Content>
       </PageSection>

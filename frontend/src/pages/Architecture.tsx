@@ -18,9 +18,10 @@ export default function Architecture() {
         <Content>
           <Content component="h1">Platform Architecture</Content>
           <Content component="p" style={{ maxWidth: '720px' }}>
-            Every inference request flows through a single gateway that makes a hardware routing decision.
-            The gateway inspects the task type and model size, selects the optimal backend, forwards the request,
-            and returns the result with full routing metadata.
+            One gateway. Two Intel hardware paths. Every request gets routed to the right
+            place: Intel Xeon 6 for speed and cost efficiency, Intel Gaudi for throughput and
+            large model generation. The gateway evaluates task type, model size, and priority —
+            then returns the result with full routing reasoning.
           </Content>
         </Content>
       </PageSection>
@@ -34,9 +35,9 @@ export default function Architecture() {
         <Content>
           <Content component="h2">Multi-Step Workflow Routing</Content>
           <Content component="p" style={{ maxWidth: '720px', marginBottom: '1rem' }}>
-            Real AI applications chain multiple inference steps. Each step routes independently
-            to the optimal hardware — the same gateway handles embeddings on CPU and generation
-            on GPU within a single workflow.
+            Real AI pipelines aren't single-step. Embeddings are fast and small — run them on
+            Xeon 6. Generation is slow and large — route it to Gaudi. This platform makes that
+            decision for each step independently, all through one API call.
           </Content>
         </Content>
         <WorkflowDiagrams />

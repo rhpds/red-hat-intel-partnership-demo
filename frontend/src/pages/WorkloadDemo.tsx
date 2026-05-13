@@ -182,9 +182,10 @@ export default function WorkloadDemo() {
         <Content>
           <Content component="h1">Workload Performance Demo</Content>
           <Content component="p" style={{ maxWidth: '780px', fontSize: '1.05rem' }}>
-            Run named workload scenarios at different scales and see how requests distribute
-            across Intel Xeon 6 and Gaudi hardware. Each profile simulates a real enterprise
-            pattern — incident response, RAG pipelines, heavy generation, or cross-lane comparison.
+            Run real enterprise workload scenarios at different scales. Watch how requests
+            distribute across Intel Xeon 6 (fast, cheap tasks) and Gaudi (heavy generation).
+            Each profile simulates a pattern you'd see in production — incident response,
+            RAG pipelines, heavy generation, or cross-hardware comparison.
           </Content>
         </Content>
       </PageSection>

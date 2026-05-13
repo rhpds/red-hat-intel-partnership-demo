@@ -66,7 +66,7 @@ const LANE_META: Record<string, {
     model: 'granite-4-0-h-tiny',
     accelerator: 'Xeon 6',
     capabilities: ['classification', 'short_summary'],
-    hwStory: 'Lightweight classification on Xeon 6 — fast, low cost, no GPU needed. Ideal for high-volume, low-complexity tasks.',
+    hwStory: 'Alert triage, text classification, and batch scoring on Xeon 6. Sub-5ms latency, <$0.001 per 1K tokens. No GPU overhead — AMX handles it in hardware.',
   },
   performance: {
     color: 'var(--rh-color--xeon6)',
@@ -75,7 +75,7 @@ const LANE_META: Record<string, {
     model: 'codellama-7b-instruct',
     accelerator: 'Xeon 6',
     capabilities: ['embedding', 'rerank', 'short_summary', 'long_summary'],
-    hwStory: 'Mid-range workloads on Xeon 6 with AMX acceleration — embeddings, reranking, and summaries at production throughput.',
+    hwStory: 'Embeddings and reranking on Xeon 6 with AMX (Advanced Matrix Extensions). Fast enough for RAG pipelines, 10x cheaper than GPU. Ideal for knowledge base search.',
   },
   overdrive: {
     color: 'var(--rh-color--gaudi)',
@@ -84,7 +84,7 @@ const LANE_META: Record<string, {
     model: 'llama-scout-17b',
     accelerator: 'Gaudi',
     capabilities: ['long_summary', 'incident_rca', 'batch_summary'],
-    hwStory: 'Heavy generation on Intel Gaudi — large context windows, complex reasoning, and batch processing powered by HBM bandwidth.',
+    hwStory: 'Large models (17B+) on Intel Gaudi with 96GB HBM. 100+ tokens/sec generation for long summaries, RCA, and batch reports. Use when throughput matters more than cost.',
   },
 };
 

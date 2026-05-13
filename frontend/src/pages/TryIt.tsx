@@ -35,7 +35,7 @@ const scenarios: WorkflowScenario[] = [
     key: 'rag',
     title: 'Enterprise RAG',
     subtitle: 'Embed → Search → Rerank → Generate',
-    message: 'Xeon 6 handles 3 of 4 stages. Gaudi only activates for generation.',
+    message: 'Embedding, search, and reranking are fast — Xeon 6 handles them cheaply. Gaudi only activates for the generation step, where large model throughput matters.',
     steps: [
       { label: 'Embed Query', hw: 'xeon6', task: 'embeddings' },
       { label: 'Vector Search', hw: 'xeon6', task: 'search' },
@@ -97,8 +97,9 @@ export default function TryIt() {
         <Content>
           <Content component="h1">Try It Live</Content>
           <Content component="p" style={{ maxWidth: '720px' }}>
-            Select a workflow and click a scenario. Watch the platform route each step
-            to the optimal hardware in real-time — with actual latency from the running gateway.
+            Pick a workflow and click a scenario. Watch each step route to the Intel hardware
+            best suited for it — Xeon 6 for fast, cheap tasks and Gaudi for heavy generation.
+            You'll see actual latency, cost, and the routing engine's reasoning.
           </Content>
         </Content>
       </PageSection>
