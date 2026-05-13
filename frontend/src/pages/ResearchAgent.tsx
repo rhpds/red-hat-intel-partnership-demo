@@ -10,6 +10,7 @@ import {
   PageSection,
   Select,
   SelectOption,
+  Switch,
   TextArea,
 } from '@patternfly/react-core';
 import { CheckCircleIcon, ExclamationCircleIcon, InProgressIcon, LockIcon, PendingIcon } from '@patternfly/react-icons';
@@ -57,6 +58,7 @@ const StatusIcon = ({ status }: { status: string }) => {
 export default function ResearchAgent() {
   const [question, setQuestion] = useState(PRESETS[0].question);
   const [govMode, setGovMode] = useState('open');
+  const [liveMode, setLiveMode] = useState(false);
   const [govOpen, setGovOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -83,7 +85,7 @@ export default function ResearchAgent() {
     stopPolling();
 
     try {
-      const resp = await api.agentResearch(question, govMode) as { run_id: string };
+      const resp = await api.agentResearch(question, govMode, liveMode) as { run_id: string };
       setRunId(resp.run_id);
 
       pollRef.current = setInterval(async () => {
@@ -168,9 +170,18 @@ export default function ResearchAgent() {
               ))}
             </Select>
           </div>
-          <Button variant="primary" onClick={runAgent} isLoading={loading} isDisabled={loading || question.trim().length < 5}>
-            Run Agent
-          </Button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            <Button variant="primary" onClick={runAgent} isLoading={loading} isDisabled={loading || question.trim().length < 5}>
+              {liveMode ? 'Run Live Agent' : 'Run Agent'}
+            </Button>
+            <Switch
+              id="agent-live-toggle"
+              label={liveMode ? 'Live Mode' : 'Simulated'}
+              isChecked={liveMode}
+              onChange={(_e, checked) => setLiveMode(checked)}
+            />
+            {liveMode && <Label color="orange" isCompact>Real LLM calls via LiteLLM — ~10-15 seconds</Label>}
+          </div>
         </div>
 
         <Content component="small" style={{ fontWeight: 600, display: 'block', marginBottom: '8px' }}>Preset Questions:</Content>

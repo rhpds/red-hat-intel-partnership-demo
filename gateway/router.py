@@ -933,6 +933,7 @@ _agent_runs: dict = {}
 class AgentResearchRequest(BaseModel):
     question: str = Field(min_length=5, max_length=500)
     governance_mode: str = Field(default="open", pattern=r"^(open|supervised|locked)$")
+    live: bool = False
 
 
 @app.post("/v1/agent/research")
@@ -949,6 +950,7 @@ async def agent_research(req: AgentResearchRequest, raw_request: Request):
             run_research_agent(
                 question=_sanitize_prompt(req.question),
                 governance_mode=req.governance_mode,
+                live=req.live,
                 run_state=run_state,
             )
         except Exception as e:

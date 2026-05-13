@@ -11,6 +11,7 @@ from .engine import OverdriveEngine
 from .timing_provider import MockTimingProvider, RealTimingProvider
 from .metrics_collector import collect_metrics
 from .power_report import generate_json_report, generate_markdown_report
+from .event_producer import get_event_producer
 
 _DEFAULT_CONFIG = Path(__file__).parent / "config.yaml"
 _DEFAULT_RUBRICS = Path(__file__).parents[2] / "tests" / "rubrics" / "routes"
@@ -85,7 +86,8 @@ def run_workload(
     engine = OverdriveEngine(config_path=config_path, rubric_dir=rubric_dir)
 
     if live:
-        timing = RealTimingProvider(gateway_url="http://localhost:8080")
+        api_key = os.getenv("API_KEY", "")
+        timing = RealTimingProvider(gateway_url="http://localhost:8080", api_key=api_key)
     else:
         timing = MockTimingProvider(seed=seed)
 
@@ -95,6 +97,7 @@ def run_workload(
     )
 
     run_id = f"run-{uuid.uuid4().hex[:8]}"
+    event_producer = get_event_producer()
     start = time.monotonic()
     results = []
 
@@ -117,6 +120,16 @@ def run_workload(
             "output_tokens": expected_output,
         })
 
+        event_producer.emit({
+            "run_id": run_id,
+            "request_id": req.request_id,
+            "task_type": req.task_type,
+            "lane": lane,
+            "hw": "Gaudi" if lane == "overdrive" else "Xeon 6",
+            "latency_ms": t["latency_ms"],
+            "input_tokens": req.token_estimate,
+        })
+
     elapsed = (time.monotonic() - start) * 1000
     total_duration = max(elapsed, sum(r["latency_ms"] for r in results))
 
@@ -125,6 +138,7 @@ def run_workload(
     metrics["workload_profile"] = profile
     metrics["power_mode"] = mode
     metrics["mode_label"] = "live" if live else "simulated"
+    metrics["events"] = event_producer.get_events()
 
     metrics["report_json"] = generate_json_report(metrics)
     metrics["report_md"] = generate_markdown_report(metrics)
@@ -155,7 +169,8 @@ def run_workload_streaming(
     engine = OverdriveEngine(config_path=config_path, rubric_dir=rubric_dir)
 
     if live:
-        timing = RealTimingProvider(gateway_url="http://localhost:8080")
+        api_key = os.getenv("API_KEY", "")
+        timing = RealTimingProvider(gateway_url="http://localhost:8080", api_key=api_key)
     else:
         timing = MockTimingProvider(seed=seed)
 
@@ -165,6 +180,7 @@ def run_workload_streaming(
     )
 
     run_id = run_state["run_id"] if run_state else f"run-{uuid.uuid4().hex[:8]}"
+    event_producer = get_event_producer()
     if run_state:
         run_state["total"] = len(requests)
 
@@ -200,6 +216,17 @@ def run_workload_streaming(
         }
         results.append(result_entry)
 
+        event_producer.emit({
+            "run_id": run_id,
+            "request_id": req.request_id,
+            "task_type": req.task_type,
+            "lane": lane,
+            "hw": hw_label,
+            "latency_ms": t["latency_ms"],
+            "input_tokens": req.token_estimate,
+            "routing_reason": routing_reason,
+        })
+
         if run_state:
             run_state["completed"] = i + 1
             run_state["results"] = list(results)
@@ -212,6 +239,7 @@ def run_workload_streaming(
     metrics["workload_profile"] = profile
     metrics["power_mode"] = mode
     metrics["mode_label"] = "live" if live else "simulated"
+    metrics["events"] = event_producer.get_events()
 
     metrics["report_json"] = generate_json_report(metrics)
     metrics["report_md"] = generate_markdown_report(metrics)

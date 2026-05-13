@@ -1,7 +1,9 @@
 """RAG Research Agent — governed multi-step question answering."""
 
+import os
 import re
 import time
+import httpx
 
 KNOWLEDGE_BASE = [
     {"id": "kb-001", "title": "Intel Xeon 6 for AI Inference", "content": "Intel Xeon 6 processors with Advanced Matrix Extensions (AMX) provide cost-efficient AI inference for small-to-medium models. Classification, embeddings, and reranking tasks run on Xeon 6 at production throughput without requiring GPU resources. The AMX instruction set accelerates INT8 and BF16 matrix operations natively."},
@@ -30,6 +32,21 @@ def get_steps_requiring_approval(mode: str) -> list[str]:
     return GOVERNANCE_STEPS.get(mode, [])
 
 
+def _call_gateway(task: str, gateway_url: str = "http://localhost:8080", **kwargs) -> dict:
+    headers = {"Content-Type": "application/json"}
+    api_key = os.getenv("API_KEY", "")
+    if api_key:
+        headers["X-API-Key"] = api_key
+    payload = {"task": task, **kwargs}
+    try:
+        resp = httpx.post(f"{gateway_url}/v1/route", json=payload, headers=headers, timeout=30.0)
+        if resp.status_code == 200:
+            return resp.json()
+    except Exception:
+        pass
+    return {}
+
+
 def _keyword_search(query: str, top_k: int = 5) -> list[dict]:
     query_words = set(re.findall(r'\w+', query.lower()))
     scored = []
@@ -42,23 +59,48 @@ def _keyword_search(query: str, top_k: int = 5) -> list[dict]:
     return scored[:top_k]
 
 
-def step_decompose(question: str) -> dict:
+def step_decompose(question: str, live: bool = False) -> dict:
+    if live:
+        result = _call_gateway(
+            "completion", model="llama-scout-17b", model_size_b=17,
+            prompt=f"Break this question into 2-4 focused sub-questions for research. Return only the numbered sub-questions, nothing else.\n\nQuestion: {question}",
+            max_tokens=200, temperature=0.3,
+        )
+        text = ""
+        choices = (result.get("result") or {}).get("choices", [])
+        if choices:
+            text = (choices[0].get("message") or {}).get("content", "") or choices[0].get("text", "")
+        if text:
+            lines = [l.strip().lstrip("0123456789.)- ") for l in text.strip().split("\n") if l.strip() and len(l.strip()) > 10]
+            if lines:
+                return {
+                    "sub_queries": lines[:4],
+                    "hw": "Gaudi",
+                    "routing_reason": "Query decomposition by Llama Scout 17B on Gaudi — real LLM reasoning to break complex questions into focused sub-queries.",
+                    "raw_response": text,
+                }
+
     words = question.split()
     sub_queries = []
     if any(w in question.lower() for w in ["compare", "vs", "versus", "difference"]):
-        sub_queries.append(f"What are the capabilities of Xeon 6 for inference?")
-        sub_queries.append(f"What are the capabilities of Gaudi for inference?")
-        sub_queries.append(f"How does the routing engine choose between them?")
+        sub_queries = [
+            "What are the capabilities of Xeon 6 for inference?",
+            "What are the capabilities of Gaudi for inference?",
+            "How does the routing engine choose between them?",
+        ]
     elif any(w in question.lower() for w in ["failover", "offline", "failure", "degrade"]):
-        sub_queries.append(f"How does the failover mechanism work?")
-        sub_queries.append(f"What happens to requests during hardware failure?")
-        sub_queries.append(f"How is recovery detected and routing restored?")
+        sub_queries = [
+            "How does the failover mechanism work?",
+            "What happens to requests during hardware failure?",
+            "How is recovery detected and routing restored?",
+        ]
     elif any(w in question.lower() for w in ["token", "cost", "price"]):
-        sub_queries.append(f"How does tokenization differ across models?")
-        sub_queries.append(f"What is the cost model for Xeon 6 vs Gaudi?")
+        sub_queries = [
+            "How does tokenization differ across models?",
+            "What is the cost model for Xeon 6 vs Gaudi?",
+        ]
     else:
-        sub_queries.append(f"Overview: {question}")
-        sub_queries.append(f"Technical details: {question}")
+        sub_queries = [f"Overview: {question}", f"Technical details: {question}"]
         if len(words) > 5:
             sub_queries.append(f"Implementation specifics: {question}")
 
@@ -69,7 +111,19 @@ def step_decompose(question: str) -> dict:
     }
 
 
-def step_search(query: str) -> dict:
+def step_search(query: str, live: bool = False) -> dict:
+    if live:
+        result = _call_gateway("search", text=query, model="granite-3-2-8b-instruct", model_size_b=8)
+        search_results = (result.get("result") or {}).get("results", [])
+        if search_results:
+            docs = [{"id": f"live-{i}", "title": r.get("text", "")[:60], "content": r.get("text", ""), "score": r.get("score", 0.5)} for i, r in enumerate(search_results)]
+            return {
+                "documents": docs,
+                "hw": result.get("routing", {}).get("accelerator", "Xeon 6"),
+                "routing_reason": f"Knowledge base search via {result.get('routing', {}).get('selected_backend', 'gateway')} — real vector search on Xeon 6.",
+                "latency_ms": result.get("routing", {}).get("latency_ms", 0),
+            }
+
     docs = _keyword_search(query, top_k=5)
     return {
         "documents": docs,
@@ -78,7 +132,26 @@ def step_search(query: str) -> dict:
     }
 
 
-def step_rerank(query: str, documents: list[dict]) -> dict:
+def step_rerank(query: str, documents: list[dict], live: bool = False) -> dict:
+    if live and documents:
+        texts = [d.get("content", d.get("title", ""))[:200] for d in documents]
+        result = _call_gateway("reranking", text=query, texts=texts, model="codellama-7b-instruct", model_size_b=7)
+        rerank_results = (result.get("result") or {}).get("results", [])
+        if rerank_results:
+            for i, rr in enumerate(rerank_results):
+                if i < len(documents):
+                    documents[i]["relevance"] = rr.get("relevance_score", 0.5)
+                    documents[i]["rank"] = i + 1
+            ranked = sorted(documents, key=lambda d: d.get("relevance", 0), reverse=True)
+            for i, d in enumerate(ranked):
+                d["rank"] = i + 1
+            return {
+                "ranked_documents": ranked,
+                "hw": result.get("routing", {}).get("accelerator", "Xeon 6"),
+                "routing_reason": f"Cross-encoder reranking via {result.get('routing', {}).get('selected_backend', 'gateway')} — real relevance scoring on Xeon 6.",
+                "latency_ms": result.get("routing", {}).get("latency_ms", 0),
+            }
+
     ranked = sorted(documents, key=lambda d: d.get("score", 0), reverse=True)
     for i, doc in enumerate(ranked):
         doc["rank"] = i + 1
@@ -90,17 +163,34 @@ def step_rerank(query: str, documents: list[dict]) -> dict:
     }
 
 
-def step_synthesize(question: str, sub_queries: list[str], documents: list[dict]) -> dict:
+def step_synthesize(question: str, sub_queries: list[str], documents: list[dict], live: bool = False) -> dict:
+    if live and documents:
+        context = "\n\n".join(f"[{d.get('title', 'Doc')}]: {d.get('content', '')[:300]}" for d in documents[:4])
+        prompt = f"Answer this question using only the provided context. Include specific details and cite source titles.\n\nQuestion: {question}\n\nContext:\n{context}\n\nAnswer:"
+        result = _call_gateway(
+            "completion", model="llama-scout-17b", model_size_b=17,
+            prompt=prompt, max_tokens=300, temperature=0.3,
+        )
+        text = ""
+        choices = (result.get("result") or {}).get("choices", [])
+        if choices:
+            text = (choices[0].get("message") or {}).get("content", "") or choices[0].get("text", "")
+        if text:
+            citations = [{"id": d.get("id", f"doc-{i}"), "title": d.get("title", "Untitled"), "relevance": d.get("relevance", d.get("score", 0))} for i, d in enumerate(documents[:4])]
+            return {
+                "answer": text,
+                "citations": citations,
+                "hw": "Gaudi",
+                "routing_reason": "Answer synthesis by Llama Scout 17B on Gaudi — real LLM generation with multi-document context.",
+                "latency_ms": result.get("routing", {}).get("latency_ms", 0),
+            }
+
     doc_context = "\n".join(f"- {d['title']}: {d['content'][:150]}..." for d in documents[:4])
-    answer = (
-        f"Based on analysis of {len(documents)} knowledge base documents across {len(sub_queries)} research dimensions:\n\n"
-    )
+    answer = f"Based on analysis of {len(documents)} knowledge base documents across {len(sub_queries)} research dimensions:\n\n"
     for doc in documents[:3]:
         answer += f"**{doc['title']}**: {doc['content'][:200]}\n\n"
     answer += f"This analysis synthesized information from {len(documents)} sources to address the question: \"{question}\""
-
     citations = [{"id": d.get("id", f"doc-{i}"), "title": d.get("title", "Untitled"), "relevance": d.get("relevance", d.get("score", 0))} for i, d in enumerate(documents[:4])]
-
     return {
         "answer": answer,
         "citations": citations,
@@ -109,19 +199,28 @@ def step_synthesize(question: str, sub_queries: list[str], documents: list[dict]
     }
 
 
-def step_governance(answer: str) -> dict:
+def step_governance(answer: str, live: bool = False) -> dict:
+    if live:
+        result = _call_gateway(
+            "governance", model="granite-4-0-h-tiny", model_size_b=1,
+            prompt=answer[:500], max_tokens=60, temperature=0.1,
+        )
+        gov_result = result.get("result", {})
+        if gov_result and "risk_level" in gov_result:
+            decision_map = {"low": "pass", "medium": "pass", "high": "escalate", "critical": "escalate"}
+            return {
+                "decision": gov_result.get("decision", decision_map.get(gov_result.get("risk_level", "low"), "pass")),
+                "reason": gov_result.get("justification", gov_result.get("analysis", "Reviewed by Granite on Xeon 6.")),
+                "hw": "Xeon 6",
+                "routing_reason": "Content review by Granite Tiny on Xeon 6 — real risk assessment of generated content.",
+                "latency_ms": result.get("routing", {}).get("latency_ms", 0),
+            }
+
     risk_words = ["delete", "destroy", "drop", "remove", "kill", "terminate"]
     has_risk = any(w in answer.lower() for w in risk_words)
-    if has_risk:
-        decision = "escalate"
-        reason = "Generated answer contains references to destructive actions — flagged for human review."
-    else:
-        decision = "pass"
-        reason = "Answer passes content review — no destructive actions, factual content based on knowledge base."
-
     return {
-        "decision": decision,
-        "reason": reason,
+        "decision": "escalate" if has_risk else "pass",
+        "reason": "Generated answer contains references to destructive actions — flagged for human review." if has_risk else "Answer passes content review — no destructive actions, factual content based on knowledge base.",
         "hw": "Xeon 6",
         "routing_reason": "Content review uses Granite Tiny on Xeon 6 — lightweight classification of answer safety.",
     }
@@ -130,6 +229,7 @@ def step_governance(answer: str) -> dict:
 def run_research_agent(
     question: str,
     governance_mode: str = "open",
+    live: bool = False,
     run_state: dict = None,
     wait_for_approval: callable = None,
 ) -> dict:
@@ -167,24 +267,25 @@ def run_research_agent(
     start = time.monotonic()
 
     t0 = time.monotonic()
-    decompose_result = step_decompose(question)
+    decompose_result = step_decompose(question, live=live)
     _add_step("decompose", "done", {
         "sub_queries": decompose_result["sub_queries"],
+        **({"raw_response": decompose_result["raw_response"]} if "raw_response" in decompose_result else {}),
     }, decompose_result["hw"], decompose_result["routing_reason"],
-        latency_ms=round((time.monotonic() - t0) * 1000, 1))
+        latency_ms=decompose_result.get("latency_ms", round((time.monotonic() - t0) * 1000, 1)))
     _maybe_wait_approval("decompose")
 
     all_docs = []
     for sq in decompose_result["sub_queries"]:
         t0 = time.monotonic()
-        search_result = step_search(sq)
+        search_result = step_search(sq, live=live)
         all_docs.extend(search_result["documents"])
         _add_step("search", "done", {
             "query": sq,
             "documents": search_result["documents"],
             "count": len(search_result["documents"]),
         }, search_result["hw"], search_result["routing_reason"],
-            latency_ms=round((time.monotonic() - t0) * 1000, 1))
+            latency_ms=search_result.get("latency_ms", round((time.monotonic() - t0) * 1000, 1)))
     _maybe_wait_approval("search")
 
     seen_ids = set()
@@ -195,30 +296,30 @@ def run_research_agent(
             unique_docs.append(d)
 
     t0 = time.monotonic()
-    rerank_result = step_rerank(question, unique_docs)
+    rerank_result = step_rerank(question, unique_docs, live=live)
     _add_step("rerank", "done", {
         "ranked_documents": rerank_result["ranked_documents"],
         "count": len(rerank_result["ranked_documents"]),
     }, rerank_result["hw"], rerank_result["routing_reason"],
-        latency_ms=round((time.monotonic() - t0) * 1000, 1))
+        latency_ms=rerank_result.get("latency_ms", round((time.monotonic() - t0) * 1000, 1)))
     _maybe_wait_approval("rerank")
 
     t0 = time.monotonic()
-    synth_result = step_synthesize(question, decompose_result["sub_queries"], rerank_result["ranked_documents"])
+    synth_result = step_synthesize(question, decompose_result["sub_queries"], rerank_result["ranked_documents"], live=live)
     _add_step("synthesize", "done", {
         "answer": synth_result["answer"],
         "citations": synth_result["citations"],
     }, synth_result["hw"], synth_result["routing_reason"],
-        latency_ms=round((time.monotonic() - t0) * 1000, 1))
+        latency_ms=synth_result.get("latency_ms", round((time.monotonic() - t0) * 1000, 1)))
     _maybe_wait_approval("synthesize")
 
     t0 = time.monotonic()
-    gov_result = step_governance(synth_result["answer"])
+    gov_result = step_governance(synth_result["answer"], live=live)
     _add_step("governance", "done", {
         "decision": gov_result["decision"],
         "reason": gov_result["reason"],
     }, gov_result["hw"], gov_result["routing_reason"],
-        latency_ms=round((time.monotonic() - t0) * 1000, 1))
+        latency_ms=gov_result.get("latency_ms", round((time.monotonic() - t0) * 1000, 1)))
     _maybe_wait_approval("governance")
 
     total_ms = round((time.monotonic() - start) * 1000, 1)
@@ -228,6 +329,7 @@ def run_research_agent(
         "citations": synth_result["citations"],
         "governance_decision": gov_result["decision"],
         "total_ms": total_ms,
+        "mode_label": "live" if live else "simulated",
     }
 
     if run_state:
