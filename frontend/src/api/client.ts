@@ -89,4 +89,16 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ text, mode }),
     }),
+
+  workloadProfiles: () =>
+    request<Record<string, unknown>>('/v1/workload/profiles'),
+
+  workloadRun: (profile: string, mode: string, seed: number, live = false, unlock_code = '') =>
+    request<Record<string, unknown>>('/v1/workload/run', {
+      method: 'POST',
+      body: JSON.stringify({ profile, mode, seed, live, unlock_code }),
+    }),
+
+  workloadStatus: (runId: string) =>
+    request<Record<string, unknown>>(`/v1/workload/status/${runId}`),
 };

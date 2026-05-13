@@ -846,6 +846,87 @@ async def overdrive_set_health(lane_id: str, healthy: bool = True):
     return {"lane": lane_id, "healthy": healthy}
 
 
+@app.get("/v1/workload/profiles")
+async def workload_profiles():
+    from overdrive.workload_profiles import list_profiles, SCENARIO_NARRATIVES
+    from overdrive.power_modes import list_modes
+    return {"profiles": list_profiles(), "modes": list_modes(), "narratives": SCENARIO_NARRATIVES}
+
+
+class WorkloadRunRequest(BaseModel):
+    profile: str
+    mode: str
+    seed: int = 42
+    live: bool = False
+    unlock_code: str = ""
+
+
+import threading
+
+_workload_runs: dict = {}
+_WORKLOAD_EXPIRY_SECONDS = 600
+
+
+def _cleanup_old_runs():
+    now = time_module.time()
+    expired = [k for k, v in _workload_runs.items() if now - v.get("started_at", now) > _WORKLOAD_EXPIRY_SECONDS]
+    for k in expired:
+        _workload_runs.pop(k, None)
+
+
+@app.post("/v1/workload/run")
+async def workload_run(req: WorkloadRunRequest, raw_request: Request):
+    check_rate_limit(raw_request.client.host)
+    from overdrive.batch_runner import run_workload_streaming, _verify_unlock, GOVERNED_MODES
+
+    if req.live and req.mode in GOVERNED_MODES:
+        if not req.unlock_code or not _verify_unlock(req.unlock_code):
+            raise HTTPException(status_code=403, detail="Unlock code required for live mode with this power mode")
+
+    _cleanup_old_runs()
+
+    import uuid
+    run_id = f"run-{uuid.uuid4().hex[:8]}"
+
+    run_state = {
+        "run_id": run_id,
+        "status": "running",
+        "completed": 0,
+        "total": 0,
+        "results": [],
+        "started_at": time_module.time(),
+    }
+    _workload_runs[run_id] = run_state
+
+    def _run_in_background():
+        try:
+            result = run_workload_streaming(
+                profile=req.profile, mode=req.mode, seed=req.seed,
+                live=req.live, unlock_code=req.unlock_code,
+                run_state=run_state,
+            )
+            run_state.update(result)
+            run_state["status"] = "complete"
+        except PermissionError as e:
+            run_state["status"] = "error"
+            run_state["error"] = str(e)
+        except Exception as e:
+            run_state["status"] = "error"
+            run_state["error"] = str(e)
+
+    thread = threading.Thread(target=_run_in_background, daemon=True)
+    thread.start()
+
+    return {"run_id": run_id, "status": "running"}
+
+
+@app.get("/v1/workload/status/{run_id}")
+async def workload_status(run_id: str):
+    if run_id not in _workload_runs:
+        raise HTTPException(status_code=404, detail=f"Run '{run_id}' not found")
+    return _workload_runs[run_id]
+
+
 _tokenizer_cache: dict = {}
 
 TOKENIZER_MODELS = {

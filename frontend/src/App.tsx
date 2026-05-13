@@ -11,6 +11,7 @@ import GovernanceAudit from './pages/GovernanceAudit';
 import Overdrive from './pages/Overdrive';
 import Docs from './pages/Docs';
 import Tokenizer from './pages/Tokenizer';
+import WorkloadDemo from './pages/WorkloadDemo';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -33,6 +34,7 @@ export default function App() {
             <Route path="/governance" element={<GovernanceAudit />} />
             <Route path="/overdrive" element={<Overdrive />} />
             <Route path="/tokenizer" element={<Tokenizer />} />
+            <Route path="/workload" element={<WorkloadDemo />} />
             <Route path="/docs" element={<Docs />} />
           </Route>
         </Routes>
