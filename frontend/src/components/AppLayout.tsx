@@ -23,18 +23,32 @@ import {
 import { BarsIcon } from '@patternfly/react-icons';
 import { useHealth } from '../api/hooks';
 
-const navItems = [
-  { path: '/', label: 'Overview' },
-  { path: '/architecture', label: 'Architecture' },
-  { path: '/try-it', label: 'Try It' },
-  { path: '/use-cases', label: 'Use Cases' },
-  { path: '/operations', label: 'Operations' },
-  { path: '/governance', label: 'Governance Audit' },
-  { path: '/overdrive', label: 'Overdrive' },
-  { path: '/tokenizer', label: 'Tokenizer' },
-  { path: '/workload', label: 'Workload Demo' },
-  { path: '/agent', label: 'Research Agent' },
-  { path: '/docs', label: 'Documentation' },
+const navSections = [
+  {
+    title: 'Understand',
+    items: [
+      { path: '/', label: 'Overview' },
+      { path: '/architecture', label: 'Architecture' },
+    ],
+  },
+  {
+    title: 'Experience',
+    items: [
+      { path: '/overdrive', label: 'Routing Engine' },
+      { path: '/tokenizer', label: 'Tokenizer & Cost' },
+      { path: '/try-it', label: 'Try It' },
+      { path: '/workload', label: 'Workload Simulation' },
+      { path: '/agent', label: 'Research Agent' },
+    ],
+  },
+  {
+    title: 'Observe',
+    items: [
+      { path: '/operations', label: 'Operations' },
+      { path: '/governance', label: 'Governance Audit' },
+      { path: '/docs', label: 'Documentation' },
+    ],
+  },
 ];
 
 export default function AppLayout() {
@@ -86,15 +100,26 @@ export default function AppLayout() {
     <PageSidebar>
       <PageSidebarBody>
         <Nav aria-label="Main navigation">
-          <NavList>
-            {navItems.map(({ path, label }) => (
-              <NavItem key={path}>
-                <NavLink to={path} className={({ isActive }) => isActive ? 'pf-m-current' : ''}>
-                  {label}
-                </NavLink>
-              </NavItem>
-            ))}
-          </NavList>
+          {navSections.map((section) => (
+            <div key={section.title}>
+              <div style={{
+                padding: '12px 16px 4px', fontSize: '0.7rem', fontWeight: 700,
+                textTransform: 'uppercase', letterSpacing: '0.05em',
+                color: 'var(--pf-t--global--text--color--subtle)',
+              }}>
+                {section.title}
+              </div>
+              <NavList>
+                {section.items.map(({ path, label }) => (
+                  <NavItem key={path}>
+                    <NavLink to={path} className={({ isActive }) => isActive ? 'pf-m-current' : ''}>
+                      {label}
+                    </NavLink>
+                  </NavItem>
+                ))}
+              </NavList>
+            </div>
+          ))}
         </Nav>
       </PageSidebarBody>
     </PageSidebar>

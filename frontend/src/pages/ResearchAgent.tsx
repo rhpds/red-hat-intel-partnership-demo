@@ -16,11 +16,11 @@ import { CheckCircleIcon, ExclamationCircleIcon, InProgressIcon, LockIcon, Pendi
 import { api } from '../api/client';
 
 const PRESETS = [
-  "How does the routing engine decide between Xeon 6 and Gaudi for different workload types?",
-  "What happens when the Gaudi accelerator goes offline? Describe the failover mechanism.",
-  "Compare the throughput and cost characteristics of running inference on Xeon 6 vs Gaudi.",
-  "Explain the tokenization differences across models and how they affect routing decisions.",
-  "What governance controls are in place for AI-generated actions on this platform?",
+  { label: 'Hardware Routing', question: 'How does the routing engine decide between Xeon 6 and Gaudi for different workload types?' },
+  { label: 'Failover', question: 'What happens when the Gaudi accelerator goes offline? Describe the failover mechanism.' },
+  { label: 'Cost & Throughput', question: 'Compare the throughput and cost characteristics of running inference on Xeon 6 vs Gaudi.' },
+  { label: 'Tokenization', question: 'Explain the tokenization differences across models and how they affect routing decisions.' },
+  { label: 'Governance', question: 'What governance controls are in place for AI-generated actions on this platform?' },
 ];
 
 const GOVERNANCE_MODES = [
@@ -55,7 +55,7 @@ const StatusIcon = ({ status }: { status: string }) => {
 };
 
 export default function ResearchAgent() {
-  const [question, setQuestion] = useState(PRESETS[0]);
+  const [question, setQuestion] = useState(PRESETS[0].question);
   const [govMode, setGovMode] = useState('open');
   const [govOpen, setGovOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -138,8 +138,17 @@ export default function ResearchAgent() {
               onChange={(_e, val) => setQuestion(val.slice(0, 500))}
               rows={2}
               maxLength={500}
+              validated={question.length >= 500 ? 'warning' : question.trim().length < 5 ? 'error' : 'default'}
               style={{ fontFamily: 'var(--pf-t--global--font--family--mono)', fontSize: '0.88rem' }}
             />
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '4px', fontSize: '0.75rem' }}>
+              <span style={{ color: question.trim().length < 5 ? 'var(--rh-color--brand)' : 'var(--rh-color--text-secondary)' }}>
+                {question.trim().length < 5 ? 'Minimum 5 characters' : ''}
+              </span>
+              <span style={{ color: question.length >= 500 ? 'var(--rh-color--brand)' : 'var(--rh-color--text-secondary)' }}>
+                {question.length} / 500
+              </span>
+            </div>
           </div>
           <div style={{ minWidth: '200px' }}>
             <div style={{ fontSize: '0.85rem', fontWeight: 600, marginBottom: 4 }}>Governance Mode</div>
@@ -164,13 +173,23 @@ export default function ResearchAgent() {
           </Button>
         </div>
 
-        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-          <Content component="small" style={{ fontWeight: 600, marginRight: '4px' }}>Presets:</Content>
+        <Content component="small" style={{ fontWeight: 600, display: 'block', marginBottom: '8px' }}>Preset Questions:</Content>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '8px' }}>
           {PRESETS.map((p, i) => (
-            <Button key={i} variant="secondary" size="sm" onClick={() => setQuestion(p)}
-              style={{ maxWidth: '250px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textAlign: 'left' }}>
-              {p.slice(0, 60)}...
-            </Button>
+            <div key={i}
+              onClick={() => setQuestion(p.question)}
+              style={{
+                padding: '10px 14px', borderRadius: '6px', cursor: 'pointer',
+                background: question === p.question ? 'var(--rh-color--xeon6-bg)' : 'var(--rh-color--surface)',
+                border: `1px solid ${question === p.question ? 'var(--rh-color--xeon6)' : 'var(--rh-color--border)'}`,
+                transition: 'all 0.15s',
+              }}
+            >
+              <div style={{ fontWeight: 600, fontSize: '0.82rem', marginBottom: '4px' }}>{p.label}</div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--rh-color--text-secondary)', lineHeight: '1.4' }}>
+                {p.question}
+              </div>
+            </div>
           ))}
         </div>
       </PageSection>

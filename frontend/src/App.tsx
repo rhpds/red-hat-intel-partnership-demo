@@ -5,7 +5,6 @@ import ErrorBoundary from './components/ErrorBoundary';
 import Overview from './pages/Overview';
 import Architecture from './pages/Architecture';
 import TryIt from './pages/TryIt';
-import UseCases from './pages/UseCases';
 import Operations from './pages/Operations';
 import GovernanceAudit from './pages/GovernanceAudit';
 import Overdrive from './pages/Overdrive';
@@ -30,7 +29,6 @@ export default function App() {
             <Route index element={<Overview />} />
             <Route path="/architecture" element={<Architecture />} />
             <Route path="/try-it" element={<TryIt />} />
-            <Route path="/use-cases" element={<UseCases />} />
             <Route path="/operations" element={<Operations />} />
             <Route path="/governance" element={<GovernanceAudit />} />
             <Route path="/overdrive" element={<Overdrive />} />

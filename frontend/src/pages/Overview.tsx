@@ -130,10 +130,10 @@ export default function Overview() {
         </Content>
         <Gallery hasGutter minWidths={{ default: '250px' }} style={{ marginTop: '1rem' }}>
           {[
-            { num: '1', title: 'See the Architecture', desc: 'Understand the routing logic and hardware tiers.', path: '/architecture' },
-            { num: '2', title: 'Try It Live', desc: 'Send a request and watch the gateway route it.', path: '/try-it' },
-            { num: '3', title: 'Explore Use Cases', desc: 'RAG, AIOps, and governed agents — built on this platform.', path: '/use-cases' },
-            { num: '4', title: 'Check Operations', desc: 'Live request history, latency, cost, and routing distribution.', path: '/operations' },
+            { num: '1', title: 'See the Architecture', desc: 'Understand the routing logic and Intel hardware tiers.', path: '/architecture' },
+            { num: '2', title: 'Explore the Routing Engine', desc: 'Learn the 3 lanes. Route a request. See exactly why Xeon 6 or Gaudi was chosen.', path: '/overdrive' },
+            { num: '3', title: 'Try It Live', desc: 'Watch RAG, AIOps, and Agent workflows use intelligent routing in real time.', path: '/try-it' },
+            { num: '4', title: 'Run at Scale', desc: 'Simulate 25 to 1,000 enterprise requests and see hardware distribution.', path: '/workload' },
           ].map((step) => (
             <GalleryItem key={step.num}>
               <Card isClickable isSelectable onClick={() => navigate(step.path)}>
