@@ -102,6 +102,8 @@ export default function CockpitDashboard() {
   const [mode, setMode] = useState<Mode>('STANDBY');
   const [liveData, setLiveData] = useState<Record<string, unknown> | null>(null);
   const [launching, setLaunching] = useState(false);
+  const [showModels, setShowModels] = useState(true);
+  const [showTasks, setShowTasks] = useState(false);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const m = useMetrics(mode);
 
@@ -287,10 +289,103 @@ export default function CockpitDashboard() {
         </div>
       </div>
 
+      {/* LLM Telemetry — collapsible */}
+      {(() => {
+        const mt = (liveData?.model_telemetry || {}) as Record<string, Record<string, unknown>>;
+        const tt = (liveData?.task_telemetry || {}) as Record<string, Record<string, unknown>>;
+        const hasModels = Object.keys(mt).length > 0;
+        const hasTasks = Object.keys(tt).length > 0;
+        if (!hasModels && !hasTasks) return null;
+
+        const modelColors: Record<string, string> = { 'granite-4-0-h-tiny': '#00c853', 'codellama-7b-instruct': '#0071c5', 'llama-scout-17b': '#ff6d00' };
+        const modelHW: Record<string, string> = { 'granite-4-0-h-tiny': 'Xeon 6 Eco', 'codellama-7b-instruct': 'Xeon 6 + AMX', 'llama-scout-17b': 'Gaudi' };
+
+        return (
+          <>
+            {/* Model Activity */}
+            {hasModels && (
+              <div style={{ marginBottom: '12px' }}>
+                <div style={{ fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#888', marginBottom: '8px', cursor: 'pointer' }}
+                  onClick={() => setShowModels(!showModels)}>
+                  {showModels ? '▼' : '▶'} MODEL INFERENCE TELEMETRY
+                </div>
+                {showModels && (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '10px' }}>
+                    {Object.entries(mt).map(([model, stats]) => {
+                      const color = modelColors[model] || '#888';
+                      const tasks = (stats.tasks || {}) as Record<string, number>;
+                      return (
+                        <div key={model} style={{ background: '#141414', border: `1px solid ${color}`, borderRadius: '8px', padding: '12px', borderLeft: `4px solid ${color}` }}>
+                          <div style={{ fontWeight: 700, fontSize: '0.85rem', color }}>{model}</div>
+                          <div style={{ fontSize: '0.72rem', color: '#888', marginBottom: '8px' }}>{modelHW[model] || 'Unknown'}</div>
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px', fontSize: '0.78rem' }}>
+                            <div><span style={{ fontFamily: 'Red Hat Mono, monospace', fontWeight: 700 }}>{stats.count as number}</span> <span style={{ color: '#888' }}>reqs</span></div>
+                            <div><span style={{ fontFamily: 'Red Hat Mono, monospace', fontWeight: 700 }}>{(stats.avg_latency_ms as number || 0).toFixed(0)}</span> <span style={{ color: '#888' }}>ms avg</span></div>
+                            <div><span style={{ fontFamily: 'Red Hat Mono, monospace', fontWeight: 700 }}>{(stats.total_input_tokens as number || 0).toLocaleString()}</span> <span style={{ color: '#888' }}>in tok</span></div>
+                            <div><span style={{ fontFamily: 'Red Hat Mono, monospace', fontWeight: 700 }}>{(stats.total_output_tokens as number || 0).toLocaleString()}</span> <span style={{ color: '#888' }}>out tok</span></div>
+                            <div style={{ gridColumn: 'span 2' }}><span style={{ fontFamily: 'Red Hat Mono, monospace', fontWeight: 700, color }}>{(stats.tokens_per_sec as number || 0).toLocaleString()}</span> <span style={{ color: '#888' }}>tok/s</span></div>
+                          </div>
+                          {Object.keys(tasks).length > 0 && (
+                            <div style={{ marginTop: '6px', display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                              {Object.entries(tasks).map(([task, count]) => (
+                                <span key={task} style={{ fontSize: '0.68rem', padding: '2px 6px', borderRadius: '3px', background: '#2a2a2a', color: '#aaa' }}>
+                                  {task}: {count}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Task Breakdown */}
+            {hasTasks && (
+              <div style={{ marginBottom: '12px' }}>
+                <div style={{ fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#888', marginBottom: '8px', cursor: 'pointer' }}
+                  onClick={() => setShowTasks(!showTasks)}>
+                  {showTasks ? '▼' : '▶'} TASK TYPE BREAKDOWN
+                </div>
+                {showTasks && (
+                  <div style={{ background: '#141414', border: '1px solid #2a2a2a', borderRadius: '8px', padding: '12px' }}>
+                    {Object.entries(tt).sort((a, b) => (b[1].count as number) - (a[1].count as number)).map(([task, stats]) => {
+                      const lanes = (stats.lanes || {}) as Record<string, number>;
+                      const maxCount = Math.max(...Object.values(tt).map(s => s.count as number));
+                      const barPct = maxCount > 0 ? ((stats.count as number) / maxCount) * 100 : 0;
+                      return (
+                        <div key={task} style={{ marginBottom: '8px' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', marginBottom: '2px' }}>
+                            <span>{task}</span>
+                            <span style={{ fontFamily: 'Red Hat Mono, monospace' }}>
+                              {stats.count as number} reqs · {(stats.avg_latency_ms as number || 0).toFixed(0)}ms
+                              {Object.entries(lanes).map(([l, c]) => (
+                                <span key={l} style={{ marginLeft: '8px', color: l === 'eco' ? '#00c853' : l === 'performance' ? '#0071c5' : '#ff6d00' }}>
+                                  {l}: {c}
+                                </span>
+                              ))}
+                            </span>
+                          </div>
+                          <div style={{ height: '4px', borderRadius: '2px', background: '#2a2a2a', overflow: 'hidden' }}>
+                            <div style={{ height: '100%', width: `${barPct}%`, background: '#0071c5', borderRadius: '2px' }} />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+          </>
+        );
+      })()}
+
       {/* Footer */}
       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: '#555', padding: '8px 0' }}>
         <span>Intel Xeon 6 + Gaudi — Red Hat OpenShift AI Platform</span>
-        <span>Mock Telemetry • Deterministic Simulation</span>
+        <span>{hasLiveData ? 'Live Telemetry' : 'Mock Telemetry'} • {hasLiveData ? 'Platform Active' : 'Deterministic Simulation'}</span>
       </div>
     </div>
   );

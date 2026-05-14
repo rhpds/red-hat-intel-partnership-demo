@@ -774,7 +774,7 @@ async def platform_status():
         if run.get("status") == "running":
             active_runs.append({"type": "workload", "run_id": run_id, "profile": run.get("workload_profile", ""), "mode": run.get("power_mode", ""), "completed": run.get("completed", 0), "total": run.get("total", 0)})
         elif run.get("status") == "complete" and (latest_completed is None or run.get("started_at", 0) > latest_completed.get("started_at", 0)):
-            latest_completed = {"type": "workload", "run_id": run_id, **{k: run.get(k) for k in ["workload_profile", "power_mode", "total_requests", "completed_requests", "route_counts", "requests_per_second", "estimated_tokens_per_second", "p50_latency_ms", "p95_latency_ms", "p99_latency_ms", "xeon_eco_utilization_pct", "xeon_performance_utilization_pct", "gaudi_overdrive_utilization_pct", "total_images", "total_documents", "modality_counts", "mode_label"]}}
+            latest_completed = {"type": "workload", "run_id": run_id, **{k: run.get(k) for k in ["workload_profile", "power_mode", "total_requests", "completed_requests", "route_counts", "requests_per_second", "estimated_tokens_per_second", "p50_latency_ms", "p95_latency_ms", "p99_latency_ms", "xeon_eco_utilization_pct", "xeon_performance_utilization_pct", "gaudi_overdrive_utilization_pct", "total_images", "total_documents", "modality_counts", "mode_label", "results"]}}
 
     for run_id, run in _agent_runs.items():
         if run.get("status") == "running":
@@ -820,6 +820,46 @@ async def platform_status():
                 idx = int(len(latencies) * 0.95)
                 agg_p95 = round(latencies[min(idx, len(latencies) - 1)], 1)
         live_progress = {"completed": completed, "total": total, "pct": round(completed / total * 100) if total else 0}
+
+        from collections import defaultdict as _dd
+        model_stats = _dd(lambda: {"count": 0, "total_latency": 0, "total_input_tokens": 0, "total_output_tokens": 0, "tasks": _dd(int)})
+        task_stats = _dd(lambda: {"count": 0, "total_latency": 0, "lanes": _dd(int)})
+        for r in results:
+            lane = r.get("lane", "unknown")
+            task = r.get("task_type", "unknown")
+            lat = r.get("latency_ms", 0)
+            inp = r.get("input_tokens", 0)
+            out = r.get("output_tokens", 0)
+            model_map = {"eco": "granite-4-0-h-tiny", "performance": "codellama-7b-instruct", "overdrive": "llama-scout-17b"}
+            model_name = model_map.get(lane, "unknown")
+            ms = model_stats[model_name]
+            ms["count"] += 1
+            ms["total_latency"] += lat
+            ms["total_input_tokens"] += inp
+            ms["total_output_tokens"] += out
+            ms["tasks"][task] += 1
+            ts = task_stats[task]
+            ts["count"] += 1
+            ts["total_latency"] += lat
+            ts["lanes"][lane] += 1
+
+        model_telemetry = {}
+        for mname, ms in model_stats.items():
+            avg_lat = round(ms["total_latency"] / ms["count"], 1) if ms["count"] else 0
+            tps = round(ms["total_output_tokens"] / (ms["total_latency"] / 1000)) if ms["total_latency"] > 0 else 0
+            model_telemetry[mname] = {
+                "count": ms["count"],
+                "avg_latency_ms": avg_lat,
+                "total_input_tokens": ms["total_input_tokens"],
+                "total_output_tokens": ms["total_output_tokens"],
+                "tokens_per_sec": tps,
+                "tasks": dict(ms["tasks"]),
+            }
+
+        task_telemetry = {}
+        for tname, ts in task_stats.items():
+            avg_lat = round(ts["total_latency"] / ts["count"], 1) if ts["count"] else 0
+            task_telemetry[tname] = {"count": ts["count"], "avg_latency_ms": avg_lat, "lanes": dict(ts["lanes"])}
     elif latest_completed:
         agg_rps = latest_completed.get("requests_per_second", 0) or 0
         agg_tps = latest_completed.get("estimated_tokens_per_second", 0) or 0
@@ -830,11 +870,49 @@ async def platform_status():
         agg_docs = latest_completed.get("total_documents", 0) or 0
         agg_modalities = latest_completed.get("modality_counts", {}) or {}
 
+        results = latest_completed.get("results", [])
+        if results:
+            from collections import defaultdict as _dd
+            model_stats = _dd(lambda: {"count": 0, "total_latency": 0, "total_input_tokens": 0, "total_output_tokens": 0, "tasks": _dd(int)})
+            task_stats = _dd(lambda: {"count": 0, "total_latency": 0, "lanes": _dd(int)})
+            for r in results:
+                lane = r.get("lane", "unknown")
+                task = r.get("task_type", "unknown")
+                lat = r.get("latency_ms", 0)
+                inp = r.get("input_tokens", 0)
+                out = r.get("output_tokens", 0)
+                model_map = {"eco": "granite-4-0-h-tiny", "performance": "codellama-7b-instruct", "overdrive": "llama-scout-17b"}
+                model_name = model_map.get(lane, "unknown")
+                ms = model_stats[model_name]
+                ms["count"] += 1
+                ms["total_latency"] += lat
+                ms["total_input_tokens"] += inp
+                ms["total_output_tokens"] += out
+                ms["tasks"][task] += 1
+                ts = task_stats[task]
+                ts["count"] += 1
+                ts["total_latency"] += lat
+                ts["lanes"][lane] += 1
+            model_telemetry = {}
+            for mname, ms in model_stats.items():
+                avg_lat = round(ms["total_latency"] / ms["count"], 1) if ms["count"] else 0
+                tps_val = round(ms["total_output_tokens"] / (ms["total_latency"] / 1000)) if ms["total_latency"] > 0 else 0
+                model_telemetry[mname] = {"count": ms["count"], "avg_latency_ms": avg_lat, "total_input_tokens": ms["total_input_tokens"], "total_output_tokens": ms["total_output_tokens"], "tokens_per_sec": tps_val, "tasks": dict(ms["tasks"])}
+            task_telemetry = {}
+            for tname, ts in task_stats.items():
+                avg_lat = round(ts["total_latency"] / ts["count"], 1) if ts["count"] else 0
+                task_telemetry[tname] = {"count": ts["count"], "avg_latency_ms": avg_lat, "lanes": dict(ts["lanes"])}
+
+    mt = model_telemetry if 'model_telemetry' in dir() else {}
+    tt = task_telemetry if 'task_telemetry' in dir() else {}
+
     return {
         "active_runs": active_runs,
         "latest_completed": latest_completed,
         "training": training_info,
         "live_progress": live_progress,
+        "model_telemetry": mt,
+        "task_telemetry": tt,
         "aggregate": {
             "mode": agg_mode,
             "requests_per_second": agg_rps,
