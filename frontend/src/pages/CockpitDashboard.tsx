@@ -57,21 +57,17 @@ export default function CockpitDashboard() {
         const activeRuns = d.active_runs as Array<Record<string, unknown>> | undefined;
         const isActive = activeRuns && activeRuns.some(r => r.type === 'workload');
 
-        // Update persistent metrics — only climb, never reset
+        // Update metrics from current run
         const newCompleted = lp?.completed ?? 0;
         const newTotal = lp?.total ?? 0;
-        if (newCompleted > 0) setCompleted(prev => Math.max(prev, newCompleted));
-        if (newTotal > 0) setTotal(prev => Math.max(prev, newTotal));
-        if (Object.keys(rc).length > 0) setRoutes(prev => {
-          const merged = { ...prev };
-          for (const [k, v] of Object.entries(rc)) { merged[k] = Math.max(merged[k] || 0, v); }
-          return merged;
-        });
-        if (agg?.requests_per_second) setRps(prev => Math.max(prev, Math.round(agg.requests_per_second as number)));
-        if (agg?.estimated_tokens_per_second) setTps(prev => Math.max(prev, Math.round(agg.estimated_tokens_per_second as number)));
-        if (agg?.p95_latency_ms) setP95(prev => Math.max(prev, Math.round(agg.p95_latency_ms as number)));
+        if (newCompleted > 0) setCompleted(newCompleted);
+        if (newTotal > 0) setTotal(newTotal);
+        if (Object.keys(rc).length > 0) setRoutes(rc);
+        if (agg?.requests_per_second) setRps(Math.round(agg.requests_per_second as number));
+        if (agg?.estimated_tokens_per_second) setTps(Math.round(agg.estimated_tokens_per_second as number));
+        if (agg?.p95_latency_ms) setP95(Math.round(agg.p95_latency_ms as number));
         const newImages = agg?.total_images as number || 0;
-        if (newImages > 0) setImages(prev => Math.max(prev, newImages));
+        if (newImages > 0) setImages(newImages);
         if (Object.keys(mt).length > 0) setModels(mt);
 
         // Add to history if progress changed
