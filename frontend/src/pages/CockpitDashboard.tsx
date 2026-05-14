@@ -9,8 +9,9 @@ const DEMOS = [
 ];
 
 const SCALES = [
-  { id: 'quick', label: 'Quick', mode: 'standby', count: 5, time: '~5s' },
-  { id: 'standard', label: 'Standard', mode: 'drive', count: 25, time: '~20s' },
+  { id: 'quick', label: 'Quick', mode: 'standby', count: 5, time: '~5s', locked: false },
+  { id: 'standard', label: 'Standard', mode: 'drive', count: 25, time: '~20s', locked: false },
+  { id: 'extended', label: 'Extended', mode: 'boost', count: 250, time: '~3 min', locked: true },
 ];
 
 const MODEL_COLORS: Record<string, string> = { 'granite-4-0-h-tiny': '#3e8635', 'codellama-7b-instruct': '#0068b5', 'llama-scout-17b': '#e67e22' };
@@ -26,6 +27,7 @@ export default function CockpitDashboard() {
   const [launching, setLaunching] = useState(false);
   const [showTelemetry, setShowTelemetry] = useState(true);
   const [scale, setScale] = useState('standard');
+  const [unlockCode, setUnlockCode] = useState('');
   const selectedScale = SCALES.find(s => s.id === scale) || SCALES[1];
 
   // Persistent metrics — survive state transitions
@@ -114,7 +116,7 @@ export default function CockpitDashboard() {
     setHistory([]); setModels({}); setShowTelemetry(true);
     startTimeRef.current = Date.now();
     setDemoState('running');
-    try { await api.workloadRun(profileId, selectedScale.mode, 42, true); } catch { /* ignore */ }
+    try { await api.workloadRun(profileId, selectedScale.mode, 42, true, selectedScale.locked ? unlockCode : ''); } catch { /* ignore */ }
     setLaunching(false);
   };
 
@@ -180,14 +182,28 @@ export default function CockpitDashboard() {
             </div>
           </div>
 
+          {/* Unlock code for extended */}
+          {selectedScale.locked && (
+            <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginBottom: '12px', alignItems: 'center' }}>
+              <span style={{ fontSize: '0.68rem', color: '#666', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Unlock:</span>
+              <input type="password" value={unlockCode} onChange={e => setUnlockCode(e.target.value)} placeholder="Required for extended"
+                style={{ background: '#1e1e1e', border: '1px solid #333', borderRadius: '4px', padding: '4px 10px', color: '#ccc', fontSize: '0.78rem', width: '160px', fontFamily: 'RedHatMono, monospace' }} />
+            </div>
+          )}
+
           <div style={{ textAlign: 'center', marginBottom: '20px', fontSize: '0.7rem', color: '#555' }}>
             Live inference via LiteLLM · {selectedScale.count} requests · {selectedScale.time}
+            {selectedScale.locked && !unlockCode && ' · unlock code required'}
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '10px' }}>
             {DEMOS.map(d => (
-              <div key={d.id} onClick={() => !launching && launchDemo(d.id)} style={{
-                background: '#141414', border: '1px solid #2a2a2a', borderRadius: '8px', padding: '14px', cursor: 'pointer', transition: 'border-color 0.2s',
-              }} onMouseEnter={e => (e.currentTarget.style.borderColor = '#ee0000')} onMouseLeave={e => (e.currentTarget.style.borderColor = '#2a2a2a')}>
+              <div key={d.id} onClick={() => !launching && !(selectedScale.locked && !unlockCode) && launchDemo(d.id)} style={{
+                background: '#141414', border: '1px solid #2a2a2a', borderRadius: '8px', padding: '14px',
+                cursor: (selectedScale.locked && !unlockCode) ? 'not-allowed' : 'pointer',
+                opacity: (selectedScale.locked && !unlockCode) ? 0.5 : 1,
+                transition: 'border-color 0.2s',
+              }} onMouseEnter={e => { if (!(selectedScale.locked && !unlockCode)) e.currentTarget.style.borderColor = '#ee0000'; }}
+                 onMouseLeave={e => (e.currentTarget.style.borderColor = '#2a2a2a')}>
                 <div style={{ fontWeight: 700, fontSize: '0.88rem', marginBottom: '4px' }}>{d.name}</div>
                 <div style={{ fontSize: '0.75rem', color: '#888' }}>{d.desc}</div>
               </div>
