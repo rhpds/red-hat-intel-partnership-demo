@@ -19,7 +19,7 @@ export default function CockpitDashboard() {
   const [demoState, setDemoState] = useState<DemoState>('idle');
   const [activeDemo, setActiveDemo] = useState<string | null>(null);
   const [launching, setLaunching] = useState(false);
-  const [showTelemetry, setShowTelemetry] = useState(false);
+  const [showTelemetry, setShowTelemetry] = useState(true);
 
   // Persistent metrics — survive state transitions
   const [completed, setCompleted] = useState(0);
@@ -48,30 +48,47 @@ export default function CockpitDashboard() {
         const activeRuns = d.active_runs as Array<Record<string, unknown>> | undefined;
         const isActive = activeRuns && activeRuns.some(r => r.type === 'workload');
 
-        // Update persistent metrics
-        const newCompleted = lp?.completed || completed;
-        const newTotal = lp?.total || total;
-        setCompleted(newCompleted);
-        setTotal(newTotal);
-        if (Object.keys(rc).length > 0) setRoutes(rc);
-        if (agg?.requests_per_second) setRps(Math.round(agg.requests_per_second as number));
-        if (agg?.estimated_tokens_per_second) setTps(Math.round(agg.estimated_tokens_per_second as number));
-        if (agg?.p95_latency_ms) setP95(Math.round(agg.p95_latency_ms as number));
-        if (agg?.total_images) setImages(agg.total_images as number);
+        // Update persistent metrics — only climb, never reset
+        const newCompleted = lp?.completed ?? 0;
+        const newTotal = lp?.total ?? 0;
+        if (newCompleted > 0) setCompleted(prev => Math.max(prev, newCompleted));
+        if (newTotal > 0) setTotal(prev => Math.max(prev, newTotal));
+        if (Object.keys(rc).length > 0) setRoutes(prev => {
+          const merged = { ...prev };
+          for (const [k, v] of Object.entries(rc)) { merged[k] = Math.max(merged[k] || 0, v); }
+          return merged;
+        });
+        if (agg?.requests_per_second) setRps(prev => Math.max(prev, Math.round(agg.requests_per_second as number)));
+        if (agg?.estimated_tokens_per_second) setTps(prev => Math.max(prev, Math.round(agg.estimated_tokens_per_second as number)));
+        if (agg?.p95_latency_ms) setP95(prev => Math.max(prev, Math.round(agg.p95_latency_ms as number)));
+        const newImages = agg?.total_images as number || 0;
+        if (newImages > 0) setImages(prev => Math.max(prev, newImages));
         if (Object.keys(mt).length > 0) setModels(mt);
 
         // Add to history if progress changed
-        if (newCompleted > 0) {
+        const snapCompleted = newCompleted > 0 ? newCompleted : (Object.values(rc).reduce((a, b) => a + b, 0) || 0);
+        if (snapCompleted > 0) {
           const elapsed = startTimeRef.current > 0 ? Math.round((Date.now() - startTimeRef.current) / 1000) : 0;
           setHistory(prev => {
             const last = prev[prev.length - 1];
-            if (last && last.completed === newCompleted) return prev;
-            return [...prev, { t: elapsed, completed: newCompleted, eco: rc.eco || 0, perf: rc.performance || 0, gaudi: rc.overdrive || 0, images: agg?.total_images as number || 0 }];
+            if (last && last.completed >= snapCompleted) return prev;
+            return [...prev, { t: elapsed, completed: snapCompleted, eco: rc.eco || 0, perf: rc.performance || 0, gaudi: rc.overdrive || 0, images: newImages }];
           });
         }
 
-        // Transition to done when no more active runs
-        if (!isActive && newCompleted > 0) {
+        // Transition to done — grab final metrics from latest_completed
+        if (!isActive && snapCompleted > 0) {
+          const lc = d.latest_completed as Record<string, unknown> | null;
+          if (lc) {
+            const lcRc = (lc.route_counts || {}) as Record<string, number>;
+            if (Object.keys(lcRc).length > 0) setRoutes(lcRc);
+            if (lc.total_requests) setCompleted(lc.total_requests as number);
+            if (lc.requests_per_second) setRps(Math.round(lc.requests_per_second as number));
+            if (lc.estimated_tokens_per_second) setTps(Math.round(lc.estimated_tokens_per_second as number));
+            if (lc.p95_latency_ms) setP95(Math.round(lc.p95_latency_ms as number));
+            const lcImgs = lc.total_images as number || 0;
+            if (lcImgs > 0) setImages(lcImgs);
+          }
           setDemoState('done');
           if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
         }
@@ -120,12 +137,19 @@ export default function CockpitDashboard() {
           </div>
           <div style={{ fontSize: '0.72rem', color: '#666' }}>Intel Xeon 6 + Gaudi</div>
         </div>
-        {isActive && (
-          <div style={{ padding: '6px 16px', borderRadius: '4px', fontSize: '0.78rem', fontWeight: 700, letterSpacing: '0.08em',
-            background: isDone ? '#00c853' : '#0071c5', color: '#fff', transition: 'background 0.5s' }}>
-            {isDone ? 'COMPLETE' : 'LIVE'}
-          </div>
-        )}
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          {isActive && (
+            <div style={{ padding: '6px 16px', borderRadius: '4px', fontSize: '0.78rem', fontWeight: 700, letterSpacing: '0.08em',
+              background: isDone ? '#00c853' : '#0071c5', color: '#fff', transition: 'background 0.5s' }}>
+              {isDone ? 'COMPLETE' : 'LIVE'}
+            </div>
+          )}
+          {isDone && (
+            <button className="ck-mode-btn" onClick={resetDemo} style={{ fontSize: '0.72rem', padding: '5px 12px' }}>
+              ← Back
+            </button>
+          )}
+        </div>
       </div>
 
       {/* ===== IDLE ===== */}
