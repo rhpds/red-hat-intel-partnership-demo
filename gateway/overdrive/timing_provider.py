@@ -1,5 +1,6 @@
 """Timing providers for inference latency and throughput — mock and real."""
 
+import os
 import random
 import time
 
@@ -95,7 +96,7 @@ TASK_TO_LITELLM_MODEL = {
 class RealTimingProvider:
     """Makes real inference calls through the gateway's /v1/route endpoint."""
 
-    min_interval_ms = 750
+    min_interval_ms = int(os.getenv("INFERENCE_THROTTLE_MS", "750"))
 
     def __init__(self, gateway_url: str = "http://localhost:8080", api_key: str = ""):
         self._gateway_url = gateway_url.rstrip("/")
