@@ -132,7 +132,9 @@ export default function CockpitDashboard() {
   };
 
   const hasLiveData = !!(liveData && ((liveData.active_runs as unknown[])?.length > 0 || liveData.latest_completed));
+  const agg = (hasLiveData ? liveData?.aggregate : null) as Record<string, unknown> | null;
   const lc = (hasLiveData ? liveData?.latest_completed : null) as Record<string, unknown> | null;
+  const liveProgress = liveData?.live_progress as { completed: number; total: number; pct: number } | null;
 
   const active = mode !== 'STANDBY' && mode !== 'COOLDOWN';
 
@@ -177,33 +179,47 @@ export default function CockpitDashboard() {
         {hasLiveData && <span style={{ marginLeft: 'auto', fontSize: '0.72rem', color: '#00c853' }}>● LIVE DATA</span>}
       </div>
 
+      {/* Live Progress Bar */}
+      {liveProgress && liveProgress.total > 0 && (
+        <div style={{ marginBottom: '12px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: '#888', marginBottom: '4px' }}>
+            <span>LIVE: {liveProgress.completed} / {liveProgress.total} requests</span>
+            <span>{liveProgress.pct}%</span>
+          </div>
+          <div style={{ height: '4px', borderRadius: '2px', background: '#2a2a2a', overflow: 'hidden' }}>
+            <div style={{ height: '100%', width: `${liveProgress.pct}%`, background: liveProgress.pct < 100 ? '#0071c5' : '#00c853', transition: 'width 0.5s', borderRadius: '2px' }} />
+          </div>
+        </div>
+      )}
+
       {/* Main Gauges */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginBottom: '20px' }}>
-        <Gauge value={lc ? Math.round(lc.requests_per_second as number || 0) : m.rps} label="Requests / sec" color={active ? '#0071c5' : '#555'} active={active} />
-        <Gauge value={lc ? Math.round(lc.estimated_tokens_per_second as number || 0) : m.tps} label="Tokens / sec" color={active ? '#00c853' : '#555'} active={active} />
-        <Gauge value={lc ? Math.round(lc.p95_latency_ms as number || 0) : m.p95} label="p95 Latency" unit="ms" color={(lc ? (lc.p95_latency_ms as number || 0) : m.p95) > 500 ? '#ff6d00' : active ? '#0071c5' : '#555'} active={active} />
+        <Gauge value={agg ? Math.round(agg.requests_per_second as number || 0) : m.rps} label="Requests / sec" color={active ? '#0071c5' : '#555'} active={active} />
+        <Gauge value={agg ? Math.round(agg.estimated_tokens_per_second as number || 0) : m.tps} label="Tokens / sec" color={active ? '#00c853' : '#555'} active={active} />
+        <Gauge value={agg ? Math.round(agg.p95_latency_ms as number || 0) : m.p95} label="p95 Latency" unit="ms" color={(agg ? (agg.p95_latency_ms as number || 0) : m.p95) > 500 ? '#ff6d00' : active ? '#0071c5' : '#555'} active={active} />
         <Gauge value={m.queue} label="Queue Depth" color={m.queue > 50 ? '#ee0000' : active ? '#0071c5' : '#555'} active={active} />
       </div>
 
       {/* Hardware Lanes */}
       {(() => {
-        const rc = (lc?.route_counts || {}) as Record<string, number>;
+        const rc = ((agg?.route_counts || lc?.route_counts || {}) as Record<string, number>);
         const total = Object.values(rc).reduce((a, b) => a + (b || 0), 0) || 1;
         const lEco = rc.eco || 0; const lPerf = rc.performance || 0; const lGaudi = rc.overdrive || 0;
+        const live = !!(agg || lc);
         return (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '20px' }}>
             <LaneCard name="XEON ECO" hw="Intel Xeon 6 • Granite Tiny" color="#00c853"
-              util={lc ? Math.round(lEco / total * 100) : m.ecoUtil}
-              count={lc ? lEco : m.ecoCount}
-              active={(lc ? lEco > 0 : m.ecoUtil > 5)} />
+              util={live ? Math.round(lEco / total * 100) : m.ecoUtil}
+              count={live ? lEco : m.ecoCount}
+              active={live ? lEco > 0 : m.ecoUtil > 5} />
             <LaneCard name="XEON PERFORMANCE" hw="Intel Xeon 6 + AMX • CodeLlama 7B" color="#0071c5"
-              util={lc ? Math.round(lPerf / total * 100) : m.perfUtil}
-              count={lc ? lPerf : m.perfCount}
-              active={(lc ? lPerf > 0 : m.perfUtil > 5)} />
+              util={live ? Math.round(lPerf / total * 100) : m.perfUtil}
+              count={live ? lPerf : m.perfCount}
+              active={live ? lPerf > 0 : m.perfUtil > 5} />
             <LaneCard name="GAUDI OVERDRIVE" hw="Intel Gaudi • Llama Scout 17B" color="#ff6d00"
-              util={lc ? Math.round(lGaudi / total * 100) : m.gaudiUtil}
-              count={lc ? lGaudi : m.gaudiCount}
-              active={(lc ? lGaudi > 0 : m.gaudiUtil > 5)} />
+              util={live ? Math.round(lGaudi / total * 100) : m.gaudiUtil}
+              count={live ? lGaudi : m.gaudiCount}
+              active={live ? lGaudi > 0 : m.gaudiUtil > 5} />
           </div>
         );
       })()}
@@ -213,9 +229,10 @@ export default function CockpitDashboard() {
         <div style={{ background: '#141414', border: '1px solid #2a2a2a', borderRadius: '8px', padding: '16px' }}>
           <div style={{ fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#888', marginBottom: '10px' }}>Route Distribution</div>
           {(() => {
-            const rc = (lc?.route_counts || {}) as Record<string, number>;
+            const rc = ((agg?.route_counts || lc?.route_counts || {}) as Record<string, number>);
             const rEco = rc.eco || 0; const rPerf = rc.performance || 0; const rGaudi = rc.overdrive || 0;
-            const dEco = lc ? rEco : m.ecoCount; const dPerf = lc ? rPerf : m.perfCount; const dGaudi = lc ? rGaudi : m.gaudiCount;
+            const hasAgg = !!(agg || lc);
+            const dEco = hasAgg ? rEco : m.ecoCount; const dPerf = hasAgg ? rPerf : m.perfCount; const dGaudi = hasAgg ? rGaudi : m.gaudiCount;
             const dTotal = dEco + dPerf + dGaudi || 1;
             const hasData = dEco + dPerf + dGaudi > 0;
             return hasData ? (
@@ -239,8 +256,8 @@ export default function CockpitDashboard() {
 
           {/* Multimodal metrics */}
           {(() => {
-            const imgs = lc ? (lc.total_images as number || 0) : m.imgPerSec;
-            const docs = lc ? (lc.total_documents as number || 0) : m.docPerSec;
+            const imgs = agg ? (agg.total_images as number || 0) : lc ? (lc.total_images as number || 0) : m.imgPerSec;
+            const docs = agg ? (agg.total_documents as number || 0) : lc ? (lc.total_documents as number || 0) : m.docPerSec;
             return (imgs > 0 || docs > 0) ? (
             <div style={{ marginTop: '12px', paddingTop: '12px', borderTop: '1px solid #2a2a2a' }}>
               <div style={{ fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#888', marginBottom: '6px' }}>Multimodal</div>

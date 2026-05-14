@@ -790,26 +790,60 @@ async def platform_status():
     agg_mode = "STANDBY"
     agg_rps = 0
     agg_tps = 0
+    agg_p95 = 0
     agg_routes = {}
-    if active_runs:
-        wr = [r for r in active_runs if r["type"] == "workload"]
-        if wr:
-            agg_mode = wr[0].get("mode", "DRIVE").upper()
-    if latest_completed and not active_runs:
+    agg_images = 0
+    agg_docs = 0
+    agg_modalities = {}
+    live_progress = None
+
+    active_workloads = [r for r in _workload_runs.values() if r.get("status") == "running"]
+    if active_workloads:
+        aw = active_workloads[0]
+        agg_mode = (aw.get("power_mode", aw.get("mode", "DRIVE")) or "DRIVE").upper()
+        results = aw.get("results", [])
+        completed = aw.get("completed", 0)
+        total = aw.get("total", 0)
+        if results:
+            from collections import Counter
+            rc = dict(Counter(r.get("lane", "unknown") for r in results))
+            agg_routes = rc
+            latencies = sorted(r.get("latency_ms", 0) for r in results)
+            agg_images = sum(r.get("image_count", 0) for r in results)
+            agg_docs = sum(1 for r in results if r.get("page_count", 0) > 0)
+            agg_modalities = dict(Counter(r.get("modality", "text") for r in results))
+            elapsed_sec = max(sum(r.get("latency_ms", 0) for r in results) / 1000, 0.1)
+            agg_rps = round(len(results) / elapsed_sec, 1)
+            total_tokens = sum(r.get("input_tokens", 0) + r.get("output_tokens", 0) for r in results)
+            agg_tps = round(total_tokens / elapsed_sec, 0)
+            if latencies:
+                idx = int(len(latencies) * 0.95)
+                agg_p95 = round(latencies[min(idx, len(latencies) - 1)], 1)
+        live_progress = {"completed": completed, "total": total, "pct": round(completed / total * 100) if total else 0}
+    elif latest_completed:
         agg_rps = latest_completed.get("requests_per_second", 0) or 0
         agg_tps = latest_completed.get("estimated_tokens_per_second", 0) or 0
         agg_routes = latest_completed.get("route_counts", {}) or {}
         agg_mode = (latest_completed.get("power_mode", "standby") or "standby").upper()
+        agg_p95 = latest_completed.get("p95_latency_ms", 0) or 0
+        agg_images = latest_completed.get("total_images", 0) or 0
+        agg_docs = latest_completed.get("total_documents", 0) or 0
+        agg_modalities = latest_completed.get("modality_counts", {}) or {}
 
     return {
         "active_runs": active_runs,
         "latest_completed": latest_completed,
         "training": training_info,
+        "live_progress": live_progress,
         "aggregate": {
             "mode": agg_mode,
             "requests_per_second": agg_rps,
             "estimated_tokens_per_second": agg_tps,
+            "p95_latency_ms": agg_p95,
             "route_counts": agg_routes,
+            "total_images": agg_images,
+            "total_documents": agg_docs,
+            "modality_counts": agg_modalities,
             "active_count": len(active_runs),
         },
     }
