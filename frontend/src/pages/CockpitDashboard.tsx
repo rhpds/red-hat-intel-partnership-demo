@@ -25,6 +25,7 @@ export default function CockpitDashboard() {
   const [demoState, setDemoState] = useState<DemoState>('idle');
   const [activeDemo, setActiveDemo] = useState<string | null>(null);
   const [launching, setLaunching] = useState(false);
+  const [currentRunId, setCurrentRunId] = useState<string | null>(null);
   const [showTelemetry, setShowTelemetry] = useState(true);
   const [scale, setScale] = useState('standard');
   const [unlockCode, setUnlockCode] = useState('');
@@ -81,10 +82,11 @@ export default function CockpitDashboard() {
           });
         }
 
-        // Transition to done — grab final metrics from latest_completed
+        // Transition to done — only accept data from OUR run
         if (!isActive && snapCompleted > 0) {
           const lc = d.latest_completed as Record<string, unknown> | null;
-          if (lc) {
+          const lcRunId = lc?.run_id as string | undefined;
+          if (lc && (!currentRunId || lcRunId === currentRunId)) {
             const lcRc = (lc.route_counts || {}) as Record<string, number>;
             if (Object.keys(lcRc).length > 0) setRoutes(lcRc);
             if (lc.total_requests) setCompleted(lc.total_requests as number);
@@ -113,13 +115,17 @@ export default function CockpitDashboard() {
     setHistory([]); setModels({}); setShowTelemetry(true);
     startTimeRef.current = Date.now();
     setDemoState('running');
-    try { await api.workloadRun(profileId, sc.mode, 42, true, sc.locked ? unlockCode : ''); } catch { /* ignore */ }
+    try {
+      const resp = await api.workloadRun(profileId, sc.mode, 42, true, sc.locked ? unlockCode : '') as { run_id?: string };
+      if (resp.run_id) setCurrentRunId(resp.run_id);
+    } catch { /* ignore */ }
     setLaunching(false);
   };
 
   const resetDemo = () => {
     setDemoState('idle');
     setActiveDemo(null);
+    setCurrentRunId(null);
     setCompleted(0); setTotal(0); setRoutes({}); setRps(0); setTps(0); setP95(0); setImages(0);
     setHistory([]); setModels({});
   };

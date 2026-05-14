@@ -773,8 +773,8 @@ async def platform_status():
     for run_id, run in _workload_runs.items():
         if run.get("status") == "running":
             active_runs.append({"type": "workload", "run_id": run_id, "profile": run.get("workload_profile", ""), "mode": run.get("power_mode", ""), "completed": run.get("completed", 0), "total": run.get("total", 0)})
-        elif run.get("status") == "complete" and (latest_completed is None or run.get("started_at", 0) > latest_completed.get("started_at", 0)):
-            latest_completed = {"type": "workload", "run_id": run_id, **{k: run.get(k) for k in ["workload_profile", "power_mode", "total_requests", "completed_requests", "route_counts", "requests_per_second", "estimated_tokens_per_second", "p50_latency_ms", "p95_latency_ms", "p99_latency_ms", "xeon_eco_utilization_pct", "xeon_performance_utilization_pct", "gaudi_overdrive_utilization_pct", "total_images", "total_documents", "modality_counts", "mode_label", "results"]}}
+        elif run.get("status") == "complete" and (latest_completed is None or run.get("completed_at", 0) > latest_completed.get("_completed_at", 0)):
+            latest_completed = {"type": "workload", "run_id": run_id, "_completed_at": run.get("completed_at", 0), **{k: run.get(k) for k in ["workload_profile", "power_mode", "total_requests", "completed_requests", "route_counts", "requests_per_second", "estimated_tokens_per_second", "p50_latency_ms", "p95_latency_ms", "p99_latency_ms", "xeon_eco_utilization_pct", "xeon_performance_utilization_pct", "gaudi_overdrive_utilization_pct", "total_images", "total_documents", "modality_counts", "mode_label", "results"]}}
 
     for run_id, run in _agent_runs.items():
         if run.get("status") == "running":
@@ -1073,6 +1073,7 @@ async def workload_run(req: WorkloadRunRequest, raw_request: Request):
             )
             run_state.update(result)
             run_state["status"] = "complete"
+            run_state["completed_at"] = time_module.time()
         except PermissionError as e:
             run_state["status"] = "error"
             run_state["error"] = str(e)
