@@ -40,6 +40,7 @@ const navSections = [
       { path: '/workload', label: 'Workload Simulation' },
       { path: '/agent', label: 'Research Agent' },
       { path: '/training', label: 'Train + Serve' },
+      { path: '/optimization', label: 'Optimization' },
     ],
   },
   {
