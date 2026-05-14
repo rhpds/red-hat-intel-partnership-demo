@@ -3,13 +3,18 @@ import { api } from '../api/client';
 import '../styles/cockpit.css';
 
 const DEMOS = [
-  { id: 'incident_storm', name: 'Incident Storm', desc: 'Enterprise alert flood — classify on Xeon 6, deep analysis on Gaudi.', phases: ['Alert Triage (Xeon 6)', 'Knowledge Search (Xeon 6)', 'Deep Analysis (Gaudi)', 'Batch Reporting (Gaudi)'], time: '~20s' },
-  { id: 'dashboard_storm', name: 'Dashboard Storm', desc: 'Operational screenshots — classify on Xeon 6, interpret on Gaudi.', phases: ['Screenshot Classify (Xeon 6)', 'Chart Interpret (Gaudi)', 'Summary Generation (Gaudi)', 'Incident Synthesis (Gaudi)'], time: '~20s' },
-  { id: 'model_race', name: 'Model Race', desc: 'Same tasks across all hardware — compare Xeon 6 vs Gaudi live.', phases: ['Small Tasks (Xeon Eco)', 'Mid Tasks (Xeon Perf)', 'Large Tasks (Gaudi)'], time: '~20s' },
+  { id: 'incident_storm', name: 'Incident Storm', desc: 'Enterprise alert flood — classify on Xeon 6, deep analysis on Gaudi.', phases: ['Alert Triage (Xeon 6)', 'Knowledge Search (Xeon 6)', 'Deep Analysis (Gaudi)', 'Batch Reporting (Gaudi)'] },
+  { id: 'dashboard_storm', name: 'Dashboard Storm', desc: 'Operational screenshots — classify on Xeon 6, interpret on Gaudi.', phases: ['Screenshot Classify (Xeon 6)', 'Chart Interpret (Gaudi)', 'Summary Generation (Gaudi)', 'Incident Synthesis (Gaudi)'] },
+  { id: 'model_race', name: 'Model Race', desc: 'Same tasks across all hardware — compare Xeon 6 vs Gaudi live.', phases: ['Small Tasks (Xeon Eco)', 'Mid Tasks (Xeon Perf)', 'Large Tasks (Gaudi)'] },
 ];
 
-const MODEL_COLORS: Record<string, string> = { 'granite-4-0-h-tiny': '#00c853', 'codellama-7b-instruct': '#0071c5', 'llama-scout-17b': '#ff6d00' };
-const MODEL_HW: Record<string, string> = { 'granite-4-0-h-tiny': 'Xeon 6 Eco', 'codellama-7b-instruct': 'Xeon 6 + AMX', 'llama-scout-17b': 'Gaudi' };
+const SCALES = [
+  { id: 'quick', label: 'Quick', mode: 'standby', count: 5, time: '~5s' },
+  { id: 'standard', label: 'Standard', mode: 'drive', count: 25, time: '~20s' },
+];
+
+const MODEL_COLORS: Record<string, string> = { 'granite-4-0-h-tiny': '#3e8635', 'codellama-7b-instruct': '#0068b5', 'llama-scout-17b': '#e67e22' };
+const MODEL_HW: Record<string, string> = { 'granite-4-0-h-tiny': 'Intel Xeon 6 · Eco', 'codellama-7b-instruct': 'Intel Xeon 6 + AMX', 'llama-scout-17b': 'Intel Gaudi' };
 
 interface Snapshot { t: number; completed: number; eco: number; perf: number; gaudi: number; images: number; }
 
@@ -20,6 +25,8 @@ export default function CockpitDashboard() {
   const [activeDemo, setActiveDemo] = useState<string | null>(null);
   const [launching, setLaunching] = useState(false);
   const [showTelemetry, setShowTelemetry] = useState(true);
+  const [scale, setScale] = useState('standard');
+  const selectedScale = SCALES.find(s => s.id === scale) || SCALES[1];
 
   // Persistent metrics — survive state transitions
   const [completed, setCompleted] = useState(0);
@@ -106,7 +113,7 @@ export default function CockpitDashboard() {
     setCompleted(0); setTotal(0); setRoutes({}); setRps(0); setTps(0); setP95(0); setImages(0);
     setHistory([]); setModels({}); setShowTelemetry(false);
     startTimeRef.current = Date.now();
-    try { await api.workloadRun(profileId, 'drive', 42, true); } catch { /* ignore */ }
+    try { await api.workloadRun(profileId, selectedScale.mode, 42, true); } catch { /* ignore */ }
     setDemoState('running');
     setLaunching(false);
   };
@@ -131,16 +138,20 @@ export default function CockpitDashboard() {
     <div className="cockpit" style={{ padding: '24px', maxWidth: '900px', margin: '0 auto' }}>
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-        <div>
-          <div style={{ fontSize: '1.2rem', fontWeight: 700, letterSpacing: '0.05em' }}>
-            INFERENCE <span style={{ color: '#ee0000' }}>OVERDRIVE</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <img src="/intel-logo.svg" alt="Intel" style={{ height: '20px', opacity: 0.9 }} />
+          <img src="/redhat-logo.svg" alt="Red Hat" style={{ height: '20px', opacity: 0.9 }} />
+          <div>
+            <div style={{ fontSize: '1.1rem', fontWeight: 700, letterSpacing: '0.05em' }}>
+              INFERENCE <span style={{ color: '#ee0000' }}>OVERDRIVE</span>
+            </div>
+            <div style={{ fontSize: '0.65rem', color: '#666', letterSpacing: '0.04em' }}>INTEL XEON 6 + GAUDI · LIVE INFERENCE</div>
           </div>
-          <div style={{ fontSize: '0.72rem', color: '#666' }}>Intel Xeon 6 + Gaudi</div>
         </div>
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
           {isActive && (
             <div style={{ padding: '6px 16px', borderRadius: '4px', fontSize: '0.78rem', fontWeight: 700, letterSpacing: '0.08em',
-              background: isDone ? '#00c853' : '#0071c5', color: '#fff', transition: 'background 0.5s' }}>
+              background: isDone ? '#3e8635' : '#0068b5', color: '#fff', transition: 'background 0.5s' }}>
               {isDone ? 'COMPLETE' : 'LIVE'}
             </div>
           )}
@@ -155,18 +166,30 @@ export default function CockpitDashboard() {
       {/* ===== IDLE ===== */}
       {demoState === 'idle' && (
         <>
-          <div style={{ textAlign: 'center', margin: '40px 0 12px', color: '#888', fontSize: '0.95rem' }}>Select a demo to run live</div>
-          <div style={{ textAlign: 'center', marginBottom: '24px', fontSize: '0.75rem', color: '#555' }}>
-            Uses real LiteLLM inference. Use sparingly.
+          <div style={{ textAlign: 'center', margin: '32px 0 12px', color: '#ccc', fontSize: '0.95rem', fontWeight: 600 }}>Select a demo</div>
+
+          {/* Scale selector */}
+          <div style={{ display: 'flex', justifyContent: 'center', gap: '16px', marginBottom: '20px', alignItems: 'center' }}>
+            <div style={{ fontSize: '0.68rem', color: '#666', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Scale:</div>
+            <div className="ck-select">
+              {SCALES.map(s => (
+                <button key={s.id} className={scale === s.id ? 'active' : ''} onClick={() => setScale(s.id)}>
+                  {s.label} ({s.count}) · {s.time}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div style={{ textAlign: 'center', marginBottom: '20px', fontSize: '0.7rem', color: '#555' }}>
+            Live inference via LiteLLM · {selectedScale.count} requests · {selectedScale.time}
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '10px' }}>
             {DEMOS.map(d => (
               <div key={d.id} onClick={() => !launching && launchDemo(d.id)} style={{
                 background: '#141414', border: '1px solid #2a2a2a', borderRadius: '8px', padding: '14px', cursor: 'pointer', transition: 'border-color 0.2s',
-              }} onMouseEnter={e => (e.currentTarget.style.borderColor = '#0071c5')} onMouseLeave={e => (e.currentTarget.style.borderColor = '#2a2a2a')}>
+              }} onMouseEnter={e => (e.currentTarget.style.borderColor = '#ee0000')} onMouseLeave={e => (e.currentTarget.style.borderColor = '#2a2a2a')}>
                 <div style={{ fontWeight: 700, fontSize: '0.88rem', marginBottom: '4px' }}>{d.name}</div>
-                <div style={{ fontSize: '0.75rem', color: '#888', marginBottom: '4px' }}>{d.desc}</div>
-                <div style={{ fontSize: '0.68rem', color: '#555' }}>Live · 25 requests · {d.time}</div>
+                <div style={{ fontSize: '0.75rem', color: '#888' }}>{d.desc}</div>
               </div>
             ))}
           </div>
@@ -177,15 +200,15 @@ export default function CockpitDashboard() {
       {isActive && demoMeta && (
         <>
           {/* Demo + Progress — persists through running → done */}
-          <div style={{ background: '#141414', border: `1px solid ${isDone ? '#00c853' : '#2a2a2a'}`, borderRadius: '8px', padding: '16px', marginBottom: '16px', transition: 'border-color 0.5s' }}>
+          <div style={{ background: '#141414', border: `1px solid ${isDone ? '#3e8635' : '#2a2a2a'}`, borderRadius: '8px', padding: '16px', marginBottom: '16px', transition: 'border-color 0.5s' }}>
             <div style={{ fontWeight: 700, fontSize: '1rem', marginBottom: '2px' }}>{demoMeta.name}</div>
             <div style={{ fontSize: '0.78rem', color: '#888', marginBottom: '10px' }}>{demoMeta.desc}</div>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', marginBottom: '4px' }}>
               <span style={{ fontFamily: 'Red Hat Mono, monospace', fontWeight: 700 }}>{completed} / {total || '...'}</span>
-              <span style={{ color: isDone ? '#00c853' : '#0071c5', fontWeight: 700 }}>{isDone ? 'DONE' : `${pct}%`}</span>
+              <span style={{ color: isDone ? '#3e8635' : '#0068b5', fontWeight: 700 }}>{isDone ? 'DONE' : `${pct}%`}</span>
             </div>
             <div style={{ height: '6px', borderRadius: '3px', background: '#2a2a2a', overflow: 'hidden' }}>
-              <div className="ck-smooth" style={{ height: '100%', width: `${pct}%`, background: isDone ? '#00c853' : '#0071c5', borderRadius: '3px' }} />
+              <div className="ck-smooth" style={{ height: '100%', width: `${pct}%`, background: isDone ? '#3e8635' : '#0068b5', borderRadius: '3px' }} />
             </div>
           </div>
 
@@ -198,10 +221,10 @@ export default function CockpitDashboard() {
               return (
                 <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '5px 0', fontSize: '0.82rem' }}>
                   <div style={{ width: '20px', height: '20px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', fontWeight: 700,
-                    background: done ? '#00c853' : active ? '#0071c5' : '#2a2a2a', color: '#fff', flexShrink: 0, transition: 'background 0.3s' }}>
+                    background: done ? '#3e8635' : active ? '#0068b5' : '#2a2a2a', color: '#fff', flexShrink: 0, transition: 'background 0.3s' }}>
                     {done ? '✓' : active ? '▶' : '○'}
                   </div>
-                  <span style={{ color: done ? '#00c853' : active ? '#fff' : '#555', transition: 'color 0.3s' }}>{phase}</span>
+                  <span style={{ color: done ? '#3e8635' : active ? '#fff' : '#555', transition: 'color 0.3s' }}>{phase}</span>
                 </div>
               );
             })}
@@ -218,9 +241,9 @@ export default function CockpitDashboard() {
                   const maxReqs = Math.max(...history.map(x => x.completed)) || 1;
                   return (
                     <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', height: '100%' }}>
-                      {s.gaudi > 0 && <div style={{ height: `${(s.gaudi / maxReqs) * 100}%`, background: '#ff6d00', borderRadius: '1px 1px 0 0', minHeight: '2px' }} />}
-                      {s.perf > 0 && <div style={{ height: `${(s.perf / maxReqs) * 100}%`, background: '#0071c5', minHeight: '2px' }} />}
-                      {s.eco > 0 && <div style={{ height: `${(s.eco / maxReqs) * 100}%`, background: '#00c853', borderRadius: '0 0 1px 1px', minHeight: '2px' }} />}
+                      {s.gaudi > 0 && <div style={{ height: `${(s.gaudi / maxReqs) * 100}%`, background: '#e67e22', borderRadius: '1px 1px 0 0', minHeight: '2px' }} />}
+                      {s.perf > 0 && <div style={{ height: `${(s.perf / maxReqs) * 100}%`, background: '#0068b5', minHeight: '2px' }} />}
+                      {s.eco > 0 && <div style={{ height: `${(s.eco / maxReqs) * 100}%`, background: '#3e8635', borderRadius: '0 0 1px 1px', minHeight: '2px' }} />}
                     </div>
                   );
                 })}
@@ -228,9 +251,9 @@ export default function CockpitDashboard() {
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.65rem', color: '#555', marginTop: '4px' }}>
                 <span>0s</span>
                 <span style={{ display: 'flex', gap: '10px' }}>
-                  <span><span style={{ color: '#00c853' }}>●</span> Eco</span>
-                  <span><span style={{ color: '#0071c5' }}>●</span> Perf</span>
-                  <span><span style={{ color: '#ff6d00' }}>●</span> Gaudi</span>
+                  <span><span style={{ color: '#3e8635' }}>●</span> Eco</span>
+                  <span><span style={{ color: '#0068b5' }}>●</span> Perf</span>
+                  <span><span style={{ color: '#e67e22' }}>●</span> Gaudi</span>
                 </span>
                 <span>{history[history.length - 1]?.t || 0}s</span>
               </div>
@@ -240,9 +263,9 @@ export default function CockpitDashboard() {
           {/* Lane totals — persist and climb */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', marginBottom: '16px' }}>
             {[
-              { name: 'XEON ECO', hw: 'Granite · Xeon 6', count: eco, color: '#00c853' },
-              { name: 'XEON PERF', hw: 'CodeLlama · Xeon 6 + AMX', count: perf, color: '#0071c5' },
-              { name: 'GAUDI', hw: 'Llama Scout · Gaudi', count: gaudi, color: '#ff6d00' },
+              { name: 'INTEL XEON ECO', hw: 'Granite · Xeon 6', count: eco, color: '#3e8635' },
+              { name: 'INTEL XEON PERF', hw: 'CodeLlama · Xeon 6 + AMX', count: perf, color: '#0068b5' },
+              { name: 'INTEL GAUDI', hw: 'Llama Scout 17B · Gaudi', count: gaudi, color: '#e67e22' },
             ].map(l => (
               <div key={l.name} style={{ background: '#141414', border: `1px solid ${l.count > 0 ? l.color : '#2a2a2a'}`, borderRadius: '6px', padding: '10px', borderLeft: `3px solid ${l.color}`, transition: 'border-color 0.3s' }}>
                 <div style={{ fontWeight: 700, fontSize: '0.78rem', letterSpacing: '0.04em' }}>{l.name}</div>
