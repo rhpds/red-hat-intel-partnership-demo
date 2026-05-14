@@ -111,10 +111,10 @@ export default function CockpitDashboard() {
     setLaunching(true);
     setActiveDemo(profileId);
     setCompleted(0); setTotal(0); setRoutes({}); setRps(0); setTps(0); setP95(0); setImages(0);
-    setHistory([]); setModels({}); setShowTelemetry(false);
+    setHistory([]); setModels({}); setShowTelemetry(true);
     startTimeRef.current = Date.now();
-    try { await api.workloadRun(profileId, selectedScale.mode, 42, true); } catch { /* ignore */ }
     setDemoState('running');
+    try { await api.workloadRun(profileId, selectedScale.mode, 42, true); } catch { /* ignore */ }
     setLaunching(false);
   };
 
