@@ -1,0 +1,133 @@
+.cockpit {
+  --ck-bg: #0a0a0a;
+  --ck-surface: #141414;
+  --ck-surface-2: #1c1c1c;
+  --ck-border: #2a2a2a;
+  --ck-text: #e0e0e0;
+  --ck-text-dim: #888;
+  --ck-red: #ee0000;
+  --ck-red-glow: rgba(238, 0, 0, 0.15);
+  --ck-blue: #0071c5;
+  --ck-blue-glow: rgba(0, 113, 197, 0.15);
+  --ck-green: #00c853;
+  --ck-orange: #ff6d00;
+  --ck-orange-glow: rgba(255, 109, 0, 0.2);
+  --ck-white: #ffffff;
+
+  background: var(--ck-bg);
+  color: var(--ck-text);
+  min-height: 100vh;
+  font-family: 'Red Hat Text', 'Red Hat Mono', monospace, sans-serif;
+}
+
+.ck-gauge {
+  background: var(--ck-surface);
+  border: 1px solid var(--ck-border);
+  border-radius: 8px;
+  padding: 16px;
+  text-align: center;
+  transition: border-color 0.3s, box-shadow 0.3s;
+}
+
+.ck-gauge.active {
+  border-color: var(--ck-blue);
+  box-shadow: 0 0 12px var(--ck-blue-glow);
+}
+
+.ck-gauge-value {
+  font-size: 2rem;
+  font-weight: 700;
+  font-family: 'Red Hat Mono', monospace;
+  line-height: 1;
+}
+
+.ck-gauge-label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ck-text-dim);
+  margin-top: 6px;
+}
+
+.ck-lane {
+  background: var(--ck-surface);
+  border: 1px solid var(--ck-border);
+  border-radius: 10px;
+  padding: 16px;
+  transition: all 0.3s;
+  position: relative;
+  overflow: hidden;
+}
+
+.ck-lane.active {
+  border-color: var(--ck-blue);
+}
+
+.ck-lane.eco.active { border-color: var(--ck-green); box-shadow: 0 0 16px rgba(0, 200, 83, 0.12); }
+.ck-lane.performance.active { border-color: var(--ck-blue); box-shadow: 0 0 16px var(--ck-blue-glow); }
+.ck-lane.overdrive.active { border-color: var(--ck-orange); box-shadow: 0 0 16px var(--ck-orange-glow); }
+
+.ck-lane .ck-pulse {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, currentColor, transparent);
+  animation: ck-pulse-anim 1.5s ease-in-out infinite;
+  opacity: 0;
+}
+
+.ck-lane.active .ck-pulse { opacity: 1; }
+
+@keyframes ck-pulse-anim {
+  0%, 100% { transform: translateX(-100%); }
+  50% { transform: translateX(100%); }
+}
+
+.ck-util-bar {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--ck-surface-2);
+  overflow: hidden;
+  margin-top: 8px;
+}
+
+.ck-util-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.5s ease;
+}
+
+.ck-mode-btn {
+  padding: 8px 16px;
+  border-radius: 6px;
+  border: 1px solid var(--ck-border);
+  background: var(--ck-surface);
+  color: var(--ck-text);
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: 600;
+  transition: all 0.2s;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.ck-mode-btn:hover { border-color: var(--ck-blue); }
+.ck-mode-btn.active { background: var(--ck-red); border-color: var(--ck-red); color: var(--ck-white); }
+
+.ck-event {
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--ck-border);
+  font-size: 0.78rem;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.ck-event-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
