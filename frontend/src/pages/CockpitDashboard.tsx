@@ -1,116 +1,153 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useReducer } from 'react';
 import { api } from '../api/client';
 import '../styles/cockpit.css';
 
+/* ─── Config ─── */
 const DEMOS = [
   { id: 'incident_storm', name: 'Incident Storm', desc: 'Enterprise alert flood — classify on Xeon 6, deep analysis on Gaudi.', phases: ['Alert Triage (Xeon 6)', 'Knowledge Search (Xeon 6)', 'Deep Analysis (Gaudi)', 'Batch Reporting (Gaudi)'] },
   { id: 'dashboard_storm', name: 'Dashboard Storm', desc: 'Operational screenshots — classify on Xeon 6, interpret on Gaudi.', phases: ['Screenshot Classify (Xeon 6)', 'Chart Interpret (Gaudi)', 'Summary Generation (Gaudi)', 'Incident Synthesis (Gaudi)'] },
   { id: 'model_race', name: 'Model Race', desc: 'Same tasks across all hardware — compare Xeon 6 vs Gaudi live.', phases: ['Small Tasks (Xeon Eco)', 'Mid Tasks (Xeon Perf)', 'Large Tasks (Gaudi)'] },
 ];
-
 const SCALES = [
   { id: 'quick', label: 'Quick', mode: 'standby', count: 5, time: '~5s', locked: false },
   { id: 'standard', label: 'Standard', mode: 'drive', count: 25, time: '~20s', locked: false },
   { id: 'extended', label: 'Extended', mode: 'boost', count: 250, time: '~3 min', locked: true },
 ];
-
 const MODEL_COLORS: Record<string, string> = { 'granite-4-0-h-tiny': '#3e8635', 'codellama-7b-instruct': '#0068b5', 'llama-scout-17b': '#e67e22' };
-// MODEL_HW used inline in model cards below
 
-interface Snapshot { t: number; completed: number; eco: number; perf: number; gaudi: number; images: number; }
+/* ─── State Machine ─── */
+interface Snapshot { t: number; completed: number; eco: number; perf: number; gaudi: number; }
 
-type DemoState = 'idle' | 'running' | 'done';
+interface CockpitState {
+  phase: 'idle' | 'running' | 'done';
+  runId: string | null;
+  demoId: string | null;
+  completed: number;
+  total: number;
+  routes: Record<string, number>;
+  rps: number;
+  tps: number;
+  p95: number;
+  images: number;
+  models: Record<string, Record<string, unknown>>;
+  history: Snapshot[];
+  startTime: number;
+}
 
+type Action =
+  | { type: 'LAUNCH'; demoId: string; runId: string }
+  | { type: 'POLL'; completed: number; total: number; routes: Record<string, number>; rps: number; tps: number; p95: number; images: number; models: Record<string, Record<string, unknown>>; elapsed: number }
+  | { type: 'COMPLETE'; completed: number; routes: Record<string, number>; rps: number; tps: number; p95: number; images: number; models: Record<string, Record<string, unknown>> }
+  | { type: 'RESET' };
+
+const INITIAL: CockpitState = {
+  phase: 'idle', runId: null, demoId: null,
+  completed: 0, total: 0, routes: {}, rps: 0, tps: 0, p95: 0, images: 0,
+  models: {}, history: [], startTime: 0,
+};
+
+function reducer(state: CockpitState, action: Action): CockpitState {
+  switch (action.type) {
+    case 'LAUNCH':
+      return { ...INITIAL, phase: 'running', runId: action.runId, demoId: action.demoId, startTime: Date.now() };
+
+    case 'POLL': {
+      if (state.phase !== 'running') return state;
+      // Only climb — never let values drop within a run
+      const completed = Math.max(state.completed, action.completed);
+      const total = Math.max(state.total, action.total);
+      const routes: Record<string, number> = { ...state.routes };
+      for (const [k, v] of Object.entries(action.routes)) routes[k] = Math.max(routes[k] || 0, v);
+      const rps = Math.max(state.rps, action.rps);
+      const tps = Math.max(state.tps, action.tps);
+      const p95 = Math.max(state.p95, action.p95);
+      const images = Math.max(state.images, action.images);
+      // Models: only update if count increased
+      const models = { ...state.models };
+      for (const [k, v] of Object.entries(action.models)) {
+        if (!models[k] || (v.count as number) >= ((models[k].count as number) || 0)) models[k] = v;
+      }
+      // History: add snapshot if completed changed
+      let history = state.history;
+      const lastSnap = history[history.length - 1];
+      if (!lastSnap || lastSnap.completed < completed) {
+        history = [...history, { t: action.elapsed, completed, eco: routes.eco || 0, perf: routes.performance || 0, gaudi: routes.overdrive || 0 }];
+      }
+      return { ...state, completed, total, routes, rps, tps, p95, images, models, history };
+    }
+
+    case 'COMPLETE': {
+      // Final values from latest_completed — set directly (not max'd, these are authoritative)
+      const routes = Object.keys(action.routes).length > 0 ? action.routes : state.routes;
+      const completed = action.completed || state.completed;
+      return { ...state, phase: 'done', completed, routes, rps: action.rps || state.rps, tps: action.tps || state.tps, p95: action.p95 || state.p95, images: action.images || state.images, models: Object.keys(action.models).length > 0 ? action.models : state.models };
+    }
+
+    case 'RESET':
+      return INITIAL;
+
+    default:
+      return state;
+  }
+}
+
+/* ─── Component ─── */
 export default function CockpitDashboard() {
-  const [demoState, setDemoState] = useState<DemoState>('idle');
-  const [activeDemo, setActiveDemo] = useState<string | null>(null);
-  const [launching, setLaunching] = useState(false);
-  const [currentRunId, setCurrentRunId] = useState<string | null>(null);
-  // telemetry always visible
+  const [state, dispatch] = useReducer(reducer, INITIAL);
   const [scale, setScale] = useState('standard');
   const [unlockCode, setUnlockCode] = useState('');
-  const selectedScale = SCALES.find(s => s.id === scale) || SCALES[1];
-
-  // Persistent metrics — survive state transitions
-  const [completed, setCompleted] = useState(0);
-  const [total, setTotal] = useState(0);
-  const [routes, setRoutes] = useState<Record<string, number>>({});
-  const [rps, setRps] = useState(0);
-  const [tps, setTps] = useState(0);
-  const [p95, setP95] = useState(0);
-  const [images, setImages] = useState(0);
-  const [history, setHistory] = useState<Snapshot[]>([]);
-  const [models, setModels] = useState<Record<string, Record<string, unknown>>>({});
-
-  const startTimeRef = useRef(0);
+  const [launching, setLaunching] = useState(false);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const selectedScale = SCALES.find(s => s.id === scale) || SCALES[1];
+  const demoMeta = DEMOS.find(d => d.id === state.demoId);
 
+  // Poll only during RUNNING
   useEffect(() => {
-    if (demoState !== 'running') return;
+    if (state.phase !== 'running' || !state.runId) {
+      if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
+      return;
+    }
 
     const poll = async () => {
       try {
         const d = await api.platformStatus() as Record<string, unknown>;
-        const lp = d.live_progress as { completed: number; total: number; pct: number } | null;
+        const lp = d.live_progress as { completed: number; total: number } | null;
         const agg = d.aggregate as Record<string, unknown> | undefined;
         const rc = (agg?.route_counts || {}) as Record<string, number>;
         const mt = (d.model_telemetry || {}) as Record<string, Record<string, unknown>>;
         const activeRuns = d.active_runs as Array<Record<string, unknown>> | undefined;
         const isActive = activeRuns && activeRuns.some(r => r.type === 'workload');
 
-        // Update metrics — only climb within this run, never drop
-        const newCompleted = lp?.completed ?? 0;
-        const newTotal = lp?.total ?? 0;
-        if (newCompleted > 0) setCompleted(prev => Math.max(prev, newCompleted));
-        if (newTotal > 0) setTotal(prev => Math.max(prev, newTotal));
-        if (Object.keys(rc).length > 0) setRoutes(prev => {
-          const merged = { ...prev };
-          for (const [k, v] of Object.entries(rc)) merged[k] = Math.max(merged[k] || 0, v);
-          return merged;
-        });
-        if (agg?.requests_per_second) setRps(prev => Math.max(prev, Math.round(agg.requests_per_second as number)));
-        if (agg?.estimated_tokens_per_second) setTps(prev => Math.max(prev, Math.round(agg.estimated_tokens_per_second as number)));
-        if (agg?.p95_latency_ms) setP95(prev => Math.max(prev, Math.round(agg.p95_latency_ms as number)));
-        const newImages = agg?.total_images as number || 0;
-        if (newImages > 0) setImages(prev => Math.max(prev, newImages));
-        // Model telemetry — only update if counts are higher
-        if (Object.keys(mt).length > 0) setModels(prev => {
-          const merged = { ...prev };
-          for (const [k, v] of Object.entries(mt)) {
-            const existing = merged[k];
-            if (!existing || (v.count as number) >= (existing.count as number)) merged[k] = v;
-          }
-          return merged;
-        });
-
-        // Add to history if progress changed
-        const snapCompleted = newCompleted > 0 ? newCompleted : (Object.values(rc).reduce((a, b) => a + b, 0) || 0);
-        if (snapCompleted > 0) {
-          const elapsed = startTimeRef.current > 0 ? Math.round((Date.now() - startTimeRef.current) / 1000) : 0;
-          setHistory(prev => {
-            const last = prev[prev.length - 1];
-            if (last && last.completed >= snapCompleted) return prev;
-            return [...prev, { t: elapsed, completed: snapCompleted, eco: rc.eco || 0, perf: rc.performance || 0, gaudi: rc.overdrive || 0, images: newImages }];
+        // Check if our run completed
+        const lc = d.latest_completed as Record<string, unknown> | null;
+        if (!isActive && lc && lc.run_id === state.runId) {
+          dispatch({
+            type: 'COMPLETE',
+            completed: lc.total_requests as number || 0,
+            routes: (lc.route_counts || {}) as Record<string, number>,
+            rps: Math.round(lc.requests_per_second as number || 0),
+            tps: Math.round(lc.estimated_tokens_per_second as number || 0),
+            p95: Math.round(lc.p95_latency_ms as number || 0),
+            images: lc.total_images as number || 0,
+            models: mt,
           });
+          return;
         }
 
-        // Transition to done — our run finished (no active + either we saw progress OR latest_completed matches our run)
-        const lc = d.latest_completed as Record<string, unknown> | null;
-        const lcRunId = lc?.run_id as string | undefined;
-        const ourRunDone = !isActive && (newCompleted > 0 || (currentRunId && lcRunId === currentRunId));
-        if (ourRunDone) {
-          if (lc && (!currentRunId || lcRunId === currentRunId)) {
-            const lcRc = (lc.route_counts || {}) as Record<string, number>;
-            if (Object.keys(lcRc).length > 0) setRoutes(lcRc);
-            if (lc.total_requests) setCompleted(lc.total_requests as number);
-            if (lc.requests_per_second) setRps(Math.round(lc.requests_per_second as number));
-            if (lc.estimated_tokens_per_second) setTps(Math.round(lc.estimated_tokens_per_second as number));
-            if (lc.p95_latency_ms) setP95(Math.round(lc.p95_latency_ms as number));
-            const lcImgs = lc.total_images as number || 0;
-            if (lcImgs > 0) setImages(lcImgs);
-          }
-          setDemoState('done');
-          if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
+        // Still running — update with climbing values
+        if (lp && lp.completed > 0) {
+          const elapsed = Math.round((Date.now() - state.startTime) / 1000);
+          dispatch({
+            type: 'POLL',
+            completed: lp.completed, total: lp.total,
+            routes: rc,
+            rps: Math.round(agg?.requests_per_second as number || 0),
+            tps: Math.round(agg?.estimated_tokens_per_second as number || 0),
+            p95: Math.round(agg?.p95_latency_ms as number || 0),
+            images: agg?.total_images as number || 0,
+            models: mt,
+            elapsed,
+          });
         }
       } catch { /* ignore */ }
     };
@@ -118,45 +155,27 @@ export default function CockpitDashboard() {
     pollRef.current = setInterval(poll, 1200);
     poll();
     return () => { if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; } };
-  }, [demoState]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [state.phase, state.runId, state.startTime]);
 
   const launchDemo = async (profileId: string) => {
     const sc = SCALES.find(s => s.id === scale) || SCALES[1];
     setLaunching(true);
-    setActiveDemo(profileId);
-    setCompleted(0); setTotal(0); setRoutes({}); setRps(0); setTps(0); setP95(0); setImages(0);
-    setHistory([]); setModels({});
-    startTimeRef.current = Date.now();
     try {
       const resp = await api.workloadRun(profileId, sc.mode, 42, true, sc.locked ? unlockCode : '') as { run_id?: string };
       if (resp.run_id) {
-        setCurrentRunId(resp.run_id);
-        setDemoState('running');
-      } else {
-        resetDemo();
+        dispatch({ type: 'LAUNCH', demoId: profileId, runId: resp.run_id });
       }
-    } catch {
-      resetDemo();
-    }
+    } catch { /* ignore — stay idle */ }
     setLaunching(false);
   };
 
-  const resetDemo = () => {
-    setDemoState('idle');
-    setActiveDemo(null);
-    setCurrentRunId(null);
-    setCompleted(0); setTotal(0); setRoutes({}); setRps(0); setTps(0); setP95(0); setImages(0);
-    setHistory([]); setModels({});
-  };
-
-  const demoMeta = DEMOS.find(d => d.id === activeDemo);
+  const { phase, completed, total, routes, rps, tps, p95, images, models, history } = state;
   const eco = routes.eco || 0;
   const perf = routes.performance || 0;
   const gaudi = routes.overdrive || 0;
   const totalReqs = eco + perf + gaudi;
   const pct = total > 0 ? Math.round(completed / total * 100) : 0;
-  const isDone = demoState === 'done';
-  const isActive = demoState === 'running' || demoState === 'done';
+  const isActive = phase === 'running' || phase === 'done';
 
   return (
     <div className="cockpit" style={{ padding: '24px', maxWidth: '900px', margin: '0 auto' }}>
@@ -175,25 +194,21 @@ export default function CockpitDashboard() {
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
           {isActive && (
             <div style={{ padding: '6px 16px', borderRadius: '4px', fontSize: '0.78rem', fontWeight: 700, letterSpacing: '0.08em',
-              background: isDone ? '#3e8635' : '#0068b5', color: '#fff', transition: 'background 0.5s' }}>
-              {isDone ? 'COMPLETE' : 'LIVE'}
+              background: phase === 'done' ? '#3e8635' : '#0068b5', color: '#fff', transition: 'background 0.5s' }}>
+              {phase === 'done' ? 'COMPLETE' : 'LIVE'}
             </div>
           )}
-          {isDone && (
-            <button className="ck-mode-btn" onClick={resetDemo} style={{ fontSize: '0.72rem', padding: '5px 12px' }}>
-              ← Back
-            </button>
+          {phase === 'done' && (
+            <button className="ck-mode-btn" onClick={() => dispatch({ type: 'RESET' })} style={{ fontSize: '0.72rem', padding: '5px 12px' }}>← Back</button>
           )}
         </div>
       </div>
 
-      {/* ===== IDLE ===== */}
-      {demoState === 'idle' && (
+      {/* ─── IDLE ─── */}
+      {phase === 'idle' && (
         <>
           <div style={{ textAlign: 'center', margin: '32px 0 12px', color: '#ccc', fontSize: '0.95rem', fontWeight: 600 }}>Select a demo</div>
-
-          {/* Scale selector */}
-          <div style={{ display: 'flex', justifyContent: 'center', gap: '16px', marginBottom: '20px', alignItems: 'center' }}>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: '16px', marginBottom: '16px', alignItems: 'center' }}>
             <div style={{ fontSize: '0.68rem', color: '#666', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Scale:</div>
             <div className="ck-select">
               {SCALES.map(s => (
@@ -203,157 +218,137 @@ export default function CockpitDashboard() {
               ))}
             </div>
           </div>
-
-          {/* Unlock code for extended */}
           {selectedScale.locked && (
             <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginBottom: '12px', alignItems: 'center' }}>
-              <span style={{ fontSize: '0.68rem', color: '#666', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Unlock:</span>
-              <input type="password" value={unlockCode} onChange={e => setUnlockCode(e.target.value)} placeholder="Required for extended"
-                style={{ background: '#1e1e1e', border: '1px solid #333', borderRadius: '4px', padding: '4px 10px', color: '#ccc', fontSize: '0.78rem', width: '160px', fontFamily: 'RedHatMono, monospace' }} />
+              <span style={{ fontSize: '0.68rem', color: '#666' }}>Unlock:</span>
+              <input type="password" value={unlockCode} onChange={e => setUnlockCode(e.target.value)} placeholder="Required"
+                style={{ background: '#1e1e1e', border: '1px solid #333', borderRadius: '4px', padding: '4px 10px', color: '#ccc', fontSize: '0.78rem', width: '140px', fontFamily: 'RedHatMono, monospace' }} />
             </div>
           )}
-
           <div style={{ textAlign: 'center', marginBottom: '20px', fontSize: '0.7rem', color: '#555' }}>
-            Live inference via LiteLLM · {selectedScale.count} requests · {selectedScale.time}
-            {selectedScale.locked && !unlockCode && ' · unlock code required'}
+            Live · {selectedScale.count} requests · {selectedScale.time}
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '10px' }}>
-            {DEMOS.map(d => (
-              <div key={d.id} onClick={() => !launching && !(selectedScale.locked && !unlockCode) && launchDemo(d.id)} style={{
-                background: '#141414', border: '1px solid #2a2a2a', borderRadius: '8px', padding: '14px',
-                cursor: (selectedScale.locked && !unlockCode) ? 'not-allowed' : 'pointer',
-                opacity: (selectedScale.locked && !unlockCode) ? 0.5 : 1,
-                transition: 'border-color 0.2s',
-              }} onMouseEnter={e => { if (!(selectedScale.locked && !unlockCode)) e.currentTarget.style.borderColor = '#ee0000'; }}
-                 onMouseLeave={e => (e.currentTarget.style.borderColor = '#2a2a2a')}>
-                <div style={{ fontWeight: 700, fontSize: '0.88rem', marginBottom: '4px' }}>{d.name}</div>
-                <div style={{ fontSize: '0.75rem', color: '#888' }}>{d.desc}</div>
-              </div>
-            ))}
+            {DEMOS.map(d => {
+              const disabled = launching || (selectedScale.locked && !unlockCode);
+              return (
+                <div key={d.id} onClick={() => !disabled && launchDemo(d.id)}
+                  className="ck-card" style={{ opacity: disabled ? 0.5 : 1, cursor: disabled ? 'not-allowed' : 'pointer' }}>
+                  <div style={{ fontWeight: 700, fontSize: '0.88rem', marginBottom: '4px' }}>{d.name}</div>
+                  <div style={{ fontSize: '0.75rem', color: '#888' }}>{d.desc}</div>
+                </div>
+              );
+            })}
           </div>
         </>
       )}
 
-      {/* ===== RUNNING + DONE (same layout, nothing disappears) ===== */}
+      {/* ─── RUNNING + DONE (persistent layout) ─── */}
       {isActive && demoMeta && (
         <>
-          {/* Demo + Progress — persists through running → done */}
-          <div style={{ background: '#141414', border: `1px solid ${isDone ? '#3e8635' : '#2a2a2a'}`, borderRadius: '8px', padding: '16px', marginBottom: '16px', transition: 'border-color 0.5s' }}>
+          {/* Demo header + progress */}
+          <div style={{ background: '#161616', border: `1px solid ${phase === 'done' ? '#3e8635' : '#333'}`, borderRadius: '6px', padding: '16px', marginBottom: '14px', transition: 'border-color 0.5s' }}>
             <div style={{ fontWeight: 700, fontSize: '1rem', marginBottom: '2px' }}>{demoMeta.name}</div>
             <div style={{ fontSize: '0.78rem', color: '#888', marginBottom: '10px' }}>{demoMeta.desc}</div>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', marginBottom: '4px' }}>
-              <span style={{ fontFamily: 'Red Hat Mono, monospace', fontWeight: 700 }}>{completed} / {total || '...'}</span>
-              <span style={{ color: isDone ? '#3e8635' : '#0068b5', fontWeight: 700 }}>{isDone ? 'DONE' : `${pct}%`}</span>
+              <span style={{ fontFamily: 'RedHatMono, monospace', fontWeight: 700 }}>{completed} / {total || '...'}</span>
+              <span style={{ color: phase === 'done' ? '#3e8635' : '#0068b5', fontWeight: 700 }}>{phase === 'done' ? 'DONE' : `${pct}%`}</span>
             </div>
             <div style={{ height: '6px', borderRadius: '3px', background: '#2a2a2a', overflow: 'hidden' }}>
-              <div className="ck-smooth" style={{ height: '100%', width: `${pct}%`, background: isDone ? '#3e8635' : '#0068b5', borderRadius: '3px' }} />
+              <div className="ck-smooth" style={{ height: '100%', width: `${pct}%`, background: phase === 'done' ? '#3e8635' : '#0068b5', borderRadius: '3px' }} />
             </div>
           </div>
 
-          {/* Phases — persist, advancing as completion grows */}
-          <div style={{ marginBottom: '16px' }}>
-            {demoMeta.phases.map((phase, i) => {
-              const phaseThreshold = ((i + 1) / demoMeta.phases.length) * 100;
-              const done = pct >= phaseThreshold;
-              const active = !done && pct >= ((i) / demoMeta.phases.length) * 100;
+          {/* Phases */}
+          <div style={{ marginBottom: '14px' }}>
+            {demoMeta.phases.map((ph, i) => {
+              const threshold = ((i + 1) / demoMeta.phases.length) * 100;
+              const done = pct >= threshold;
+              const active = !done && pct >= (i / demoMeta.phases.length) * 100;
               return (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '5px 0', fontSize: '0.82rem' }}>
-                  <div style={{ width: '20px', height: '20px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', fontWeight: 700,
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '4px 0', fontSize: '0.82rem' }}>
+                  <div style={{ width: '18px', height: '18px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.65rem', fontWeight: 700,
                     background: done ? '#3e8635' : active ? '#0068b5' : '#2a2a2a', color: '#fff', flexShrink: 0, transition: 'background 0.3s' }}>
                     {done ? '✓' : active ? '▶' : '○'}
                   </div>
-                  <span style={{ color: done ? '#3e8635' : active ? '#fff' : '#555', transition: 'color 0.3s' }}>{phase}</span>
+                  <span style={{ color: done ? '#3e8635' : active ? '#e8e8e8' : '#555', transition: 'color 0.3s' }}>{ph}</span>
                 </div>
               );
             })}
           </div>
 
-          {/* Timeline chart — builds during run, persists after */}
+          {/* Stats bar — always visible */}
+          <div style={{ display: 'flex', gap: '14px', marginBottom: '14px', padding: '10px 14px', background: '#161616', border: '1px solid #333', borderRadius: '6px', flexWrap: 'wrap' }}>
+            {[
+              { v: rps, l: 'req/s' }, { v: tps.toLocaleString(), l: 'tok/s' },
+              { v: p95, l: 'ms p95' }, { v: images, l: 'images' },
+            ].map(m => (
+              <span key={m.l}><span style={{ fontFamily: 'RedHatMono, monospace', fontWeight: 700, fontSize: '1rem', color: (typeof m.v === 'number' ? m.v : parseInt(String(m.v))) > 0 ? '#e8e8e8' : '#444' }}>{m.v}</span> <span style={{ color: '#888', fontSize: '0.78rem' }}>{m.l}</span></span>
+            ))}
+          </div>
+
+          {/* Timeline chart */}
           {history.length > 0 && (
-            <div style={{ background: '#141414', border: '1px solid #2a2a2a', borderRadius: '8px', padding: '12px', marginBottom: '16px' }}>
-              <div style={{ fontSize: '0.68rem', textTransform: 'uppercase', letterSpacing: '0.06em', color: '#888', marginBottom: '8px' }}>
-                {isDone ? 'Run Timeline' : 'Requests Over Time'}
+            <div style={{ background: '#161616', border: '1px solid #333', borderRadius: '6px', padding: '12px', marginBottom: '14px' }}>
+              <div style={{ fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.06em', color: '#888', marginBottom: '6px' }}>
+                {phase === 'done' ? 'Run Timeline' : 'Requests Over Time'}
               </div>
-              <div style={{ display: 'flex', alignItems: 'flex-end', gap: '2px', height: '60px' }}>
+              <div style={{ display: 'flex', alignItems: 'flex-end', gap: '1px', height: '50px' }}>
                 {history.map((s, i) => {
-                  const maxReqs = Math.max(...history.map(x => x.completed)) || 1;
+                  const max = Math.max(...history.map(x => x.completed)) || 1;
                   return (
                     <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', height: '100%' }}>
-                      {s.gaudi > 0 && <div style={{ height: `${(s.gaudi / maxReqs) * 100}%`, background: '#e67e22', borderRadius: '1px 1px 0 0', minHeight: '2px' }} />}
-                      {s.perf > 0 && <div style={{ height: `${(s.perf / maxReqs) * 100}%`, background: '#0068b5', minHeight: '2px' }} />}
-                      {s.eco > 0 && <div style={{ height: `${(s.eco / maxReqs) * 100}%`, background: '#3e8635', borderRadius: '0 0 1px 1px', minHeight: '2px' }} />}
+                      {s.gaudi > 0 && <div style={{ height: `${(s.gaudi / max) * 100}%`, background: '#e67e22', borderRadius: '1px 1px 0 0', minHeight: '2px' }} />}
+                      {s.perf > 0 && <div style={{ height: `${(s.perf / max) * 100}%`, background: '#0068b5', minHeight: '2px' }} />}
+                      {s.eco > 0 && <div style={{ height: `${(s.eco / max) * 100}%`, background: '#3e8635', borderRadius: '0 0 1px 1px', minHeight: '2px' }} />}
                     </div>
                   );
                 })}
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.65rem', color: '#555', marginTop: '4px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.6rem', color: '#555', marginTop: '3px' }}>
                 <span>0s</span>
-                <span style={{ display: 'flex', gap: '10px' }}>
-                  <span><span style={{ color: '#3e8635' }}>●</span> Eco</span>
-                  <span><span style={{ color: '#0068b5' }}>●</span> Perf</span>
-                  <span><span style={{ color: '#e67e22' }}>●</span> Gaudi</span>
-                </span>
+                <span style={{ display: 'flex', gap: '8px' }}><span style={{ color: '#3e8635' }}>● Eco</span><span style={{ color: '#0068b5' }}>● Perf</span><span style={{ color: '#e67e22' }}>● Gaudi</span></span>
                 <span>{history[history.length - 1]?.t || 0}s</span>
               </div>
             </div>
           )}
 
-          {/* Lane totals — persist and climb */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', marginBottom: '16px' }}>
+          {/* Lane cards */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', marginBottom: '14px' }}>
             {[
               { name: 'INTEL XEON ECO', hw: 'Granite · Xeon 6', count: eco, color: '#3e8635' },
               { name: 'INTEL XEON PERF', hw: 'CodeLlama · Xeon 6 + AMX', count: perf, color: '#0068b5' },
-              { name: 'INTEL GAUDI', hw: 'Llama Scout 17B · Gaudi', count: gaudi, color: '#e67e22' },
+              { name: 'INTEL GAUDI', hw: 'Llama Scout 17B', count: gaudi, color: '#e67e22' },
             ].map(l => (
-              <div key={l.name} style={{ background: '#141414', border: `1px solid ${l.count > 0 ? l.color : '#2a2a2a'}`, borderRadius: '6px', padding: '10px', borderLeft: `3px solid ${l.color}`, transition: 'border-color 0.3s' }}>
-                <div style={{ fontWeight: 700, fontSize: '0.78rem', letterSpacing: '0.04em' }}>{l.name}</div>
-                <div style={{ fontSize: '0.65rem', color: '#888' }}>{l.hw}</div>
-                <div style={{ fontSize: '1.3rem', fontWeight: 700, fontFamily: 'Red Hat Mono, monospace', color: l.color, marginTop: '4px' }}>
-                  {l.count} <span style={{ fontSize: '0.72rem', color: '#888' }}>({totalReqs > 0 ? Math.round(l.count / totalReqs * 100) : 0}%)</span>
+              <div key={l.name} style={{ background: '#161616', border: `1px solid ${l.count > 0 ? l.color : '#333'}`, borderRadius: '6px', padding: '10px', borderLeft: `3px solid ${l.color}`, transition: 'border-color 0.3s' }}>
+                <div style={{ fontWeight: 700, fontSize: '0.72rem', letterSpacing: '0.04em' }}>{l.name}</div>
+                <div style={{ fontSize: '0.6rem', color: '#888' }}>{l.hw}</div>
+                <div style={{ fontSize: '1.2rem', fontWeight: 700, fontFamily: 'RedHatMono, monospace', color: l.count > 0 ? l.color : '#444', marginTop: '4px' }}>
+                  {l.count} <span style={{ fontSize: '0.68rem', color: '#888' }}>({totalReqs > 0 ? Math.round(l.count / totalReqs * 100) : 0}%)</span>
                 </div>
               </div>
             ))}
           </div>
 
-          {/* Summary stats — always visible */}
-          <div style={{ display: 'flex', gap: '16px', marginBottom: '16px', fontSize: '0.82rem', flexWrap: 'wrap', padding: '10px 14px', background: '#141414', border: '1px solid #2a2a2a', borderRadius: '6px' }}>
-            <span><span style={{ fontFamily: 'RedHatMono, monospace', fontWeight: 700, fontSize: '1rem', color: rps > 0 ? '#e8e8e8' : '#444' }}>{rps}</span> <span style={{ color: '#888' }}>req/s</span></span>
-            <span><span style={{ fontFamily: 'RedHatMono, monospace', fontWeight: 700, fontSize: '1rem', color: tps > 0 ? '#e8e8e8' : '#444' }}>{tps.toLocaleString()}</span> <span style={{ color: '#888' }}>tok/s</span></span>
-            <span><span style={{ fontFamily: 'RedHatMono, monospace', fontWeight: 700, fontSize: '1rem', color: p95 > 0 ? '#e8e8e8' : '#444' }}>{p95}</span> <span style={{ color: '#888' }}>ms p95</span></span>
-            <span><span style={{ fontFamily: 'RedHatMono, monospace', fontWeight: 700, fontSize: '1rem', color: images > 0 ? '#e8e8e8' : '#444' }}>{images}</span> <span style={{ color: '#888' }}>images</span></span>
-          </div>
-
-          {/* Model telemetry — always visible */}
-          <div style={{ marginBottom: '16px' }}>
-            <div style={{ fontSize: '0.68rem', textTransform: 'uppercase', letterSpacing: '0.06em', color: '#888', marginBottom: '8px' }}>
-              MODEL ACTIVITY
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '8px' }}>
+          {/* Model activity — always visible */}
+          <div style={{ marginBottom: '14px' }}>
+            <div style={{ fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.06em', color: '#888', marginBottom: '6px' }}>MODEL ACTIVITY</div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
               {[
-                { key: 'granite-4-0-h-tiny', name: 'Granite Tiny', hw: 'Intel Xeon 6 · Eco' },
-                { key: 'codellama-7b-instruct', name: 'CodeLlama 7B', hw: 'Intel Xeon 6 + AMX' },
-                { key: 'llama-scout-17b', name: 'Llama Scout 17B', hw: 'Intel Gaudi' },
+                { key: 'granite-4-0-h-tiny', name: 'Granite', hw: 'Xeon 6 Eco' },
+                { key: 'codellama-7b-instruct', name: 'CodeLlama 7B', hw: 'Xeon 6 + AMX' },
+                { key: 'llama-scout-17b', name: 'Llama Scout 17B', hw: 'Gaudi' },
               ].map(m => {
-                const stats = models[m.key];
-                const count = stats ? stats.count as number : 0;
-                const latency = stats ? (stats.avg_latency_ms as number).toFixed(0) : '—';
-                const tokSec = stats ? (stats.tokens_per_sec as number).toLocaleString() : '—';
+                const s = models[m.key];
+                const count = s ? s.count as number : 0;
                 const active = count > 0;
                 return (
-                  <div key={m.key} style={{
-                    background: '#141414',
-                    border: `1px solid ${active ? MODEL_COLORS[m.key] || '#555' : '#2a2a2a'}`,
-                    borderRadius: '6px', padding: '10px',
-                    borderLeft: `3px solid ${MODEL_COLORS[m.key] || '#555'}`,
-                    opacity: active ? 1 : 0.5,
-                    transition: 'opacity 0.4s, border-color 0.4s',
-                  }}>
-                    <div style={{ fontWeight: 700, fontSize: '0.78rem', color: MODEL_COLORS[m.key] }}>{m.name}</div>
-                    <div style={{ fontSize: '0.65rem', color: '#888', marginBottom: '4px' }}>{m.hw}</div>
-                    <div style={{ fontSize: '0.75rem', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2px' }}>
-                      <div><b style={{ color: active ? '#e8e8e8' : '#444' }}>{count}</b> <span style={{ color: '#888' }}>reqs</span></div>
-                      <div><b style={{ color: active ? '#e8e8e8' : '#444' }}>{latency}</b> <span style={{ color: '#888' }}>ms</span></div>
-                      <div style={{ gridColumn: 'span 2' }}><b style={{ color: active ? MODEL_COLORS[m.key] : '#444' }}>{tokSec}</b> <span style={{ color: '#888' }}>tok/s</span></div>
+                  <div key={m.key} style={{ background: '#161616', border: `1px solid ${active ? MODEL_COLORS[m.key] : '#333'}`, borderRadius: '6px', padding: '8px', opacity: active ? 1 : 0.4, transition: 'all 0.4s' }}>
+                    <div style={{ fontWeight: 700, fontSize: '0.72rem', color: MODEL_COLORS[m.key] }}>{m.name}</div>
+                    <div style={{ fontSize: '0.6rem', color: '#888' }}>{m.hw}</div>
+                    <div style={{ fontSize: '0.72rem', marginTop: '3px' }}>
+                      <b style={{ color: active ? '#e8e8e8' : '#444' }}>{count}</b> <span style={{ color: '#888' }}>reqs</span>
+                      {s && <span style={{ marginLeft: '8px' }}><b style={{ color: MODEL_COLORS[m.key] }}>{(s.tokens_per_sec as number || 0).toLocaleString()}</b> <span style={{ color: '#888' }}>tok/s</span></span>}
                     </div>
                   </div>
                 );
@@ -361,19 +356,17 @@ export default function CockpitDashboard() {
             </div>
           </div>
 
-          {/* Actions — only show when done */}
-          {isDone && (
+          {/* Actions */}
+          {phase === 'done' && (
             <div style={{ display: 'flex', gap: '8px' }}>
-              <button className="ck-mode-btn" onClick={() => activeDemo && launchDemo(activeDemo)}>Run Again</button>
-              <button className="ck-mode-btn" onClick={resetDemo}>Try Another</button>
+              <button className="ck-mode-btn" onClick={() => state.demoId && launchDemo(state.demoId)}>Run Again</button>
+              <button className="ck-mode-btn" onClick={() => dispatch({ type: 'RESET' })}>Try Another</button>
             </div>
           )}
         </>
       )}
 
-      <div style={{ marginTop: '24px', fontSize: '0.65rem', color: '#444', textAlign: 'center' }}>
-        Intel Xeon 6 + Gaudi — Red Hat OpenShift AI
-      </div>
+      <div style={{ marginTop: '24px', fontSize: '0.6rem', color: '#444', textAlign: 'center' }}>Intel Xeon 6 + Gaudi — Red Hat OpenShift AI</div>
     </div>
   );
 }

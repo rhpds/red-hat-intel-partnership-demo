@@ -62,7 +62,7 @@ class TestCockpitContent:
 
     def test_has_demo_selection(self, frontend_src):
         content = (frontend_src / "pages" / "CockpitDashboard.tsx").read_text()
-        assert "SELECT A DEMO" in content
+        assert "Select a demo" in content
         assert "incident_storm" in content or "Incident Storm" in content
         assert "Run Again" in content
 
