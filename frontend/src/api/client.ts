@@ -127,4 +127,7 @@ export const api = {
 
   trainingStatus: (runId: string) =>
     request<Record<string, unknown>>(`/v1/training/status/${runId}`),
+
+  platformStatus: () =>
+    request<Record<string, unknown>>('/v1/platform/status'),
 };

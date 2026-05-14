@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { api } from '../api/client';
 import '../styles/cockpit.css';
 
 const MODES = ['STANDBY', 'DRIVE', 'BOOST', 'OVERDRIVE', 'MAX_Q', 'COOLDOWN'] as const;
@@ -92,9 +93,47 @@ function LaneCard({ name, hw, color, util, count, active }: { name: string; hw: 
   );
 }
 
+const PROFILES = [
+  'incident_storm', 'dashboard_storm', 'image_to_manual', 'architecture_explainer',
+  'visual_rag_barrage', 'token_cannon_multimodal', 'model_race',
+];
+
 export default function CockpitDashboard() {
   const [mode, setMode] = useState<Mode>('STANDBY');
+  const [liveData, setLiveData] = useState<Record<string, unknown> | null>(null);
+  const [launching, setLaunching] = useState(false);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const m = useMetrics(mode);
+
+  // Poll platform status
+  useEffect(() => {
+    const poll = async () => {
+      try {
+        const data = await api.platformStatus();
+        setLiveData(data);
+        const agg = data.aggregate as Record<string, unknown> | undefined;
+        if (agg && (data.active_runs as unknown[])?.length > 0) {
+          const liveMode = (agg.mode as string || 'STANDBY').toUpperCase() as Mode;
+          if (MODES.includes(liveMode)) setMode(liveMode);
+        }
+      } catch { /* ignore */ }
+    };
+    poll();
+    pollRef.current = setInterval(poll, 1500);
+    return () => { if (pollRef.current) clearInterval(pollRef.current); };
+  }, []);
+
+  const launchRun = async (profile: string, powerMode: string) => {
+    setLaunching(true);
+    try {
+      await api.workloadRun(profile, powerMode, 42);
+    } catch { /* ignore */ }
+    setLaunching(false);
+  };
+
+  const hasLiveData = !!(liveData && ((liveData.active_runs as unknown[])?.length > 0 || liveData.latest_completed));
+  const lc = (hasLiveData ? liveData?.latest_completed : null) as Record<string, unknown> | null;
+
   const active = mode !== 'STANDBY' && mode !== 'COOLDOWN';
 
   return (
@@ -126,20 +165,48 @@ export default function CockpitDashboard() {
         ))}
       </div>
 
+      {/* Quick Launch */}
+      <div style={{ display: 'flex', gap: '6px', marginBottom: '16px', flexWrap: 'wrap', alignItems: 'center' }}>
+        <span style={{ fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#888', marginRight: '4px' }}>Launch:</span>
+        {PROFILES.slice(0, 4).map(p => (
+          <button key={p} className="ck-mode-btn" onClick={() => launchRun(p, 'drive')} disabled={launching}
+            style={{ fontSize: '0.72rem', padding: '5px 10px' }}>
+            {p.replace(/_/g, ' ')}
+          </button>
+        ))}
+        {hasLiveData && <span style={{ marginLeft: 'auto', fontSize: '0.72rem', color: '#00c853' }}>● LIVE DATA</span>}
+      </div>
+
       {/* Main Gauges */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginBottom: '20px' }}>
-        <Gauge value={m.rps} label="Requests / sec" color={active ? '#0071c5' : '#555'} active={active} />
-        <Gauge value={m.tps} label="Tokens / sec" color={active ? '#00c853' : '#555'} active={active} />
-        <Gauge value={m.p95} label="p95 Latency" unit="ms" color={m.p95 > 500 ? '#ff6d00' : active ? '#0071c5' : '#555'} active={active} />
+        <Gauge value={lc ? Math.round(lc.requests_per_second as number || 0) : m.rps} label="Requests / sec" color={active ? '#0071c5' : '#555'} active={active} />
+        <Gauge value={lc ? Math.round(lc.estimated_tokens_per_second as number || 0) : m.tps} label="Tokens / sec" color={active ? '#00c853' : '#555'} active={active} />
+        <Gauge value={lc ? Math.round(lc.p95_latency_ms as number || 0) : m.p95} label="p95 Latency" unit="ms" color={(lc ? (lc.p95_latency_ms as number || 0) : m.p95) > 500 ? '#ff6d00' : active ? '#0071c5' : '#555'} active={active} />
         <Gauge value={m.queue} label="Queue Depth" color={m.queue > 50 ? '#ee0000' : active ? '#0071c5' : '#555'} active={active} />
       </div>
 
       {/* Hardware Lanes */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '20px' }}>
-        <LaneCard name="XEON ECO" hw="Intel Xeon 6 • Granite Tiny" color="#00c853" util={m.ecoUtil} count={m.ecoCount} active={m.ecoUtil > 5} />
-        <LaneCard name="XEON PERFORMANCE" hw="Intel Xeon 6 + AMX • CodeLlama 7B" color="#0071c5" util={m.perfUtil} count={m.perfCount} active={m.perfUtil > 5} />
-        <LaneCard name="GAUDI OVERDRIVE" hw="Intel Gaudi • Llama Scout 17B" color="#ff6d00" util={m.gaudiUtil} count={m.gaudiCount} active={m.gaudiUtil > 5} />
-      </div>
+      {(() => {
+        const rc = (lc?.route_counts || {}) as Record<string, number>;
+        const total = Object.values(rc).reduce((a, b) => a + (b || 0), 0) || 1;
+        const lEco = rc.eco || 0; const lPerf = rc.performance || 0; const lGaudi = rc.overdrive || 0;
+        return (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '20px' }}>
+            <LaneCard name="XEON ECO" hw="Intel Xeon 6 • Granite Tiny" color="#00c853"
+              util={lc ? Math.round(lEco / total * 100) : m.ecoUtil}
+              count={lc ? lEco : m.ecoCount}
+              active={(lc ? lEco > 0 : m.ecoUtil > 5)} />
+            <LaneCard name="XEON PERFORMANCE" hw="Intel Xeon 6 + AMX • CodeLlama 7B" color="#0071c5"
+              util={lc ? Math.round(lPerf / total * 100) : m.perfUtil}
+              count={lc ? lPerf : m.perfCount}
+              active={(lc ? lPerf > 0 : m.perfUtil > 5)} />
+            <LaneCard name="GAUDI OVERDRIVE" hw="Intel Gaudi • Llama Scout 17B" color="#ff6d00"
+              util={lc ? Math.round(lGaudi / total * 100) : m.gaudiUtil}
+              count={lc ? lGaudi : m.gaudiCount}
+              active={(lc ? lGaudi > 0 : m.gaudiUtil > 5)} />
+          </div>
+        );
+      })()}
 
       <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '12px', marginBottom: '20px' }}>
         {/* Route Distribution */}

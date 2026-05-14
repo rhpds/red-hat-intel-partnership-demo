@@ -763,6 +763,58 @@ async def health():
     }
 
 
+@app.get("/v1/platform/status")
+async def platform_status():
+    """Unified platform status — aggregates all active runs for cockpit dashboard."""
+    active_runs = []
+    latest_completed = None
+    training_info = None
+
+    for run_id, run in _workload_runs.items():
+        if run.get("status") == "running":
+            active_runs.append({"type": "workload", "run_id": run_id, "profile": run.get("workload_profile", ""), "mode": run.get("power_mode", ""), "completed": run.get("completed", 0), "total": run.get("total", 0)})
+        elif run.get("status") == "complete" and (latest_completed is None or run.get("started_at", 0) > latest_completed.get("started_at", 0)):
+            latest_completed = {"type": "workload", "run_id": run_id, **{k: run.get(k) for k in ["workload_profile", "power_mode", "total_requests", "completed_requests", "route_counts", "requests_per_second", "estimated_tokens_per_second", "p50_latency_ms", "p95_latency_ms", "p99_latency_ms", "xeon_eco_utilization_pct", "xeon_performance_utilization_pct", "gaudi_overdrive_utilization_pct", "total_images", "total_documents", "modality_counts", "mode_label"]}}
+
+    for run_id, run in _agent_runs.items():
+        if run.get("status") == "running":
+            active_runs.append({"type": "agent", "run_id": run_id, "steps_done": len([s for s in run.get("steps", []) if s.get("status") == "done"]), "steps_total": len(run.get("steps", []))})
+
+    for run_id, run in _training_runs.items():
+        if run.get("status") == "running":
+            active_runs.append({"type": "training", "run_id": run_id})
+            training_info = {"status": "running", "run_id": run_id}
+        elif run.get("status") == "completed":
+            training_info = {"status": "completed", "run_id": run_id, "model": run.get("model_profile_id", ""), "base_score": run.get("evaluation", {}).get("base_score", 0), "tuned_score": run.get("evaluation", {}).get("tuned_score", 0), "improvement": run.get("evaluation", {}).get("improvement", 0)}
+
+    agg_mode = "STANDBY"
+    agg_rps = 0
+    agg_tps = 0
+    agg_routes = {}
+    if active_runs:
+        wr = [r for r in active_runs if r["type"] == "workload"]
+        if wr:
+            agg_mode = wr[0].get("mode", "DRIVE").upper()
+    if latest_completed and not active_runs:
+        agg_rps = latest_completed.get("requests_per_second", 0) or 0
+        agg_tps = latest_completed.get("estimated_tokens_per_second", 0) or 0
+        agg_routes = latest_completed.get("route_counts", {}) or {}
+        agg_mode = (latest_completed.get("power_mode", "standby") or "standby").upper()
+
+    return {
+        "active_runs": active_runs,
+        "latest_completed": latest_completed,
+        "training": training_info,
+        "aggregate": {
+            "mode": agg_mode,
+            "requests_per_second": agg_rps,
+            "estimated_tokens_per_second": agg_tps,
+            "route_counts": agg_routes,
+            "active_count": len(active_runs),
+        },
+    }
+
+
 @app.get("/metrics")
 async def metrics():
     """Prometheus metrics endpoint"""
