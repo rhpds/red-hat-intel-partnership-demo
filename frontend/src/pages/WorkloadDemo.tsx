@@ -23,7 +23,12 @@ const PROFILES = [
   { value: 'incident_storm', label: 'Incident Storm', desc: 'Enterprise incident flood — classification, triage, RCA, batch reporting' },
   { value: 'rag_barrage', label: 'RAG Barrage', desc: 'High-throughput RAG — embed, search, rerank, answer generation' },
   { value: 'token_cannon', label: 'Token Cannon', desc: 'Maximize generated tokens — heavy generation across all lanes' },
-  { value: 'model_race', label: 'Model Race', desc: 'Cross-lane comparison — comparable workloads for reporting' },
+  { value: 'model_race', label: 'Model Race', desc: 'Cross-hardware comparison — comparable workloads for reporting' },
+  { value: 'dashboard_storm', label: 'Dashboard Storm', desc: 'Multimodal — operational screenshots classified, summarized, interpreted' },
+  { value: 'multimodal_incident_commander', label: 'Incident Commander', desc: 'Multimodal — screenshots + logs + metrics into incident synthesis' },
+  { value: 'architecture_explainer', label: 'Architecture Explainer', desc: 'Multimodal — diagrams explained with vision-language reasoning' },
+  { value: 'visual_rag_barrage', label: 'Visual RAG', desc: 'Multimodal — embed images, search visually, answer with context' },
+  { value: 'token_cannon_multimodal', label: 'Token Cannon MM', desc: 'Multimodal — stress heavy visual generation across Gaudi' },
 ];
 
 const NARRATIVES: Record<string, { title: string; story: string; phases: Array<{ name: string; tasks: string[]; hw: string; desc: string }> }> = {
@@ -65,6 +70,49 @@ const NARRATIVES: Record<string, { title: string; story: string; phases: Array<{
       { name: 'Small → Eco', tasks: ['classification'], hw: 'Xeon 6 Eco', desc: 'Quick classification on Granite — fast, minimal cost.' },
       { name: 'Mid → Performance', tasks: ['short_summary'], hw: 'Xeon 6 Perf', desc: 'Summaries on CodeLlama 7B with AMX — no GPU cost.' },
       { name: 'Large → Overdrive', tasks: ['long_summary', 'document_summary'], hw: 'Gaudi', desc: 'Heavy generation — only viable on Gaudi HBM.' },
+    ],
+  },
+  dashboard_storm: {
+    title: 'Dashboard Storm (Multimodal)',
+    story: 'Operational dashboards flood the platform with screenshots. Xeon 6 classifies and sorts them instantly. Gaudi explains high-value screenshots using vision-language reasoning.',
+    phases: [
+      { name: 'Screenshot Classify', tasks: ['screenshot_classification'], hw: 'Xeon 6 Eco', desc: 'Quick classification of dashboard type and alert state.' },
+      { name: 'Chart Interpret', tasks: ['chart_interpretation'], hw: 'Gaudi', desc: 'Vision-language interpretation of time-series charts.' },
+      { name: 'Screenshot Summary', tasks: ['screenshot_summary'], hw: 'Gaudi', desc: 'Full dashboard explanation with anomaly detection.' },
+      { name: 'Incident Synthesis', tasks: ['multimodal_incident_summary'], hw: 'Gaudi', desc: 'Multi-screenshot incident summary with visual evidence.' },
+    ],
+  },
+  multimodal_incident_commander: {
+    title: 'Incident Commander (Multimodal)',
+    story: 'A production incident unfolds. Screenshots, logs, and metrics pour in. Xeon 6 classifies fast. Gaudi synthesizes everything into root cause analysis using vision and text.',
+    phases: [
+      { name: 'Visual Triage', tasks: ['screenshot_summary', 'chart_interpretation'], hw: 'Gaudi', desc: 'Dashboard screenshots analyzed for anomalies.' },
+      { name: 'Root Cause', tasks: ['multimodal_rca'], hw: 'Gaudi', desc: 'Multi-source RCA combining screenshots, diagrams, and logs.' },
+      { name: 'Document Review', tasks: ['document_visual_summary'], hw: 'Gaudi', desc: 'Post-mortem documents with charts summarized.' },
+    ],
+  },
+  architecture_explainer: {
+    title: 'Architecture Explainer (Multimodal)',
+    story: 'Architecture diagrams submitted for AI-powered explanation. Gaudi handles vision-language reasoning to interpret complex system diagrams and answer questions.',
+    phases: [
+      { name: 'Diagram Explain', tasks: ['diagram_explanation'], hw: 'Gaudi', desc: 'Architecture diagrams interpreted with system understanding.' },
+      { name: 'Visual Q&A', tasks: ['visual_rag_question'], hw: 'Gaudi', desc: 'Questions answered using diagrams + documentation context.' },
+    ],
+  },
+  visual_rag_barrage: {
+    title: 'Visual RAG (Multimodal)',
+    story: 'Multimodal knowledge base queried at scale. Documents with images, diagrams, and screenshots are indexed on Xeon 6 and answered on Gaudi.',
+    phases: [
+      { name: 'Visual Index', tasks: ['image_text_embedding', 'visual_similarity'], hw: 'Xeon 6', desc: 'Images and text embedded for multimodal search.' },
+      { name: 'Layout Extract', tasks: ['ocr_layout_extract'], hw: 'Xeon 6', desc: 'Text and structure extracted from document pages.' },
+      { name: 'Visual Answer', tasks: ['visual_rag_question', 'document_visual_summary'], hw: 'Gaudi', desc: 'Answers synthesized from visual + text context.' },
+    ],
+  },
+  token_cannon_multimodal: {
+    title: 'Token Cannon: Multimodal',
+    story: 'Maximum multimodal generation. Nearly everything routes to Gaudi — vision-language reasoning with large context windows across screenshots, charts, and documents.',
+    phases: [
+      { name: 'Heavy Visual Gen', tasks: ['screenshot_summary', 'chart_interpretation', 'document_visual_summary', 'multimodal_rca'], hw: 'Gaudi', desc: 'All heavy multimodal generation on Gaudi HBM.' },
     ],
   },
 };

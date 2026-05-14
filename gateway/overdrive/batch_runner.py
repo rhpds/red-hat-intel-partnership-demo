@@ -111,6 +111,9 @@ def run_workload(
             task_type=req.task_type,
             token_estimate=req.token_estimate,
             expected_output_tokens=expected_output,
+            modality=req.modality,
+            image_count=req.image_count,
+            page_count=req.page_count,
         )
 
         results.append({
@@ -118,6 +121,9 @@ def run_workload(
             "latency_ms": t["latency_ms"],
             "input_tokens": req.token_estimate,
             "output_tokens": expected_output,
+            "modality": req.modality,
+            "image_count": req.image_count,
+            "page_count": req.page_count,
         })
 
         event_producer.emit({
@@ -128,6 +134,8 @@ def run_workload(
             "hw": "Gaudi" if lane == "overdrive" else "Xeon 6",
             "latency_ms": t["latency_ms"],
             "input_tokens": req.token_estimate,
+            "modality": req.modality,
+            "image_count": req.image_count,
         })
 
     elapsed = (time.monotonic() - start) * 1000

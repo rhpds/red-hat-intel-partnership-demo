@@ -186,6 +186,93 @@ PROFILES = {
             {"task_type": "document_summary", "weight": 25, "token_range": [20000, 40000], "priority": "high"},
         ],
     },
+    "dashboard_storm": {
+        "description": "Simulate operational dashboard screenshots flooding in — classify, summarize, interpret charts.",
+        "expected_lane_bias": {"eco": "screenshot classification", "overdrive": "summary and chart interpretation"},
+        "narrative": {"title": "Dashboard Storm", "story": "Operational dashboards are flooding the platform with screenshots. Xeon 6 classifies and sorts them instantly. Gaudi explains the high-value screenshots that need attention.", "phases": []},
+        "prompts": {
+            "screenshot_classification": ["Classify this Grafana dashboard screenshot: is it showing normal operations or an anomaly?", "Identify the type of operational dashboard: latency, throughput, error rate, or resource utilization."],
+            "screenshot_summary": ["Summarize the operational issue visible in this Grafana dashboard showing a latency spike and elevated error rate.", "Explain what this Prometheus dashboard is showing about CPU utilization across the inference worker nodes."],
+            "chart_interpretation": ["Interpret this time-series chart showing p99 latency increasing from 200ms to 4,500ms over 15 minutes.", "What does this throughput chart indicate about the relationship between request volume and Gaudi utilization?"],
+            "multimodal_incident_summary": ["Synthesize these 5 dashboard screenshots into a single incident summary covering latency, error rate, and resource utilization trends."],
+        },
+        "task_mix": [
+            {"task_type": "screenshot_classification", "weight": 30, "token_range": [500, 3000], "priority": "normal", "modality": "screenshot", "image_count_range": [1, 1]},
+            {"task_type": "screenshot_summary", "weight": 25, "token_range": [8000, 20000], "priority": "high", "modality": "screenshot", "image_count_range": [1, 1]},
+            {"task_type": "chart_interpretation", "weight": 25, "token_range": [8000, 18000], "priority": "high", "modality": "screenshot", "image_count_range": [1, 2]},
+            {"task_type": "multimodal_incident_summary", "weight": 20, "token_range": [20000, 40000], "priority": "critical", "modality": "mixed", "image_count_range": [3, 5]},
+        ],
+    },
+    "multimodal_incident_commander": {
+        "description": "Incident triage using screenshots, logs, and metrics — classify, summarize, RCA.",
+        "expected_lane_bias": {"eco": "classification", "overdrive": "incident synthesis and RCA"},
+        "narrative": {"title": "Multimodal Incident Commander", "story": "A production incident is unfolding. Screenshots, log snippets, and metrics are pouring in. Xeon 6 handles fast classification. Gaudi synthesizes everything into root cause analysis.", "phases": []},
+        "prompts": {
+            "screenshot_summary": ["Summarize the Grafana dashboard showing inference gateway latency spike during peak traffic."],
+            "chart_interpretation": ["Interpret this error rate chart showing 502 errors correlating with Gaudi memory pressure."],
+            "multimodal_rca": ["Analyze these 3 dashboard screenshots and log excerpts to determine the root cause of the inference gateway timeout cascade."],
+            "multimodal_incident_summary": ["Generate a comprehensive incident report combining dashboard screenshots, metrics, and alert timeline."],
+            "document_visual_summary": ["Summarize this 10-page incident post-mortem document with embedded charts and architecture diagrams."],
+        },
+        "task_mix": [
+            {"task_type": "screenshot_summary", "weight": 20, "token_range": [8000, 18000], "priority": "high", "modality": "screenshot", "image_count_range": [1, 1]},
+            {"task_type": "chart_interpretation", "weight": 15, "token_range": [8000, 16000], "priority": "high", "modality": "screenshot", "image_count_range": [1, 2]},
+            {"task_type": "multimodal_rca", "weight": 25, "token_range": [20000, 40000], "priority": "critical", "modality": "mixed", "image_count_range": [2, 4]},
+            {"task_type": "multimodal_incident_summary", "weight": 20, "token_range": [20000, 35000], "priority": "critical", "modality": "mixed", "image_count_range": [3, 6]},
+            {"task_type": "document_visual_summary", "weight": 20, "token_range": [16000, 30000], "priority": "high", "modality": "document", "page_count_range": [5, 15]},
+        ],
+    },
+    "architecture_explainer": {
+        "description": "Feed architecture diagrams and ask for technical explanations.",
+        "expected_lane_bias": {"overdrive": "diagram explanations and visual RAG"},
+        "narrative": {"title": "Architecture Explainer", "story": "Architecture diagrams are submitted for AI-powered explanation. Gaudi handles the heavy vision-language reasoning to interpret complex system diagrams.", "phases": []},
+        "prompts": {
+            "diagram_explanation": ["Explain this architecture diagram showing the dual-path inference routing across Xeon 6 and Gaudi hardware.", "Describe the data flow shown in this Kubernetes deployment diagram with KServe ServingRuntimes."],
+            "visual_rag_question": ["Looking at this architecture diagram, explain how the routing engine decides between Xeon 6 and Gaudi for each request.", "Based on this deployment diagram, what happens when the Gaudi accelerator node goes offline?"],
+            "document_visual_summary": ["Summarize this technical architecture document with embedded diagrams covering the Intel-Red Hat inference platform."],
+        },
+        "task_mix": [
+            {"task_type": "diagram_explanation", "weight": 40, "token_range": [10000, 25000], "priority": "high", "modality": "diagram", "image_count_range": [1, 1]},
+            {"task_type": "visual_rag_question", "weight": 35, "token_range": [12000, 22000], "priority": "high", "modality": "mixed", "image_count_range": [1, 2]},
+            {"task_type": "document_visual_summary", "weight": 25, "token_range": [16000, 35000], "priority": "high", "modality": "document", "page_count_range": [5, 20]},
+        ],
+    },
+    "visual_rag_barrage": {
+        "description": "Multimodal RAG — embed images, search visually, extract text, answer questions.",
+        "expected_lane_bias": {"performance": "retrieval-side multimodal", "overdrive": "answer generation"},
+        "narrative": {"title": "Visual RAG Barrage", "story": "A multimodal knowledge base is queried at scale. Documents with images, diagrams, and screenshots are indexed, searched, and answered — spanning Xeon 6 for retrieval and Gaudi for synthesis.", "phases": []},
+        "prompts": {
+            "image_text_embedding": ["Embed this diagram and its caption for semantic search: Intel Gaudi accelerator architecture.", "Vectorize this screenshot and surrounding text for multimodal retrieval."],
+            "visual_similarity": ["Find screenshots visually similar to this Grafana latency dashboard.", "Search for diagrams that look similar to this inference routing architecture."],
+            "ocr_layout_extract": ["Extract text and layout from this scanned architecture document page.", "OCR this screenshot to extract metric values and panel labels."],
+            "visual_rag_question": ["Using the retrieved documents and screenshots, explain the inference routing decision flow.", "Based on these architecture diagrams and docs, how does failover work between Xeon 6 and Gaudi?"],
+            "document_visual_summary": ["Summarize this multi-page technical document with embedded charts and architecture diagrams."],
+        },
+        "task_mix": [
+            {"task_type": "image_text_embedding", "weight": 25, "token_range": [500, 4000], "priority": "normal", "modality": "image", "image_count_range": [1, 1]},
+            {"task_type": "visual_similarity", "weight": 20, "token_range": [1000, 6000], "priority": "normal", "modality": "image", "image_count_range": [1, 1]},
+            {"task_type": "ocr_layout_extract", "weight": 15, "token_range": [2000, 6000], "priority": "normal", "modality": "document", "page_count_range": [1, 3]},
+            {"task_type": "visual_rag_question", "weight": 25, "token_range": [10000, 22000], "priority": "high", "modality": "mixed", "image_count_range": [1, 3]},
+            {"task_type": "document_visual_summary", "weight": 15, "token_range": [16000, 35000], "priority": "high", "modality": "document", "page_count_range": [5, 15]},
+        ],
+    },
+    "token_cannon_multimodal": {
+        "description": "Stress heavy multimodal generation — screenshots, charts, documents, RCA.",
+        "expected_lane_bias": {"overdrive": "most heavy multimodal requests"},
+        "narrative": {"title": "Token Cannon: Multimodal", "story": "Maximum multimodal generation throughput. Nearly everything routes to Gaudi because these tasks demand vision-language reasoning with large context windows.", "phases": []},
+        "prompts": {
+            "screenshot_summary": ["Generate a detailed analysis of this operations dashboard showing multi-service degradation across 6 panels."],
+            "chart_interpretation": ["Provide an in-depth interpretation of this complex multi-axis chart showing throughput, latency, and error rate correlations over 24 hours."],
+            "document_visual_summary": ["Distill this 30-page architecture whitepaper with 15 embedded diagrams into a comprehensive technical summary."],
+            "multimodal_rca": ["Deep root cause analysis using 8 dashboard screenshots, 3 architecture diagrams, and 50 log lines from the inference gateway incident."],
+        },
+        "task_mix": [
+            {"task_type": "screenshot_summary", "weight": 25, "token_range": [10000, 25000], "priority": "high", "modality": "screenshot", "image_count_range": [1, 3]},
+            {"task_type": "chart_interpretation", "weight": 20, "token_range": [10000, 22000], "priority": "high", "modality": "screenshot", "image_count_range": [1, 2]},
+            {"task_type": "document_visual_summary", "weight": 30, "token_range": [20000, 45000], "priority": "high", "modality": "document", "page_count_range": [10, 30]},
+            {"task_type": "multimodal_rca", "weight": 25, "token_range": [25000, 50000], "priority": "critical", "modality": "mixed", "image_count_range": [4, 8]},
+        ],
+    },
 }
 
 

@@ -26,6 +26,9 @@ class MockTimingProvider:
         task_type: str,
         token_estimate: int,
         expected_output_tokens: int,
+        modality: str = "text",
+        image_count: int = 0,
+        page_count: int = 0,
     ) -> dict:
         rng = random.Random(self._seed ^ hash((lane, task_type, token_estimate, expected_output_tokens)))
 
@@ -34,20 +37,32 @@ class MockTimingProvider:
         jitter = rng.uniform(0.8, 1.3)
 
         latency_ms = round(base_latency * (1 + token_factor * 0.1) * jitter, 1)
+
+        image_overhead = image_count * rng.uniform(80, 200) if image_count > 0 else 0
+        page_overhead = page_count * rng.uniform(150, 400) if page_count > 0 else 0
+        latency_ms = round(latency_ms + image_overhead + page_overhead, 1)
+
         ttft_ms = round(latency_ms * rng.uniform(0.1, 0.3), 1)
 
         base_tps = LANE_TOKENS_PER_SEC.get(lane, 50)
+        if modality != "text":
+            base_tps = round(base_tps * 0.8, 1)
         output_tokens_per_sec = round(base_tps * rng.uniform(0.7, 1.4), 1)
 
         generation_time = (expected_output_tokens / output_tokens_per_sec * 1000) if output_tokens_per_sec > 0 else 0
         total_duration_ms = round(latency_ms + generation_time, 1)
 
-        return {
+        result = {
             "latency_ms": latency_ms,
             "ttft_ms": ttft_ms,
             "output_tokens_per_sec": output_tokens_per_sec,
             "total_duration_ms": total_duration_ms,
         }
+        if image_count > 0:
+            result["images_processed"] = image_count
+        if page_count > 0:
+            result["pages_processed"] = page_count
+        return result
 
 
 TASK_TO_LITELLM_MODEL = {

@@ -5,6 +5,21 @@ from .models import InferenceRequest
 from .power_modes import get_mode_config
 from .workload_profiles import PROFILES
 
+MULTIMODAL_IMAGE_FIXTURES = [
+    "fixtures/multimodal/images/dashboard-latency-spike-001.json",
+    "fixtures/multimodal/images/dashboard-kafka-lag-001.json",
+    "fixtures/multimodal/images/diagram-inference-platform-001.json",
+    "fixtures/multimodal/images/chart-throughput-001.json",
+    "fixtures/multimodal/images/grafana-error-rate-001.json",
+    "fixtures/multimodal/images/architecture-dual-path-001.json",
+]
+
+MULTIMODAL_DOC_FIXTURES = [
+    "fixtures/multimodal/documents/incident-report-page-001.json",
+    "fixtures/multimodal/documents/architecture-doc-page-001.json",
+    "fixtures/multimodal/documents/deployment-guide-page-001.json",
+]
+
 LATENCY_DEFAULTS = {
     "classification": 8000,
     "embedding": 5000,
@@ -16,6 +31,18 @@ LATENCY_DEFAULTS = {
     "rag_question": 5000,
     "document_summary": 5000,
     "code_summary": 5000,
+    "image_classification": 8000,
+    "screenshot_classification": 8000,
+    "image_text_embedding": 5000,
+    "visual_similarity": 5000,
+    "ocr_layout_extract": 5000,
+    "screenshot_summary": 5000,
+    "chart_interpretation": 5000,
+    "diagram_explanation": 5000,
+    "document_visual_summary": 5000,
+    "visual_rag_question": 5000,
+    "multimodal_incident_summary": 5000,
+    "multimodal_rca": 5000,
 }
 
 
@@ -54,6 +81,22 @@ def generate_workload(
         prompts_for_task = profile_data.get("prompts", {}).get(entry["task_type"], [])
         prompt = prompts_for_task[rng.randint(0, len(prompts_for_task) - 1)] if prompts_for_task else ""
 
+        modality = entry.get("modality", "text")
+        image_count = 0
+        page_count = 0
+        image_ref = ""
+        document_ref = ""
+
+        icr = entry.get("image_count_range")
+        if icr:
+            image_count = rng.randint(icr[0], icr[1])
+            image_ref = MULTIMODAL_IMAGE_FIXTURES[rng.randint(0, len(MULTIMODAL_IMAGE_FIXTURES) - 1)]
+
+        pcr = entry.get("page_count_range")
+        if pcr:
+            page_count = rng.randint(pcr[0], pcr[1])
+            document_ref = MULTIMODAL_DOC_FIXTURES[rng.randint(0, len(MULTIMODAL_DOC_FIXTURES) - 1)]
+
         requests.append(InferenceRequest(
             request_id=f"wl-{seed}-{i:05d}",
             task_type=entry["task_type"],
@@ -61,6 +104,11 @@ def generate_workload(
             token_estimate=token_estimate,
             latency_target_ms=LATENCY_DEFAULTS.get(entry["task_type"], 5000),
             prompt=prompt,
+            modality=modality,
+            image_ref=image_ref,
+            document_ref=document_ref,
+            image_count=image_count,
+            page_count=page_count,
         ))
 
     return requests

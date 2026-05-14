@@ -43,10 +43,30 @@ def generate_markdown_report(metrics: dict) -> str:
         f"- **Gaudi handled:** {rc.get('overdrive', 0):,} requests ({metrics.get('gaudi_overdrive_utilization_pct', 0):.0f}%)",
         f"- **Peak simulated overdrive utilization:** {metrics.get('gaudi_overdrive_utilization_pct', 0):.0f}%",
         "",
+        "",
+    ]
+
+    mc = metrics.get("modality_counts", {})
+    if mc and any(k != "text" for k in mc):
+        lines.extend([
+            "## Multimodal Summary",
+            f"- **Total images:** {metrics.get('total_images', 0):,}",
+            f"- **Total documents:** {metrics.get('total_documents', 0):,}",
+            f"- **Total pages:** {metrics.get('total_pages', 0):,}",
+            f"- **Images/sec:** {metrics.get('images_per_second', 0):.1f}",
+            f"- **Documents/sec:** {metrics.get('documents_per_second', 0):.1f}",
+            "",
+            "## Modality Distribution",
+        ])
+        for modality, count in sorted(mc.items()):
+            lines.append(f"- **{modality.capitalize()}:** {count:,} requests")
+        lines.append("")
+
+    lines.extend([
         "## Notes",
         "- Metrics are **simulated** unless real endpoint mode is enabled.",
         "- Token counts are estimates based on workload profile configuration.",
         f"- Report generated: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}",
         "",
-    ]
+    ])
     return "\n".join(lines)

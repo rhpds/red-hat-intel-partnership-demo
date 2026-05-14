@@ -19,6 +19,11 @@ def collect_metrics(results: list[dict], total_duration_ms: float) -> dict:
     perf_count = route_counts.get("performance", 0)
     gaudi_count = route_counts.get("overdrive", 0)
 
+    total_images = sum(r.get("image_count", 0) for r in results)
+    total_pages = sum(r.get("page_count", 0) for r in results)
+    total_documents = sum(1 for r in results if r.get("page_count", 0) > 0)
+    modality_counts = dict(Counter(r.get("modality", "text") for r in results))
+
     return {
         "total_requests": n,
         "completed_requests": n,
@@ -37,6 +42,12 @@ def collect_metrics(results: list[dict], total_duration_ms: float) -> dict:
         "xeon_eco_utilization_pct": round(eco_count / n * 100, 1) if n else 0,
         "xeon_performance_utilization_pct": round(perf_count / n * 100, 1) if n else 0,
         "gaudi_overdrive_utilization_pct": round(gaudi_count / n * 100, 1) if n else 0,
+        "total_images": total_images,
+        "total_documents": total_documents,
+        "total_pages": total_pages,
+        "images_per_second": round(total_images / duration_sec, 2) if total_images > 0 else 0,
+        "documents_per_second": round(total_documents / duration_sec, 2) if total_documents > 0 else 0,
+        "modality_counts": modality_counts,
     }
 
 
