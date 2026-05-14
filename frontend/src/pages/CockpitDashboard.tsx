@@ -94,8 +94,8 @@ export default function CockpitDashboard() {
           });
         }
 
-        // Transition to done — only accept data from OUR run
-        if (!isActive && snapCompleted > 0) {
+        // Transition to done — only if OUR run was active then stopped
+        if (!isActive && newCompleted > 0) {
           const lc = d.latest_completed as Record<string, unknown> | null;
           const lcRunId = lc?.run_id as string | undefined;
           if (lc && (!currentRunId || lcRunId === currentRunId)) {
@@ -126,11 +126,17 @@ export default function CockpitDashboard() {
     setCompleted(0); setTotal(0); setRoutes({}); setRps(0); setTps(0); setP95(0); setImages(0);
     setHistory([]); setModels({});
     startTimeRef.current = Date.now();
-    setDemoState('running');
     try {
       const resp = await api.workloadRun(profileId, sc.mode, 42, true, sc.locked ? unlockCode : '') as { run_id?: string };
-      if (resp.run_id) setCurrentRunId(resp.run_id);
-    } catch { /* ignore */ }
+      if (resp.run_id) {
+        setCurrentRunId(resp.run_id);
+        setDemoState('running');
+      } else {
+        resetDemo();
+      }
+    } catch {
+      resetDemo();
+    }
     setLaunching(false);
   };
 
