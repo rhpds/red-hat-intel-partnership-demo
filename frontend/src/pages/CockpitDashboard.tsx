@@ -3,12 +3,9 @@ import { api } from '../api/client';
 import '../styles/cockpit.css';
 
 const DEMOS = [
-  { id: 'incident_storm', name: 'Incident Storm', desc: 'Enterprise alert flood — classify on Xeon 6, deep analysis on Gaudi', phases: ['Alert Triage (Xeon 6)', 'Knowledge Search (Xeon 6)', 'Deep Analysis (Gaudi)', 'Batch Reporting (Gaudi)'] },
-  { id: 'dashboard_storm', name: 'Dashboard Storm', desc: 'Operational screenshots — classify on Xeon 6, interpret on Gaudi', phases: ['Screenshot Classify (Xeon 6)', 'Chart Interpret (Gaudi)', 'Summary Generation (Gaudi)', 'Incident Synthesis (Gaudi)'] },
-  { id: 'token_cannon_multimodal', name: 'Token Cannon', desc: 'Maximum multimodal generation — stress Gaudi throughput', phases: ['Heavy Generation (Gaudi)', 'Document Distill (Gaudi)', 'Batch Report (Gaudi)'] },
-  { id: 'image_to_manual', name: 'Image to Manual', desc: 'Equipment photos → installation guides on Gaudi', phases: ['Image Identify (Xeon 6)', 'Manual Generate (Gaudi)', 'Doc Summary (Gaudi)'] },
-  { id: 'model_race', name: 'Model Race', desc: 'Same tasks across all hardware — compare Xeon 6 vs Gaudi', phases: ['Small Tasks (Xeon Eco)', 'Mid Tasks (Xeon Perf)', 'Large Tasks (Gaudi)'] },
-  { id: 'visual_rag_barrage', name: 'Visual RAG', desc: 'Multimodal knowledge base — embed on Xeon 6, answer on Gaudi', phases: ['Visual Index (Xeon 6)', 'Layout Extract (Xeon 6)', 'Visual Answer (Gaudi)'] },
+  { id: 'incident_storm', name: 'Incident Storm', desc: 'Enterprise alert flood — classify on Xeon 6, deep analysis on Gaudi. Uses real LiteLLM inference.', phases: ['Alert Triage (Xeon 6)', 'Knowledge Search (Xeon 6)', 'Deep Analysis (Gaudi)', 'Batch Reporting (Gaudi)'], time: '~20s' },
+  { id: 'dashboard_storm', name: 'Dashboard Storm', desc: 'Operational screenshots — classify on Xeon 6, interpret on Gaudi. Real multimodal inference.', phases: ['Screenshot Classify (Xeon 6)', 'Chart Interpret (Gaudi)', 'Summary Generation (Gaudi)', 'Incident Synthesis (Gaudi)'], time: '~20s' },
+  { id: 'model_race', name: 'Model Race', desc: 'Same tasks across all hardware — compare Xeon 6 vs Gaudi performance live.', phases: ['Small Tasks (Xeon Eco)', 'Mid Tasks (Xeon Perf)', 'Large Tasks (Gaudi)'], time: '~20s' },
 ];
 
 const MODEL_COLORS: Record<string, string> = { 'granite-4-0-h-tiny': '#00c853', 'codellama-7b-instruct': '#0071c5', 'llama-scout-17b': '#ff6d00' };
@@ -74,7 +71,7 @@ export default function CockpitDashboard() {
     setHistory([]);
     setShowTelemetry(false);
     startTimeRef.current = Date.now();
-    try { await api.workloadRun(profileId, 'drive', 42); } catch { /* ignore */ }
+    try { await api.workloadRun(profileId, 'drive', 42, true); } catch { /* ignore */ }
     setLaunching(false);
   };
 
@@ -111,14 +108,18 @@ export default function CockpitDashboard() {
       {/* ===== IDLE ===== */}
       {!isRunning && !isComplete && (
         <>
-          <div style={{ textAlign: 'center', margin: '40px 0 24px', color: '#888', fontSize: '0.95rem' }}>Select a demo to start</div>
+          <div style={{ textAlign: 'center', margin: '40px 0 12px', color: '#888', fontSize: '0.95rem' }}>Select a demo to run live</div>
+          <div style={{ textAlign: 'center', marginBottom: '24px', fontSize: '0.75rem', color: '#555' }}>
+            Cockpit runs use real LiteLLM inference (~20 seconds per run). Use sparingly.
+          </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '10px' }}>
             {DEMOS.map(d => (
               <div key={d.id} onClick={() => !launching && launchDemo(d.id)} style={{
                 background: '#141414', border: '1px solid #2a2a2a', borderRadius: '8px', padding: '14px', cursor: 'pointer', transition: 'border-color 0.2s',
               }} onMouseEnter={e => (e.currentTarget.style.borderColor = '#0071c5')} onMouseLeave={e => (e.currentTarget.style.borderColor = '#2a2a2a')}>
                 <div style={{ fontWeight: 700, fontSize: '0.88rem', marginBottom: '4px' }}>{d.name}</div>
-                <div style={{ fontSize: '0.75rem', color: '#888' }}>{d.desc}</div>
+                <div style={{ fontSize: '0.75rem', color: '#888', marginBottom: '4px' }}>{d.desc}</div>
+                <div style={{ fontSize: '0.68rem', color: '#555' }}>Live · 25 requests · {d.time}</div>
               </div>
             ))}
           </div>
