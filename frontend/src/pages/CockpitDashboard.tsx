@@ -59,7 +59,7 @@ export default function CockpitDashboard() {
         }
         if (d.active_runs && (d.active_runs as unknown[]).length > 0) {
           const wr = (d.active_runs as Array<Record<string, unknown>>).find(r => r.type === 'workload');
-          if (wr) setActiveDemo(wr.profile as string || null);
+          if (wr && wr.profile) setActiveDemo(wr.profile as string);
         }
       } catch { /* ignore */ }
     };
@@ -79,7 +79,7 @@ export default function CockpitDashboard() {
   };
 
   const isRunning = !!(data && Array.isArray(data.active_runs) && (data.active_runs as Array<Record<string, unknown>>).some(r => r.type === 'workload'));
-  const isComplete = !isRunning && data?.latest_completed != null;
+  const isComplete = !isRunning && activeDemo != null && data?.latest_completed != null;
   const lp = data?.live_progress as { completed: number; total: number; pct: number } | null;
   const agg = data?.aggregate as Record<string, unknown> | undefined;
   const rc = (agg?.route_counts || {}) as Record<string, number>;
