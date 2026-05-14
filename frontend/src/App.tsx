@@ -12,6 +12,7 @@ import Docs from './pages/Docs';
 import Tokenizer from './pages/Tokenizer';
 import WorkloadDemo from './pages/WorkloadDemo';
 import ResearchAgent from './pages/ResearchAgent';
+import TrainingDemo from './pages/TrainingDemo';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -35,6 +36,7 @@ export default function App() {
             <Route path="/tokenizer" element={<Tokenizer />} />
             <Route path="/workload" element={<WorkloadDemo />} />
             <Route path="/agent" element={<ResearchAgent />} />
+            <Route path="/training" element={<TrainingDemo />} />
             <Route path="/docs" element={<Docs />} />
           </Route>
         </Routes>

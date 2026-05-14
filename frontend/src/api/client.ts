@@ -115,4 +115,16 @@ export const api = {
     request<Record<string, unknown>>(`/v1/agent/approve/${runId}/${stepName}`, {
       method: 'POST',
     }),
+
+  trainingProfiles: () =>
+    request<Record<string, unknown>>('/v1/training/profiles'),
+
+  trainingRun: (task: string, model: string, dataset: string, mode: string, seed: number) =>
+    request<Record<string, unknown>>('/v1/training/run', {
+      method: 'POST',
+      body: JSON.stringify({ task, model, dataset, mode, seed }),
+    }),
+
+  trainingStatus: (runId: string) =>
+    request<Record<string, unknown>>(`/v1/training/status/${runId}`),
 };

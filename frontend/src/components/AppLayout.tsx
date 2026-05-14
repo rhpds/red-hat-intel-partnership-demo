@@ -39,6 +39,7 @@ const navSections = [
       { path: '/try-it', label: 'Try It' },
       { path: '/workload', label: 'Workload Simulation' },
       { path: '/agent', label: 'Research Agent' },
+      { path: '/training', label: 'Train + Serve' },
     ],
   },
   {

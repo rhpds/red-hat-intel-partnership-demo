@@ -981,6 +981,60 @@ async def agent_approve(run_id: str, step_name: str):
     return {"approved": False, "detail": f"Step '{step_name}' not awaiting approval"}
 
 
+_training_runs: dict = {}
+
+
+@app.get("/v1/training/profiles")
+async def training_profiles():
+    from overdrive.training_models import list_model_profiles, list_dataset_profiles, list_training_tasks
+    return {"models": list_model_profiles(), "datasets": list_dataset_profiles(), "tasks": list_training_tasks()}
+
+
+class TrainingRunRequest(BaseModel):
+    task: str
+    model: str
+    dataset: str
+    mode: str = "mock_lora"
+    seed: int = 42
+
+
+@app.post("/v1/training/run")
+async def training_run(req: TrainingRunRequest, raw_request: Request):
+    check_rate_limit(raw_request.client.host)
+    import uuid as _uuid
+    run_id = f"train-{_uuid.uuid4().hex[:8]}"
+    run_state = {"run_id": run_id, "status": "running"}
+    _training_runs[run_id] = run_state
+
+    def _run():
+        try:
+            from overdrive.training_backend import MockTrainingBackend
+            from overdrive.training_report import generate_training_markdown, generate_model_card
+            backend = MockTrainingBackend(seed=req.seed)
+            result = backend.run(req.task, req.model, req.dataset, req.mode, req.seed)
+            candidate = backend.create_serving_candidate(result)
+            from dataclasses import asdict
+            run_state.update(asdict(result))
+            run_state["serving_candidate"] = asdict(candidate)
+            run_state["report_md"] = generate_training_markdown(result)
+            run_state["model_card"] = generate_model_card(result)
+            run_state["status"] = "completed"
+        except Exception as e:
+            run_state["status"] = "error"
+            run_state["error"] = str(e)
+
+    thread = threading.Thread(target=_run, daemon=True)
+    thread.start()
+    return {"run_id": run_id, "status": "running"}
+
+
+@app.get("/v1/training/status/{run_id}")
+async def training_status(run_id: str):
+    if run_id not in _training_runs:
+        raise HTTPException(status_code=404, detail=f"Training run '{run_id}' not found")
+    return _training_runs[run_id]
+
+
 _tokenizer_cache: dict = {}
 
 TOKENIZER_MODELS = {
