@@ -40,10 +40,10 @@ class TestCockpitNav:
 
 class TestCockpitContent:
 
-    def test_has_power_mode(self, frontend_src):
+    def test_has_status_states(self, frontend_src):
         content = (frontend_src / "pages" / "CockpitDashboard.tsx").read_text()
-        assert "STANDBY" in content
-        assert "OVERDRIVE" in content
+        assert "RUNNING" in content
+        assert "COMPLETE" in content
 
     def test_has_lane_cards(self, frontend_src):
         content = (frontend_src / "pages" / "CockpitDashboard.tsx").read_text()
@@ -60,11 +60,11 @@ class TestCockpitContent:
         content = (frontend_src / "pages" / "CockpitDashboard.tsx").read_text()
         assert "#0a0a0a" in content or "#111" in content or "#0d0d0d" in content or "cockpit" in content.lower()
 
-    def test_has_mode_controls(self, frontend_src):
+    def test_has_demo_selection(self, frontend_src):
         content = (frontend_src / "pages" / "CockpitDashboard.tsx").read_text()
-        assert "DRIVE" in content
-        assert "BOOST" in content
-        assert "COOLDOWN" in content
+        assert "SELECT A DEMO" in content
+        assert "incident_storm" in content or "Incident Storm" in content
+        assert "Run Again" in content
 
 
 class TestCockpitCSS:

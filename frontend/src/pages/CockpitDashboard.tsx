@@ -2,121 +2,43 @@ import { useState, useEffect, useRef } from 'react';
 import { api } from '../api/client';
 import '../styles/cockpit.css';
 
-const MODES = ['STANDBY', 'DRIVE', 'BOOST', 'OVERDRIVE', 'MAX_Q', 'COOLDOWN'] as const;
-type Mode = typeof MODES[number];
-
-interface Metrics {
-  mode: Mode;
-  rps: number;
-  tps: number;
-  p95: number;
-  queue: number;
-  ecoUtil: number;
-  perfUtil: number;
-  gaudiUtil: number;
-  ecoCount: number;
-  perfCount: number;
-  gaudiCount: number;
-  totalReqs: number;
-  imgPerSec: number;
-  docPerSec: number;
-  trainingActive: boolean;
-  trainLoss: number;
-  baseScore: number;
-  tunedScore: number;
-  events: Array<{ time: string; msg: string; color: string }>;
-}
-
-const MODE_METRICS: Record<Mode, Partial<Metrics>> = {
-  STANDBY: { rps: 0, tps: 0, p95: 0, queue: 0, ecoUtil: 0, perfUtil: 0, gaudiUtil: 0, ecoCount: 0, perfCount: 0, gaudiCount: 0, totalReqs: 0, imgPerSec: 0, docPerSec: 0 },
-  DRIVE: { rps: 12, tps: 4200, p95: 85, queue: 2, ecoUtil: 28, perfUtil: 35, gaudiUtil: 15, ecoCount: 8, perfCount: 10, gaudiCount: 7, totalReqs: 25, imgPerSec: 0.5, docPerSec: 0.2 },
-  BOOST: { rps: 48, tps: 18500, p95: 220, queue: 12, ecoUtil: 52, perfUtil: 68, gaudiUtil: 45, ecoCount: 80, perfCount: 100, gaudiCount: 70, totalReqs: 250, imgPerSec: 3.2, docPerSec: 1.1 },
-  OVERDRIVE: { rps: 85, tps: 42000, p95: 680, queue: 35, ecoUtil: 72, perfUtil: 85, gaudiUtil: 78, ecoCount: 300, perfCount: 400, gaudiCount: 300, totalReqs: 1000, imgPerSec: 8.5, docPerSec: 3.4 },
-  MAX_Q: { rps: 120, tps: 65000, p95: 1200, queue: 85, ecoUtil: 88, perfUtil: 95, gaudiUtil: 92, ecoCount: 1500, perfCount: 2000, gaudiCount: 1500, totalReqs: 5000, imgPerSec: 15, docPerSec: 6 },
-  COOLDOWN: { rps: 3, tps: 800, p95: 45, queue: 0, ecoUtil: 5, perfUtil: 8, gaudiUtil: 2, ecoCount: 2, perfCount: 2, gaudiCount: 1, totalReqs: 5, imgPerSec: 0, docPerSec: 0 },
-};
-
-function useMetrics(mode: Mode): Metrics {
-  const [metrics, setMetrics] = useState<Metrics>({
-    mode, rps: 0, tps: 0, p95: 0, queue: 0, ecoUtil: 0, perfUtil: 0, gaudiUtil: 0,
-    ecoCount: 0, perfCount: 0, gaudiCount: 0, totalReqs: 0, imgPerSec: 0, docPerSec: 0,
-    trainingActive: false, trainLoss: 0, baseScore: 0, tunedScore: 0, events: [],
-  });
-
-  useEffect(() => {
-    const target = MODE_METRICS[mode] || {};
-    const events: Array<{ time: string; msg: string; color: string }> = [
-      { time: new Date().toISOString().slice(11, 19), msg: `Mode → ${mode}`, color: mode === 'OVERDRIVE' ? '#ff6d00' : mode === 'MAX_Q' ? '#ee0000' : '#0071c5' },
-    ];
-    if (mode === 'OVERDRIVE') events.push({ time: new Date().toISOString().slice(11, 19), msg: 'Gaudi Overdrive engaged', color: '#ff6d00' });
-    if (mode === 'COOLDOWN') events.push({ time: new Date().toISOString().slice(11, 19), msg: 'Cooldown — draining queue', color: '#00c853' });
-
-    setMetrics(prev => ({
-      ...prev, mode, ...target,
-      trainingActive: false, trainLoss: 0, baseScore: 0, tunedScore: 0,
-      events: [...events, ...prev.events].slice(0, 8),
-    }));
-  }, [mode]);
-
-  return metrics;
-}
-
-function Gauge({ value, label, unit, color, active }: { value: number | string; label: string; unit?: string; color: string; active: boolean }) {
-  return (
-    <div className={`ck-gauge ${active ? 'active' : ''}`}>
-      <div className="ck-gauge-value" style={{ color }}>{typeof value === 'number' ? value.toLocaleString() : value}</div>
-      {unit && <div style={{ fontSize: '0.82rem', color: '#888', marginTop: '2px' }}>{unit}</div>}
-      <div className="ck-gauge-label">{label}</div>
-    </div>
-  );
-}
-
-function LaneCard({ name, hw, color, util, count, active }: { name: string; hw: string; color: string; util: number; count: number; active: boolean }) {
-  const laneClass = name.toLowerCase().includes('eco') ? 'eco' : name.toLowerCase().includes('perf') ? 'performance' : 'overdrive';
-  return (
-    <div className={`ck-lane ${laneClass} ${active ? 'active' : ''}`} style={{ color }}>
-      <div className="ck-pulse" />
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-        <div>
-          <div style={{ fontWeight: 700, fontSize: '0.92rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{name}</div>
-          <div style={{ fontSize: '0.72rem', color: '#888' }}>{hw}</div>
-        </div>
-        <div style={{ textAlign: 'right' }}>
-          <div style={{ fontSize: '1.4rem', fontWeight: 700, fontFamily: 'Red Hat Mono, monospace' }}>{util}%</div>
-          <div style={{ fontSize: '0.7rem', color: '#888' }}>{count.toLocaleString()} reqs</div>
-        </div>
-      </div>
-      <div className="ck-util-bar">
-        <div className="ck-util-fill" style={{ width: `${util}%`, background: color }} />
-      </div>
-    </div>
-  );
-}
-
-const PROFILES = [
-  'incident_storm', 'dashboard_storm', 'image_to_manual', 'architecture_explainer',
-  'visual_rag_barrage', 'token_cannon_multimodal', 'model_race',
+const DEMOS = [
+  { id: 'incident_storm', name: 'Incident Storm', desc: 'Enterprise alert flood — classification on Xeon 6, RCA on Gaudi', hero: 'throughput', hw: 'Xeon 6 classifies, Gaudi analyzes', mode: 'drive' },
+  { id: 'dashboard_storm', name: 'Dashboard Storm', desc: 'Operational screenshots — Xeon 6 classifies, Gaudi interprets charts', hero: 'images', hw: 'Multimodal: screenshots + charts', mode: 'drive' },
+  { id: 'token_cannon_multimodal', name: 'Token Cannon', desc: 'Maximum multimodal generation — stress test Gaudi throughput', hero: 'tokens', hw: 'Heavy Gaudi generation', mode: 'drive' },
+  { id: 'image_to_manual', name: 'Image to Manual', desc: 'Equipment photos → installation guides on Gaudi', hero: 'images', hw: 'Vision-language on Gaudi', mode: 'drive' },
+  { id: 'model_race', name: 'Model Race', desc: 'Same tasks across all hardware — compare Xeon 6 vs Gaudi', hero: 'latency', hw: 'Cross-hardware comparison', mode: 'drive' },
+  { id: 'visual_rag_barrage', name: 'Visual RAG', desc: 'Multimodal knowledge base — embed on Xeon 6, answer on Gaudi', hero: 'throughput', hw: 'Retrieval + generation', mode: 'drive' },
 ];
 
-export default function CockpitDashboard() {
-  const [mode, setMode] = useState<Mode>('STANDBY');
-  const [liveData, setLiveData] = useState<Record<string, unknown> | null>(null);
-  const [launching, setLaunching] = useState(false);
-  const [showModels, setShowModels] = useState(true);
-  const [showTasks, setShowTasks] = useState(false);
-  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const m = useMetrics(mode);
+interface PlatformData {
+  active_runs: Array<{ type: string; run_id: string; profile?: string; mode?: string; completed?: number; total?: number }>;
+  latest_completed: Record<string, unknown> | null;
+  live_progress: { completed: number; total: number; pct: number } | null;
+  model_telemetry: Record<string, { count: number; avg_latency_ms: number; total_input_tokens: number; total_output_tokens: number; tokens_per_sec: number; tasks: Record<string, number> }>;
+  task_telemetry: Record<string, { count: number; avg_latency_ms: number; lanes: Record<string, number> }>;
+  aggregate: { mode: string; requests_per_second: number; estimated_tokens_per_second: number; p95_latency_ms: number; route_counts: Record<string, number>; total_images: number; total_documents: number };
+}
 
-  // Poll platform status
+// Lane colors used in _renderLanes
+const MODEL_COLORS: Record<string, string> = { 'granite-4-0-h-tiny': '#00c853', 'codellama-7b-instruct': '#0071c5', 'llama-scout-17b': '#ff6d00' };
+const MODEL_HW: Record<string, string> = { 'granite-4-0-h-tiny': 'Xeon 6 Eco', 'codellama-7b-instruct': 'Xeon 6 + AMX', 'llama-scout-17b': 'Gaudi' };
+
+export default function CockpitDashboard() {
+  const [data, setData] = useState<PlatformData | null>(null);
+  const [activeDemo, setActiveDemo] = useState<string | null>(null);
+  const [launching, setLaunching] = useState(false);
+  const [showTelemetry, setShowTelemetry] = useState(false);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
   useEffect(() => {
     const poll = async () => {
       try {
-        const data = await api.platformStatus();
-        setLiveData(data);
-        const agg = data.aggregate as Record<string, unknown> | undefined;
-        if (agg && (data.active_runs as unknown[])?.length > 0) {
-          const liveMode = (agg.mode as string || 'STANDBY').toUpperCase() as Mode;
-          if (MODES.includes(liveMode)) setMode(liveMode);
+        const d = await api.platformStatus() as unknown as PlatformData;
+        setData(d);
+        if (d.active_runs?.length > 0) {
+          const wr = d.active_runs.find(r => r.type === 'workload');
+          if (wr) setActiveDemo(wr.profile || null);
         }
       } catch { /* ignore */ }
     };
@@ -125,268 +47,235 @@ export default function CockpitDashboard() {
     return () => { if (pollRef.current) clearInterval(pollRef.current); };
   }, []);
 
-  const launchRun = async (profile: string, powerMode: string) => {
+  const launchDemo = async (profileId: string) => {
     setLaunching(true);
-    try {
-      await api.workloadRun(profile, powerMode, 42);
-    } catch { /* ignore */ }
+    setActiveDemo(profileId);
+    setShowTelemetry(false);
+    try { await api.workloadRun(profileId, 'drive', 42); } catch { /* ignore */ }
     setLaunching(false);
   };
 
-  const hasLiveData = !!(liveData && ((liveData.active_runs as unknown[])?.length > 0 || liveData.latest_completed));
-  const agg = (hasLiveData ? liveData?.aggregate : null) as Record<string, unknown> | null;
-  const lc = (hasLiveData ? liveData?.latest_completed : null) as Record<string, unknown> | null;
-  const liveProgress = liveData?.live_progress as { completed: number; total: number; pct: number } | null;
+  const isRunning = data?.active_runs?.some(r => r.type === 'workload') || false;
+  const isComplete = !isRunning && data?.latest_completed != null;
+  const lp = data?.live_progress;
+  const agg = data?.aggregate;
+  const rc = agg?.route_counts || {};
+  const mt = data?.model_telemetry || {};
+  const _tt = data?.task_telemetry || {}; void _tt;
+  const demoMeta = DEMOS.find(d => d.id === activeDemo);
+  const lcProfile = (data?.latest_completed as Record<string, unknown>)?.workload_profile as string;
 
-  const active = mode !== 'STANDBY' && mode !== 'COOLDOWN';
+  // Which state to show
+  const showIdle = !isRunning && !isComplete;
+  const showRunning = isRunning;
+  const showComplete = isComplete;
 
   return (
-    <div className="cockpit" style={{ padding: '20px' }}>
-      {/* Header */}
+    <div className="cockpit" style={{ padding: '24px', maxWidth: '1000px', margin: '0 auto' }}>
+
+      {/* Header — always visible */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
         <div>
-          <div style={{ fontSize: '1.4rem', fontWeight: 700, letterSpacing: '0.05em' }}>
+          <div style={{ fontSize: '1.3rem', fontWeight: 700, letterSpacing: '0.05em' }}>
             INFERENCE <span style={{ color: '#ee0000' }}>OVERDRIVE</span>
           </div>
-          <div style={{ fontSize: '0.78rem', color: '#888' }}>Intel Xeon 6 + Gaudi — Performance Cockpit</div>
+          <div style={{ fontSize: '0.75rem', color: '#888' }}>Intel Xeon 6 + Gaudi — Performance Cockpit</div>
         </div>
-        <div style={{
-          padding: '10px 24px', borderRadius: '6px', fontWeight: 700, fontSize: '1.1rem',
-          letterSpacing: '0.1em', fontFamily: 'Red Hat Mono, monospace',
-          background: mode === 'OVERDRIVE' ? '#ff6d00' : mode === 'MAX_Q' ? '#ee0000' : mode === 'STANDBY' ? '#2a2a2a' : '#0071c5',
-          color: '#fff', border: '1px solid rgba(255,255,255,0.1)',
-        }}>
-          {mode.replace('_', ' ')}
-        </div>
-      </div>
-
-      {/* Mode Controls */}
-      <div style={{ display: 'flex', gap: '6px', marginBottom: '20px', flexWrap: 'wrap' }}>
-        {MODES.map(m => (
-          <button key={m} className={`ck-mode-btn ${mode === m ? 'active' : ''}`} onClick={() => setMode(m)}>
-            {m.replace('_', ' ')}
-          </button>
-        ))}
-      </div>
-
-      {/* Quick Launch */}
-      <div style={{ display: 'flex', gap: '6px', marginBottom: '16px', flexWrap: 'wrap', alignItems: 'center' }}>
-        <span style={{ fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#888', marginRight: '4px' }}>Launch:</span>
-        {PROFILES.slice(0, 4).map(p => (
-          <button key={p} className="ck-mode-btn" onClick={() => launchRun(p, 'drive')} disabled={launching}
-            style={{ fontSize: '0.72rem', padding: '5px 10px' }}>
-            {p.replace(/_/g, ' ')}
-          </button>
-        ))}
-        {hasLiveData && <span style={{ marginLeft: 'auto', fontSize: '0.72rem', color: '#00c853' }}>● LIVE DATA</span>}
-      </div>
-
-      {/* Live Progress Bar */}
-      {liveProgress && liveProgress.total > 0 && (
-        <div style={{ marginBottom: '12px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: '#888', marginBottom: '4px' }}>
-            <span>LIVE: {liveProgress.completed} / {liveProgress.total} requests</span>
-            <span>{liveProgress.pct}%</span>
+        {(showRunning || showComplete) && (
+          <div style={{
+            padding: '8px 20px', borderRadius: '6px', fontWeight: 700, fontSize: '0.88rem',
+            letterSpacing: '0.08em', fontFamily: 'Red Hat Mono, monospace',
+            background: isRunning ? '#0071c5' : '#00c853', color: '#fff',
+          }}>
+            {isRunning ? 'RUNNING' : 'COMPLETE'}
           </div>
-          <div style={{ height: '4px', borderRadius: '2px', background: '#2a2a2a', overflow: 'hidden' }}>
-            <div style={{ height: '100%', width: `${liveProgress.pct}%`, background: liveProgress.pct < 100 ? '#0071c5' : '#00c853', transition: 'width 0.5s', borderRadius: '2px' }} />
+        )}
+      </div>
+
+      {/* ===== IDLE STATE ===== */}
+      {showIdle && (
+        <>
+          <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+            <div style={{ fontSize: '1.1rem', fontWeight: 600, color: '#aaa', marginBottom: '8px' }}>SELECT A DEMO</div>
+            <div style={{ fontSize: '0.82rem', color: '#666' }}>Each demo tells a different performance story across Intel hardware</div>
           </div>
-        </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '12px' }}>
+            {DEMOS.map(demo => (
+              <div key={demo.id} onClick={() => !launching && launchDemo(demo.id)} style={{
+                background: '#141414', border: '1px solid #2a2a2a', borderRadius: '10px', padding: '16px',
+                cursor: launching ? 'wait' : 'pointer', transition: 'border-color 0.2s, transform 0.15s',
+              }}
+                onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.borderColor = '#0071c5'; (e.currentTarget as HTMLDivElement).style.transform = 'translateY(-2px)'; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.borderColor = '#2a2a2a'; (e.currentTarget as HTMLDivElement).style.transform = 'none'; }}>
+                <div style={{ fontWeight: 700, fontSize: '0.95rem', marginBottom: '4px' }}>{demo.name}</div>
+                <div style={{ fontSize: '0.78rem', color: '#888', marginBottom: '8px' }}>{demo.desc}</div>
+                <div style={{ fontSize: '0.72rem', color: '#555' }}>{demo.hw}</div>
+              </div>
+            ))}
+          </div>
+        </>
       )}
 
-      {/* Main Gauges */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginBottom: '20px' }}>
-        <Gauge value={agg ? Math.round(agg.requests_per_second as number || 0) : m.rps} label="Requests / sec" color={active ? '#0071c5' : '#555'} active={active} />
-        <Gauge value={agg ? Math.round(agg.estimated_tokens_per_second as number || 0) : m.tps} label="Tokens / sec" color={active ? '#00c853' : '#555'} active={active} />
-        <Gauge value={agg ? Math.round(agg.p95_latency_ms as number || 0) : m.p95} label="p95 Latency" unit="ms" color={(agg ? (agg.p95_latency_ms as number || 0) : m.p95) > 500 ? '#ff6d00' : active ? '#0071c5' : '#555'} active={active} />
-        <Gauge value={m.queue} label="Queue Depth" color={m.queue > 50 ? '#ee0000' : active ? '#0071c5' : '#555'} active={active} />
-      </div>
+      {/* ===== RUNNING STATE ===== */}
+      {showRunning && demoMeta && lp && (
+        <>
+          {/* Demo context */}
+          <div style={{ background: '#141414', border: '1px solid #2a2a2a', borderRadius: '10px', padding: '20px', marginBottom: '16px' }}>
+            <div style={{ fontSize: '1.2rem', fontWeight: 700, marginBottom: '4px' }}>{demoMeta.name}</div>
+            <div style={{ fontSize: '0.82rem', color: '#888', marginBottom: '12px' }}>{demoMeta.desc}</div>
 
-      {/* Hardware Lanes */}
-      {(() => {
-        const rc = ((agg?.route_counts || lc?.route_counts || {}) as Record<string, number>);
-        const total = Object.values(rc).reduce((a, b) => a + (b || 0), 0) || 1;
-        const lEco = rc.eco || 0; const lPerf = rc.performance || 0; const lGaudi = rc.overdrive || 0;
-        const live = !!(agg || lc);
-        return (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '20px' }}>
-            <LaneCard name="XEON ECO" hw="Intel Xeon 6 • Granite Tiny" color="#00c853"
-              util={live ? Math.round(lEco / total * 100) : m.ecoUtil}
-              count={live ? lEco : m.ecoCount}
-              active={live ? lEco > 0 : m.ecoUtil > 5} />
-            <LaneCard name="XEON PERFORMANCE" hw="Intel Xeon 6 + AMX • CodeLlama 7B" color="#0071c5"
-              util={live ? Math.round(lPerf / total * 100) : m.perfUtil}
-              count={live ? lPerf : m.perfCount}
-              active={live ? lPerf > 0 : m.perfUtil > 5} />
-            <LaneCard name="GAUDI OVERDRIVE" hw="Intel Gaudi • Llama Scout 17B" color="#ff6d00"
-              util={live ? Math.round(lGaudi / total * 100) : m.gaudiUtil}
-              count={live ? lGaudi : m.gaudiCount}
-              active={live ? lGaudi > 0 : m.gaudiUtil > 5} />
+            {/* Progress */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', marginBottom: '6px' }}>
+              <span style={{ fontFamily: 'Red Hat Mono, monospace', fontWeight: 700 }}>{lp.completed} / {lp.total} requests</span>
+              <span style={{ color: '#0071c5', fontWeight: 700 }}>{lp.pct}%</span>
+            </div>
+            <div style={{ height: '8px', borderRadius: '4px', background: '#2a2a2a', overflow: 'hidden' }}>
+              <div className="ck-smooth" style={{ height: '100%', width: `${lp.pct}%`, background: lp.pct < 100 ? '#0071c5' : '#00c853', borderRadius: '4px' }} />
+            </div>
           </div>
-        );
-      })()}
 
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '12px', marginBottom: '20px' }}>
-        {/* Route Distribution */}
-        <div style={{ background: '#141414', border: '1px solid #2a2a2a', borderRadius: '8px', padding: '16px' }}>
-          <div style={{ fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#888', marginBottom: '10px' }}>Route Distribution</div>
-          {(() => {
-            const rc = ((agg?.route_counts || lc?.route_counts || {}) as Record<string, number>);
-            const rEco = rc.eco || 0; const rPerf = rc.performance || 0; const rGaudi = rc.overdrive || 0;
-            const hasAgg = !!(agg || lc);
-            const dEco = hasAgg ? rEco : m.ecoCount; const dPerf = hasAgg ? rPerf : m.perfCount; const dGaudi = hasAgg ? rGaudi : m.gaudiCount;
-            const dTotal = dEco + dPerf + dGaudi || 1;
-            const hasData = dEco + dPerf + dGaudi > 0;
-            return hasData ? (
-              <>
-                <div style={{ display: 'flex', height: '24px', borderRadius: '4px', overflow: 'hidden', marginBottom: '8px' }}>
-                  {dEco > 0 && <div style={{ width: `${(dEco / dTotal) * 100}%`, background: '#00c853', minWidth: '20px' }} />}
-                  {dPerf > 0 && <div style={{ width: `${(dPerf / dTotal) * 100}%`, background: '#0071c5', minWidth: '20px' }} />}
-                  {dGaudi > 0 && <div style={{ width: `${(dGaudi / dTotal) * 100}%`, background: '#ff6d00', minWidth: '20px' }} />}
-                </div>
-                <div style={{ display: 'flex', gap: '16px', fontSize: '0.78rem' }}>
-                  <span><span style={{ color: '#00c853' }}>●</span> Eco: {dEco}</span>
-                  <span><span style={{ color: '#0071c5' }}>●</span> Perf: {dPerf}</span>
-                  <span><span style={{ color: '#ff6d00' }}>●</span> Gaudi: {dGaudi}</span>
-                  <span style={{ color: '#888', marginLeft: 'auto' }}>Total: {(dEco + dPerf + dGaudi).toLocaleString()}</span>
-                </div>
-              </>
-            ) : (
-              <div style={{ color: '#555', fontSize: '0.85rem' }}>Waiting for workload...</div>
-            );
-          })()}
-
-          {/* Multimodal metrics */}
-          {(() => {
-            const imgs = agg ? (agg.total_images as number || 0) : lc ? (lc.total_images as number || 0) : m.imgPerSec;
-            const docs = agg ? (agg.total_documents as number || 0) : lc ? (lc.total_documents as number || 0) : m.docPerSec;
-            return (imgs > 0 || docs > 0) ? (
-            <div style={{ marginTop: '12px', paddingTop: '12px', borderTop: '1px solid #2a2a2a' }}>
-              <div style={{ fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#888', marginBottom: '6px' }}>Multimodal</div>
-              <div style={{ display: 'flex', gap: '20px', fontSize: '0.85rem' }}>
-                <div><span style={{ fontSize: '1.2rem', fontWeight: 700, fontFamily: 'Red Hat Mono, monospace' }}>{imgs}</span> <span style={{ color: '#888' }}>{lc ? 'images' : 'img/s'}</span></div>
-                <div><span style={{ fontSize: '1.2rem', fontWeight: 700, fontFamily: 'Red Hat Mono, monospace' }}>{docs}</span> <span style={{ color: '#888' }}>{lc ? 'documents' : 'doc/s'}</span></div>
+          {/* Hero metric + secondary gauges */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', marginBottom: '16px' }}>
+            <div className="ck-gauge active" style={{ gridColumn: demoMeta.hero === 'images' ? 'auto' : 'auto' }}>
+              <div className="ck-gauge-value" style={{ color: '#0071c5', fontSize: '2.5rem' }}>
+                {demoMeta.hero === 'tokens' ? (agg?.estimated_tokens_per_second || 0).toLocaleString() :
+                 demoMeta.hero === 'images' ? (agg?.total_images || 0) :
+                 demoMeta.hero === 'latency' ? `${Math.round(agg?.p95_latency_ms || 0)}` :
+                 Math.round(agg?.requests_per_second || 0)}
+              </div>
+              <div className="ck-gauge-label">
+                {demoMeta.hero === 'tokens' ? 'TOKENS / SEC' :
+                 demoMeta.hero === 'images' ? 'IMAGES PROCESSED' :
+                 demoMeta.hero === 'latency' ? 'P95 LATENCY (MS)' : 'REQUESTS / SEC'}
               </div>
             </div>
-          ) : null;
-          })()}
-        </div>
+            <div className="ck-gauge active">
+              <div className="ck-gauge-value" style={{ color: '#00c853' }}>{Math.round(agg?.requests_per_second || 0)}</div>
+              <div className="ck-gauge-label">REQ/S</div>
+            </div>
+            <div className="ck-gauge active">
+              <div className="ck-gauge-value" style={{ color: agg && agg.p95_latency_ms > 500 ? '#ff6d00' : '#0071c5' }}>{Math.round(agg?.p95_latency_ms || 0)}</div>
+              <div className="ck-gauge-label">P95 MS</div>
+            </div>
+          </div>
 
-        {/* Event Feed */}
-        <div style={{ background: '#141414', border: '1px solid #2a2a2a', borderRadius: '8px', padding: '12px' }}>
-          <div style={{ fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#888', marginBottom: '8px' }}>Live Events</div>
-          {m.events.length === 0 ? (
-            <div style={{ color: '#555', fontSize: '0.82rem' }}>No events</div>
-          ) : (
-            m.events.map((e, i) => (
-              <div key={i} className="ck-event">
-                <div className="ck-event-dot" style={{ background: e.color }} />
-                <span style={{ color: '#888', fontFamily: 'Red Hat Mono, monospace', fontSize: '0.72rem' }}>{e.time}</span>
-                <span>{e.msg}</span>
+          {/* Lane cards */}
+          {_renderLanes(rc)}
+        </>
+      )}
+
+      {/* ===== COMPLETE STATE ===== */}
+      {showComplete && (
+        <>
+          {/* Summary */}
+          <div style={{ background: '#141414', border: '1px solid #00c853', borderRadius: '10px', padding: '20px', marginBottom: '16px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <div style={{ fontSize: '1.1rem', fontWeight: 700 }}>{(DEMOS.find(d => d.id === lcProfile) || { name: lcProfile }).name || 'Workload'}</div>
+                <div style={{ fontSize: '0.82rem', color: '#888' }}>
+                  {(data?.latest_completed as Record<string, unknown>)?.total_requests as number || 0} requests completed
+                </div>
               </div>
-            ))
+              <div style={{ textAlign: 'right' }}>
+                <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#00c853', fontFamily: 'Red Hat Mono, monospace' }}>
+                  {Math.round(agg?.requests_per_second || 0)} req/s
+                </div>
+                <div style={{ fontSize: '0.78rem', color: '#888' }}>
+                  {(agg?.estimated_tokens_per_second || 0).toLocaleString()} tok/s · p95 {Math.round(agg?.p95_latency_ms || 0)}ms
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Lane cards */}
+          {_renderLanes(rc)}
+
+          {/* Multimodal */}
+          {(agg?.total_images || 0) > 0 && (
+            <div style={{ display: 'flex', gap: '20px', marginBottom: '16px', padding: '12px 16px', background: '#141414', border: '1px solid #2a2a2a', borderRadius: '8px' }}>
+              <div><span style={{ fontSize: '1.4rem', fontWeight: 700, fontFamily: 'Red Hat Mono, monospace' }}>{agg?.total_images}</span> <span style={{ color: '#888', fontSize: '0.82rem' }}>images</span></div>
+              <div><span style={{ fontSize: '1.4rem', fontWeight: 700, fontFamily: 'Red Hat Mono, monospace' }}>{agg?.total_documents}</span> <span style={{ color: '#888', fontSize: '0.82rem' }}>documents</span></div>
+            </div>
           )}
-        </div>
-      </div>
 
-      {/* LLM Telemetry — collapsible */}
-      {(() => {
-        const mt = (liveData?.model_telemetry || {}) as Record<string, Record<string, unknown>>;
-        const tt = (liveData?.task_telemetry || {}) as Record<string, Record<string, unknown>>;
-        const hasModels = Object.keys(mt).length > 0;
-        const hasTasks = Object.keys(tt).length > 0;
-        if (!hasModels && !hasTasks) return null;
-
-        const modelColors: Record<string, string> = { 'granite-4-0-h-tiny': '#00c853', 'codellama-7b-instruct': '#0071c5', 'llama-scout-17b': '#ff6d00' };
-        const modelHW: Record<string, string> = { 'granite-4-0-h-tiny': 'Xeon 6 Eco', 'codellama-7b-instruct': 'Xeon 6 + AMX', 'llama-scout-17b': 'Gaudi' };
-
-        return (
-          <>
-            {/* Model Activity */}
-            {hasModels && (
-              <div style={{ marginBottom: '12px' }}>
-                <div style={{ fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#888', marginBottom: '8px', cursor: 'pointer' }}
-                  onClick={() => setShowModels(!showModels)}>
-                  {showModels ? '▼' : '▶'} MODEL INFERENCE TELEMETRY
-                </div>
-                {showModels && (
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '10px' }}>
-                    {Object.entries(mt).map(([model, stats]) => {
-                      const color = modelColors[model] || '#888';
-                      const tasks = (stats.tasks || {}) as Record<string, number>;
-                      return (
-                        <div key={model} style={{ background: '#141414', border: `1px solid ${color}`, borderRadius: '8px', padding: '12px', borderLeft: `4px solid ${color}` }}>
-                          <div style={{ fontWeight: 700, fontSize: '0.85rem', color }}>{model}</div>
-                          <div style={{ fontSize: '0.72rem', color: '#888', marginBottom: '8px' }}>{modelHW[model] || 'Unknown'}</div>
-                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px', fontSize: '0.78rem' }}>
-                            <div><span style={{ fontFamily: 'Red Hat Mono, monospace', fontWeight: 700 }}>{stats.count as number}</span> <span style={{ color: '#888' }}>reqs</span></div>
-                            <div><span style={{ fontFamily: 'Red Hat Mono, monospace', fontWeight: 700 }}>{(stats.avg_latency_ms as number || 0).toFixed(0)}</span> <span style={{ color: '#888' }}>ms avg</span></div>
-                            <div><span style={{ fontFamily: 'Red Hat Mono, monospace', fontWeight: 700 }}>{(stats.total_input_tokens as number || 0).toLocaleString()}</span> <span style={{ color: '#888' }}>in tok</span></div>
-                            <div><span style={{ fontFamily: 'Red Hat Mono, monospace', fontWeight: 700 }}>{(stats.total_output_tokens as number || 0).toLocaleString()}</span> <span style={{ color: '#888' }}>out tok</span></div>
-                            <div style={{ gridColumn: 'span 2' }}><span style={{ fontFamily: 'Red Hat Mono, monospace', fontWeight: 700, color }}>{(stats.tokens_per_sec as number || 0).toLocaleString()}</span> <span style={{ color: '#888' }}>tok/s</span></div>
-                          </div>
-                          {Object.keys(tasks).length > 0 && (
-                            <div style={{ marginTop: '6px', display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
-                              {Object.entries(tasks).map(([task, count]) => (
-                                <span key={task} style={{ fontSize: '0.68rem', padding: '2px 6px', borderRadius: '3px', background: '#2a2a2a', color: '#aaa' }}>
-                                  {task}: {count}
-                                </span>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
+          {/* Model telemetry */}
+          <div style={{ marginBottom: '16px' }}>
+            <div style={{ fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#888', marginBottom: '8px', cursor: 'pointer' }}
+              onClick={() => setShowTelemetry(!showTelemetry)}>
+              {showTelemetry ? '▼' : '▶'} MODEL INFERENCE DETAIL
+            </div>
+            {showTelemetry && Object.keys(mt).length > 0 && (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '10px' }}>
+                {Object.entries(mt).map(([model, stats]) => (
+                  <div key={model} style={{ background: '#141414', border: `1px solid ${MODEL_COLORS[model] || '#2a2a2a'}`, borderRadius: '8px', padding: '12px', borderLeft: `4px solid ${MODEL_COLORS[model] || '#555'}` }}>
+                    <div style={{ fontWeight: 700, fontSize: '0.85rem', color: MODEL_COLORS[model] || '#aaa' }}>{model}</div>
+                    <div style={{ fontSize: '0.72rem', color: '#888', marginBottom: '6px' }}>{MODEL_HW[model] || ''}</div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2px', fontSize: '0.78rem' }}>
+                      <div><span style={{ fontFamily: 'Red Hat Mono, monospace', fontWeight: 700 }}>{stats.count}</span> reqs</div>
+                      <div><span style={{ fontFamily: 'Red Hat Mono, monospace', fontWeight: 700 }}>{stats.avg_latency_ms.toFixed(0)}</span> ms</div>
+                      <div><span style={{ fontFamily: 'Red Hat Mono, monospace', fontWeight: 700 }}>{stats.total_input_tokens.toLocaleString()}</span> in</div>
+                      <div><span style={{ fontFamily: 'Red Hat Mono, monospace', fontWeight: 700 }}>{stats.tokens_per_sec.toLocaleString()}</span> tok/s</div>
+                    </div>
+                    <div style={{ marginTop: '4px', display: 'flex', gap: '3px', flexWrap: 'wrap' }}>
+                      {Object.entries(stats.tasks).map(([t, c]) => (
+                        <span key={t} style={{ fontSize: '0.65rem', padding: '1px 5px', borderRadius: '3px', background: '#2a2a2a', color: '#aaa' }}>{t}:{c}</span>
+                      ))}
+                    </div>
                   </div>
-                )}
+                ))}
               </div>
             )}
+          </div>
 
-            {/* Task Breakdown */}
-            {hasTasks && (
-              <div style={{ marginBottom: '12px' }}>
-                <div style={{ fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#888', marginBottom: '8px', cursor: 'pointer' }}
-                  onClick={() => setShowTasks(!showTasks)}>
-                  {showTasks ? '▼' : '▶'} TASK TYPE BREAKDOWN
-                </div>
-                {showTasks && (
-                  <div style={{ background: '#141414', border: '1px solid #2a2a2a', borderRadius: '8px', padding: '12px' }}>
-                    {Object.entries(tt).sort((a, b) => (b[1].count as number) - (a[1].count as number)).map(([task, stats]) => {
-                      const lanes = (stats.lanes || {}) as Record<string, number>;
-                      const maxCount = Math.max(...Object.values(tt).map(s => s.count as number));
-                      const barPct = maxCount > 0 ? ((stats.count as number) / maxCount) * 100 : 0;
-                      return (
-                        <div key={task} style={{ marginBottom: '8px' }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', marginBottom: '2px' }}>
-                            <span>{task}</span>
-                            <span style={{ fontFamily: 'Red Hat Mono, monospace' }}>
-                              {stats.count as number} reqs · {(stats.avg_latency_ms as number || 0).toFixed(0)}ms
-                              {Object.entries(lanes).map(([l, c]) => (
-                                <span key={l} style={{ marginLeft: '8px', color: l === 'eco' ? '#00c853' : l === 'performance' ? '#0071c5' : '#ff6d00' }}>
-                                  {l}: {c}
-                                </span>
-                              ))}
-                            </span>
-                          </div>
-                          <div style={{ height: '4px', borderRadius: '2px', background: '#2a2a2a', overflow: 'hidden' }}>
-                            <div style={{ height: '100%', width: `${barPct}%`, background: '#0071c5', borderRadius: '2px' }} />
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            )}
-          </>
-        );
-      })()}
+          {/* Actions */}
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button className="ck-mode-btn" onClick={() => lcProfile && launchDemo(lcProfile)}>Run Again</button>
+            <button className="ck-mode-btn" onClick={() => { setActiveDemo(null); setData(prev => prev ? { ...prev, latest_completed: null } : null); }}>Try Another Demo</button>
+          </div>
+        </>
+      )}
 
       {/* Footer */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: '#555', padding: '8px 0' }}>
-        <span>Intel Xeon 6 + Gaudi — Red Hat OpenShift AI Platform</span>
-        <span>{hasLiveData ? 'Live Telemetry' : 'Mock Telemetry'} • {hasLiveData ? 'Platform Active' : 'Deterministic Simulation'}</span>
+      <div style={{ marginTop: '24px', display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: '#555' }}>
+        <span>Intel Xeon 6 + Gaudi — Red Hat OpenShift AI</span>
+        <span>{isRunning ? 'Live Telemetry' : showComplete ? 'Run Complete' : 'Ready'}</span>
       </div>
+    </div>
+  );
+}
+
+function _renderLanes(rc: Record<string, number>) {
+  const total = Object.values(rc).reduce((a, b) => a + b, 0) || 1;
+  const lanes = [
+    { id: 'eco', name: 'XEON ECO', hw: 'Granite · Xeon 6', color: '#00c853' },
+    { id: 'performance', name: 'XEON PERFORMANCE', hw: 'CodeLlama · Xeon 6 + AMX', color: '#0071c5' },
+    { id: 'overdrive', name: 'GAUDI OVERDRIVE', hw: 'Llama Scout · Gaudi', color: '#ff6d00' },
+  ];
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', marginBottom: '16px' }}>
+      {lanes.map(lane => {
+        const count = rc[lane.id] || 0;
+        const pct = Math.round(count / total * 100);
+        const active = count > 0;
+        return (
+          <div key={lane.id} className={`ck-lane ${lane.id === 'eco' ? 'eco' : lane.id === 'performance' ? 'performance' : 'overdrive'} ${active ? 'active' : ''}`} style={{ color: lane.color }}>
+            <div className="ck-pulse" />
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+              <div>
+                <div style={{ fontWeight: 700, fontSize: '0.82rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{lane.name}</div>
+                <div style={{ fontSize: '0.68rem', color: '#888' }}>{lane.hw}</div>
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <div style={{ fontSize: '1.3rem', fontWeight: 700, fontFamily: 'Red Hat Mono, monospace' }}>{pct}%</div>
+                <div style={{ fontSize: '0.68rem', color: '#888' }}>{count} reqs</div>
+              </div>
+            </div>
+            <div className="ck-util-bar">
+              <div className="ck-util-fill ck-smooth" style={{ width: `${pct}%`, background: lane.color }} />
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }
