@@ -3,89 +3,112 @@ import { api } from '../api/client';
 import '../styles/cockpit.css';
 
 const DEMOS = [
-  { id: 'incident_storm', name: 'Incident Storm', desc: 'Enterprise alert flood — classify on Xeon 6, deep analysis on Gaudi. Uses real LiteLLM inference.', phases: ['Alert Triage (Xeon 6)', 'Knowledge Search (Xeon 6)', 'Deep Analysis (Gaudi)', 'Batch Reporting (Gaudi)'], time: '~20s' },
-  { id: 'dashboard_storm', name: 'Dashboard Storm', desc: 'Operational screenshots — classify on Xeon 6, interpret on Gaudi. Real multimodal inference.', phases: ['Screenshot Classify (Xeon 6)', 'Chart Interpret (Gaudi)', 'Summary Generation (Gaudi)', 'Incident Synthesis (Gaudi)'], time: '~20s' },
-  { id: 'model_race', name: 'Model Race', desc: 'Same tasks across all hardware — compare Xeon 6 vs Gaudi performance live.', phases: ['Small Tasks (Xeon Eco)', 'Mid Tasks (Xeon Perf)', 'Large Tasks (Gaudi)'], time: '~20s' },
+  { id: 'incident_storm', name: 'Incident Storm', desc: 'Enterprise alert flood — classify on Xeon 6, deep analysis on Gaudi.', phases: ['Alert Triage (Xeon 6)', 'Knowledge Search (Xeon 6)', 'Deep Analysis (Gaudi)', 'Batch Reporting (Gaudi)'], time: '~20s' },
+  { id: 'dashboard_storm', name: 'Dashboard Storm', desc: 'Operational screenshots — classify on Xeon 6, interpret on Gaudi.', phases: ['Screenshot Classify (Xeon 6)', 'Chart Interpret (Gaudi)', 'Summary Generation (Gaudi)', 'Incident Synthesis (Gaudi)'], time: '~20s' },
+  { id: 'model_race', name: 'Model Race', desc: 'Same tasks across all hardware — compare Xeon 6 vs Gaudi live.', phases: ['Small Tasks (Xeon Eco)', 'Mid Tasks (Xeon Perf)', 'Large Tasks (Gaudi)'], time: '~20s' },
 ];
 
 const MODEL_COLORS: Record<string, string> = { 'granite-4-0-h-tiny': '#00c853', 'codellama-7b-instruct': '#0071c5', 'llama-scout-17b': '#ff6d00' };
 const MODEL_HW: Record<string, string> = { 'granite-4-0-h-tiny': 'Xeon 6 Eco', 'codellama-7b-instruct': 'Xeon 6 + AMX', 'llama-scout-17b': 'Gaudi' };
 
-interface Snapshot {
-  t: number;
-  completed: number;
-  eco: number;
-  perf: number;
-  gaudi: number;
-  tokens: number;
-  images: number;
-}
+interface Snapshot { t: number; completed: number; eco: number; perf: number; gaudi: number; images: number; }
+
+type DemoState = 'idle' | 'running' | 'done';
 
 export default function CockpitDashboard() {
-  const [data, setData] = useState<Record<string, unknown> | null>(null);
+  const [demoState, setDemoState] = useState<DemoState>('idle');
   const [activeDemo, setActiveDemo] = useState<string | null>(null);
   const [launching, setLaunching] = useState(false);
   const [showTelemetry, setShowTelemetry] = useState(false);
+
+  // Persistent metrics — survive state transitions
+  const [completed, setCompleted] = useState(0);
+  const [total, setTotal] = useState(0);
+  const [routes, setRoutes] = useState<Record<string, number>>({});
+  const [rps, setRps] = useState(0);
+  const [tps, setTps] = useState(0);
+  const [p95, setP95] = useState(0);
+  const [images, setImages] = useState(0);
   const [history, setHistory] = useState<Snapshot[]>([]);
+  const [models, setModels] = useState<Record<string, Record<string, unknown>>>({});
+
   const startTimeRef = useRef(0);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
+    if (demoState !== 'running') return;
+
     const poll = async () => {
       try {
-        const d = await api.platformStatus();
-        setData(d);
-        const lp = d.live_progress as { completed: number; total: number } | null;
+        const d = await api.platformStatus() as Record<string, unknown>;
+        const lp = d.live_progress as { completed: number; total: number; pct: number } | null;
         const agg = d.aggregate as Record<string, unknown> | undefined;
         const rc = (agg?.route_counts || {}) as Record<string, number>;
-        if (lp && lp.completed > 0) {
-          const elapsed = startTimeRef.current > 0 ? (Date.now() - startTimeRef.current) / 1000 : 0;
+        const mt = (d.model_telemetry || {}) as Record<string, Record<string, unknown>>;
+        const activeRuns = d.active_runs as Array<Record<string, unknown>> | undefined;
+        const isActive = activeRuns && activeRuns.some(r => r.type === 'workload');
+
+        // Update persistent metrics
+        const newCompleted = lp?.completed || completed;
+        const newTotal = lp?.total || total;
+        setCompleted(newCompleted);
+        setTotal(newTotal);
+        if (Object.keys(rc).length > 0) setRoutes(rc);
+        if (agg?.requests_per_second) setRps(Math.round(agg.requests_per_second as number));
+        if (agg?.estimated_tokens_per_second) setTps(Math.round(agg.estimated_tokens_per_second as number));
+        if (agg?.p95_latency_ms) setP95(Math.round(agg.p95_latency_ms as number));
+        if (agg?.total_images) setImages(agg.total_images as number);
+        if (Object.keys(mt).length > 0) setModels(mt);
+
+        // Add to history if progress changed
+        if (newCompleted > 0) {
+          const elapsed = startTimeRef.current > 0 ? Math.round((Date.now() - startTimeRef.current) / 1000) : 0;
           setHistory(prev => {
             const last = prev[prev.length - 1];
-            if (last && last.completed === lp.completed) return prev;
-            return [...prev, {
-              t: Math.round(elapsed),
-              completed: lp.completed,
-              eco: rc.eco || 0,
-              perf: rc.performance || 0,
-              gaudi: rc.overdrive || 0,
-              tokens: (agg?.estimated_tokens_per_second as number || 0) * elapsed,
-              images: agg?.total_images as number || 0,
-            }];
+            if (last && last.completed === newCompleted) return prev;
+            return [...prev, { t: elapsed, completed: newCompleted, eco: rc.eco || 0, perf: rc.performance || 0, gaudi: rc.overdrive || 0, images: agg?.total_images as number || 0 }];
           });
         }
-        if (d.active_runs && (d.active_runs as unknown[]).length > 0) {
-          const wr = (d.active_runs as Array<Record<string, unknown>>).find(r => r.type === 'workload');
-          if (wr && wr.profile) setActiveDemo(wr.profile as string);
+
+        // Transition to done when no more active runs
+        if (!isActive && newCompleted > 0) {
+          setDemoState('done');
+          if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
         }
       } catch { /* ignore */ }
     };
+
+    pollRef.current = setInterval(poll, 1200);
     poll();
-    pollRef.current = setInterval(poll, 1500);
-    return () => { if (pollRef.current) clearInterval(pollRef.current); };
-  }, []);
+    return () => { if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; } };
+  }, [demoState]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const launchDemo = async (profileId: string) => {
     setLaunching(true);
     setActiveDemo(profileId);
-    setHistory([]);
-    setShowTelemetry(false);
+    setCompleted(0); setTotal(0); setRoutes({}); setRps(0); setTps(0); setP95(0); setImages(0);
+    setHistory([]); setModels({}); setShowTelemetry(false);
     startTimeRef.current = Date.now();
     try { await api.workloadRun(profileId, 'drive', 42, true); } catch { /* ignore */ }
+    setDemoState('running');
     setLaunching(false);
   };
 
-  const isRunning = !!(data && Array.isArray(data.active_runs) && (data.active_runs as Array<Record<string, unknown>>).some(r => r.type === 'workload'));
-  const isComplete = !isRunning && activeDemo != null && data?.latest_completed != null;
-  const lp = data?.live_progress as { completed: number; total: number; pct: number } | null;
-  const agg = data?.aggregate as Record<string, unknown> | undefined;
-  const rc = (agg?.route_counts || {}) as Record<string, number>;
-  const mt = (data?.model_telemetry || {}) as Record<string, Record<string, unknown>>;
-  const demoMeta = DEMOS.find(d => d.id === activeDemo);
-  const lcProfile = (data?.latest_completed as Record<string, unknown>)?.workload_profile as string;
-  const lcMeta = DEMOS.find(d => d.id === lcProfile);
+  const resetDemo = () => {
+    setDemoState('idle');
+    setActiveDemo(null);
+    setCompleted(0); setTotal(0); setRoutes({}); setRps(0); setTps(0); setP95(0); setImages(0);
+    setHistory([]); setModels({});
+  };
 
-  const totalReqs = (rc.eco || 0) + (rc.performance || 0) + (rc.overdrive || 0);
+  const demoMeta = DEMOS.find(d => d.id === activeDemo);
+  const eco = routes.eco || 0;
+  const perf = routes.performance || 0;
+  const gaudi = routes.overdrive || 0;
+  const totalReqs = eco + perf + gaudi;
+  const pct = total > 0 ? Math.round(completed / total * 100) : 0;
+  const isDone = demoState === 'done';
+  const isActive = demoState === 'running' || demoState === 'done';
 
   return (
     <div className="cockpit" style={{ padding: '24px', maxWidth: '900px', margin: '0 auto' }}>
@@ -97,20 +120,20 @@ export default function CockpitDashboard() {
           </div>
           <div style={{ fontSize: '0.72rem', color: '#666' }}>Intel Xeon 6 + Gaudi</div>
         </div>
-        {(isRunning || isComplete) && (
+        {isActive && (
           <div style={{ padding: '6px 16px', borderRadius: '4px', fontSize: '0.78rem', fontWeight: 700, letterSpacing: '0.08em',
-            background: isRunning ? '#0071c5' : '#00c853', color: '#fff' }}>
-            {isRunning ? 'RUNNING' : 'COMPLETE'}
+            background: isDone ? '#00c853' : '#0071c5', color: '#fff', transition: 'background 0.5s' }}>
+            {isDone ? 'COMPLETE' : 'LIVE'}
           </div>
         )}
       </div>
 
       {/* ===== IDLE ===== */}
-      {!isRunning && !isComplete && (
+      {demoState === 'idle' && (
         <>
           <div style={{ textAlign: 'center', margin: '40px 0 12px', color: '#888', fontSize: '0.95rem' }}>Select a demo to run live</div>
           <div style={{ textAlign: 'center', marginBottom: '24px', fontSize: '0.75rem', color: '#555' }}>
-            Cockpit runs use real LiteLLM inference (~20 seconds per run). Use sparingly.
+            Uses real LiteLLM inference. Use sparingly.
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '10px' }}>
             {DEMOS.map(d => (
@@ -126,119 +149,61 @@ export default function CockpitDashboard() {
         </>
       )}
 
-      {/* ===== RUNNING ===== */}
-      {isRunning && demoMeta && lp && (
+      {/* ===== RUNNING + DONE (same layout, nothing disappears) ===== */}
+      {isActive && demoMeta && (
         <>
-          {/* Demo + Progress */}
-          <div style={{ background: '#141414', border: '1px solid #2a2a2a', borderRadius: '8px', padding: '16px', marginBottom: '16px' }}>
-            <div style={{ fontWeight: 700, fontSize: '1rem', marginBottom: '4px' }}>{demoMeta.name}</div>
-            <div style={{ fontSize: '0.78rem', color: '#888', marginBottom: '12px' }}>{demoMeta.desc}</div>
+          {/* Demo + Progress — persists through running → done */}
+          <div style={{ background: '#141414', border: `1px solid ${isDone ? '#00c853' : '#2a2a2a'}`, borderRadius: '8px', padding: '16px', marginBottom: '16px', transition: 'border-color 0.5s' }}>
+            <div style={{ fontWeight: 700, fontSize: '1rem', marginBottom: '2px' }}>{demoMeta.name}</div>
+            <div style={{ fontSize: '0.78rem', color: '#888', marginBottom: '10px' }}>{demoMeta.desc}</div>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', marginBottom: '4px' }}>
-              <span style={{ fontFamily: 'Red Hat Mono, monospace', fontWeight: 700 }}>{lp.completed} / {lp.total}</span>
-              <span style={{ color: '#0071c5', fontWeight: 700 }}>{lp.pct}%</span>
+              <span style={{ fontFamily: 'Red Hat Mono, monospace', fontWeight: 700 }}>{completed} / {total || '...'}</span>
+              <span style={{ color: isDone ? '#00c853' : '#0071c5', fontWeight: 700 }}>{isDone ? 'DONE' : `${pct}%`}</span>
             </div>
             <div style={{ height: '6px', borderRadius: '3px', background: '#2a2a2a', overflow: 'hidden' }}>
-              <div className="ck-smooth" style={{ height: '100%', width: `${lp.pct}%`, background: '#0071c5', borderRadius: '3px' }} />
+              <div className="ck-smooth" style={{ height: '100%', width: `${pct}%`, background: isDone ? '#00c853' : '#0071c5', borderRadius: '3px' }} />
             </div>
           </div>
 
-          {/* Phases */}
+          {/* Phases — persist, advancing as completion grows */}
           <div style={{ marginBottom: '16px' }}>
             {demoMeta.phases.map((phase, i) => {
-              const done = totalReqs > 0 && i < Math.floor((lp.pct / 100) * demoMeta.phases.length);
-              const active = totalReqs > 0 && i === Math.floor((lp.pct / 100) * demoMeta.phases.length);
+              const phaseThreshold = ((i + 1) / demoMeta.phases.length) * 100;
+              const done = pct >= phaseThreshold;
+              const active = !done && pct >= ((i) / demoMeta.phases.length) * 100;
               return (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '6px 0', fontSize: '0.82rem' }}>
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '5px 0', fontSize: '0.82rem' }}>
                   <div style={{ width: '20px', height: '20px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', fontWeight: 700,
-                    background: done ? '#00c853' : active ? '#0071c5' : '#2a2a2a', color: '#fff', flexShrink: 0 }}>
+                    background: done ? '#00c853' : active ? '#0071c5' : '#2a2a2a', color: '#fff', flexShrink: 0, transition: 'background 0.3s' }}>
                     {done ? '✓' : active ? '▶' : '○'}
                   </div>
-                  <span style={{ color: done ? '#00c853' : active ? '#fff' : '#555' }}>{phase}</span>
+                  <span style={{ color: done ? '#00c853' : active ? '#fff' : '#555', transition: 'color 0.3s' }}>{phase}</span>
                 </div>
               );
             })}
           </div>
 
-          {/* Cumulative chart */}
-          {history.length > 1 && (
+          {/* Timeline chart — builds during run, persists after */}
+          {history.length > 0 && (
             <div style={{ background: '#141414', border: '1px solid #2a2a2a', borderRadius: '8px', padding: '12px', marginBottom: '16px' }}>
-              <div style={{ fontSize: '0.68rem', textTransform: 'uppercase', letterSpacing: '0.06em', color: '#888', marginBottom: '8px' }}>Requests Over Time</div>
+              <div style={{ fontSize: '0.68rem', textTransform: 'uppercase', letterSpacing: '0.06em', color: '#888', marginBottom: '8px' }}>
+                {isDone ? 'Run Timeline' : 'Requests Over Time'}
+              </div>
               <div style={{ display: 'flex', alignItems: 'flex-end', gap: '2px', height: '60px' }}>
                 {history.map((s, i) => {
-                  const maxReqs = Math.max(...history.map(x => x.completed));
-                  const ecoH = maxReqs > 0 ? (s.eco / maxReqs) * 100 : 0;
-                  const gaudiH = maxReqs > 0 ? (s.gaudi / maxReqs) * 100 : 0;
+                  const maxReqs = Math.max(...history.map(x => x.completed)) || 1;
                   return (
                     <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', height: '100%' }}>
-                      {s.gaudi > 0 && <div style={{ height: `${gaudiH}%`, background: '#ff6d00', borderRadius: '1px 1px 0 0', minHeight: s.gaudi > 0 ? '2px' : 0 }} />}
-                      {s.perf > 0 && <div style={{ height: `${(s.perf / (maxReqs || 1)) * 100}%`, background: '#0071c5', minHeight: '2px' }} />}
-                      {s.eco > 0 && <div style={{ height: `${ecoH}%`, background: '#00c853', borderRadius: '0 0 1px 1px', minHeight: '2px' }} />}
+                      {s.gaudi > 0 && <div style={{ height: `${(s.gaudi / maxReqs) * 100}%`, background: '#ff6d00', borderRadius: '1px 1px 0 0', minHeight: '2px' }} />}
+                      {s.perf > 0 && <div style={{ height: `${(s.perf / maxReqs) * 100}%`, background: '#0071c5', minHeight: '2px' }} />}
+                      {s.eco > 0 && <div style={{ height: `${(s.eco / maxReqs) * 100}%`, background: '#00c853', borderRadius: '0 0 1px 1px', minHeight: '2px' }} />}
                     </div>
                   );
                 })}
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.65rem', color: '#555', marginTop: '4px' }}>
                 <span>0s</span>
-                <span>{history[history.length - 1]?.t || 0}s</span>
-              </div>
-            </div>
-          )}
-
-          {/* Running totals */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', marginBottom: '16px' }}>
-            {[
-              { label: 'Xeon 6', value: (rc.eco || 0) + (rc.performance || 0), color: '#0071c5' },
-              { label: 'Gaudi', value: rc.overdrive || 0, color: '#ff6d00' },
-              { label: 'Total', value: totalReqs, color: '#fff' },
-            ].map(m => (
-              <div key={m.label} style={{ background: '#141414', border: '1px solid #2a2a2a', borderRadius: '6px', padding: '10px', textAlign: 'center' }}>
-                <div style={{ fontSize: '1.4rem', fontWeight: 700, fontFamily: 'Red Hat Mono, monospace', color: m.color }}>{m.value}</div>
-                <div style={{ fontSize: '0.68rem', color: '#888', textTransform: 'uppercase' }}>{m.label}</div>
-              </div>
-            ))}
-          </div>
-        </>
-      )}
-
-      {/* ===== COMPLETE ===== */}
-      {isComplete && (
-        <>
-          <div style={{ background: '#141414', border: '1px solid #00c853', borderRadius: '8px', padding: '16px', marginBottom: '16px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div>
-                <div style={{ fontWeight: 700, fontSize: '1rem' }}>{lcMeta?.name || lcProfile}</div>
-                <div style={{ fontSize: '0.78rem', color: '#888' }}>{totalReqs} requests completed</div>
-              </div>
-              <div style={{ textAlign: 'right' }}>
-                <div style={{ fontSize: '1.3rem', fontWeight: 700, color: '#00c853', fontFamily: 'Red Hat Mono, monospace' }}>
-                  {Math.round(agg?.requests_per_second as number || 0)} req/s
-                </div>
-                <div style={{ fontSize: '0.72rem', color: '#888' }}>
-                  {(agg?.estimated_tokens_per_second as number || 0).toLocaleString()} tok/s · p95 {Math.round(agg?.p95_latency_ms as number || 0)}ms
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Final chart */}
-          {history.length > 1 && (
-            <div style={{ background: '#141414', border: '1px solid #2a2a2a', borderRadius: '8px', padding: '12px', marginBottom: '16px' }}>
-              <div style={{ fontSize: '0.68rem', textTransform: 'uppercase', letterSpacing: '0.06em', color: '#888', marginBottom: '8px' }}>Run Timeline</div>
-              <div style={{ display: 'flex', alignItems: 'flex-end', gap: '2px', height: '60px' }}>
-                {history.map((s, i) => {
-                  const maxReqs = Math.max(...history.map(h => h.completed));
-                  return (
-                    <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', height: '100%' }}>
-                      {s.gaudi > 0 && <div style={{ height: `${(s.gaudi / (maxReqs || 1)) * 100}%`, background: '#ff6d00', borderRadius: '1px 1px 0 0', minHeight: '2px' }} />}
-                      {s.perf > 0 && <div style={{ height: `${(s.perf / (maxReqs || 1)) * 100}%`, background: '#0071c5', minHeight: '2px' }} />}
-                      {s.eco > 0 && <div style={{ height: `${(s.eco / (maxReqs || 1)) * 100}%`, background: '#00c853', borderRadius: '0 0 1px 1px', minHeight: '2px' }} />}
-                    </div>
-                  );
-                })}
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.65rem', color: '#555', marginTop: '4px' }}>
-                <span>Start</span>
-                <span style={{ display: 'flex', gap: '12px' }}>
+                <span style={{ display: 'flex', gap: '10px' }}>
                   <span><span style={{ color: '#00c853' }}>●</span> Eco</span>
                   <span><span style={{ color: '#0071c5' }}>●</span> Perf</span>
                   <span><span style={{ color: '#ff6d00' }}>●</span> Gaudi</span>
@@ -248,14 +213,14 @@ export default function CockpitDashboard() {
             </div>
           )}
 
-          {/* Lane split */}
+          {/* Lane totals — persist and climb */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', marginBottom: '16px' }}>
             {[
-              { name: 'XEON ECO', hw: 'Xeon 6 · Granite', count: rc.eco || 0, color: '#00c853' },
-              { name: 'XEON PERF', hw: 'Xeon 6 + AMX · CodeLlama', count: rc.performance || 0, color: '#0071c5' },
-              { name: 'GAUDI', hw: 'Gaudi · Llama Scout', count: rc.overdrive || 0, color: '#ff6d00' },
+              { name: 'XEON ECO', hw: 'Granite · Xeon 6', count: eco, color: '#00c853' },
+              { name: 'XEON PERF', hw: 'CodeLlama · Xeon 6 + AMX', count: perf, color: '#0071c5' },
+              { name: 'GAUDI', hw: 'Llama Scout · Gaudi', count: gaudi, color: '#ff6d00' },
             ].map(l => (
-              <div key={l.name} style={{ background: '#141414', border: `1px solid ${l.count > 0 ? l.color : '#2a2a2a'}`, borderRadius: '6px', padding: '10px', borderLeft: `3px solid ${l.color}` }}>
+              <div key={l.name} style={{ background: '#141414', border: `1px solid ${l.count > 0 ? l.color : '#2a2a2a'}`, borderRadius: '6px', padding: '10px', borderLeft: `3px solid ${l.color}`, transition: 'border-color 0.3s' }}>
                 <div style={{ fontWeight: 700, fontSize: '0.78rem', letterSpacing: '0.04em' }}>{l.name}</div>
                 <div style={{ fontSize: '0.65rem', color: '#888' }}>{l.hw}</div>
                 <div style={{ fontSize: '1.3rem', fontWeight: 700, fontFamily: 'Red Hat Mono, monospace', color: l.color, marginTop: '4px' }}>
@@ -265,8 +230,18 @@ export default function CockpitDashboard() {
             ))}
           </div>
 
-          {/* Model telemetry */}
-          {Object.keys(mt).length > 0 && (
+          {/* Summary stats — appear once we have data, persist */}
+          {rps > 0 && (
+            <div style={{ display: 'flex', gap: '16px', marginBottom: '16px', fontSize: '0.82rem', flexWrap: 'wrap' }}>
+              <span><span style={{ fontFamily: 'Red Hat Mono, monospace', fontWeight: 700, fontSize: '1rem' }}>{rps}</span> req/s</span>
+              <span><span style={{ fontFamily: 'Red Hat Mono, monospace', fontWeight: 700, fontSize: '1rem' }}>{tps.toLocaleString()}</span> tok/s</span>
+              <span><span style={{ fontFamily: 'Red Hat Mono, monospace', fontWeight: 700, fontSize: '1rem' }}>{p95}</span> ms p95</span>
+              {images > 0 && <span><span style={{ fontFamily: 'Red Hat Mono, monospace', fontWeight: 700, fontSize: '1rem' }}>{images}</span> images</span>}
+            </div>
+          )}
+
+          {/* Model telemetry — appears when data arrives, persists */}
+          {Object.keys(models).length > 0 && (
             <div style={{ marginBottom: '16px' }}>
               <div style={{ fontSize: '0.68rem', textTransform: 'uppercase', letterSpacing: '0.06em', color: '#888', marginBottom: '8px', cursor: 'pointer' }}
                 onClick={() => setShowTelemetry(!showTelemetry)}>
@@ -274,7 +249,7 @@ export default function CockpitDashboard() {
               </div>
               {showTelemetry && (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '8px' }}>
-                  {Object.entries(mt).map(([model, stats]) => (
+                  {Object.entries(models).map(([model, stats]) => (
                     <div key={model} style={{ background: '#141414', border: `1px solid ${MODEL_COLORS[model] || '#2a2a2a'}`, borderRadius: '6px', padding: '10px', borderLeft: `3px solid ${MODEL_COLORS[model] || '#555'}` }}>
                       <div style={{ fontWeight: 700, fontSize: '0.78rem', color: MODEL_COLORS[model] }}>{model}</div>
                       <div style={{ fontSize: '0.65rem', color: '#888', marginBottom: '4px' }}>{MODEL_HW[model]}</div>
@@ -291,10 +266,13 @@ export default function CockpitDashboard() {
             </div>
           )}
 
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <button className="ck-mode-btn" onClick={() => lcProfile && launchDemo(lcProfile)}>Run Again</button>
-            <button className="ck-mode-btn" onClick={() => { setActiveDemo(null); setHistory([]); setData(prev => prev ? { ...prev, latest_completed: null, model_telemetry: {}, task_telemetry: {} } : null); }}>Try Another</button>
-          </div>
+          {/* Actions — only show when done */}
+          {isDone && (
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button className="ck-mode-btn" onClick={() => activeDemo && launchDemo(activeDemo)}>Run Again</button>
+              <button className="ck-mode-btn" onClick={resetDemo}>Try Another</button>
+            </div>
+          )}
         </>
       )}
 
