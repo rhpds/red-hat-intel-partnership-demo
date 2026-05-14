@@ -76,6 +76,19 @@ TASK_TO_LITELLM_MODEL = {
     "rag_question": "llama-scout-17b",
     "document_summary": "llama-scout-17b",
     "code_summary": "llama-scout-17b",
+    "image_classification": "granite-4-0-h-tiny",
+    "screenshot_classification": "granite-4-0-h-tiny",
+    "image_text_embedding": "nomic-embed-text-v1-5",
+    "visual_similarity": "nomic-embed-text-v1-5",
+    "ocr_layout_extract": "codellama-7b-instruct",
+    "screenshot_summary": "llama-scout-17b",
+    "chart_interpretation": "llama-scout-17b",
+    "diagram_explanation": "llama-scout-17b",
+    "document_visual_summary": "llama-scout-17b",
+    "visual_rag_question": "llama-scout-17b",
+    "multimodal_incident_summary": "llama-scout-17b",
+    "multimodal_rca": "llama-scout-17b",
+    "image_to_manual": "llama-scout-17b",
 }
 
 
@@ -102,6 +115,9 @@ class RealTimingProvider:
         task_type: str,
         token_estimate: int,
         expected_output_tokens: int,
+        modality: str = "text",
+        image_count: int = 0,
+        page_count: int = 0,
     ) -> dict:
         import httpx
 

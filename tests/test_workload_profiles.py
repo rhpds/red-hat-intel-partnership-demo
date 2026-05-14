@@ -21,7 +21,9 @@ class TestProfileDefinitions:
 
     def test_all_profiles_exist(self):
         from overdrive.workload_profiles import PROFILES
-        expected = {"incident_storm", "rag_barrage", "token_cannon", "model_race"}
+        expected = {"incident_storm", "rag_barrage", "token_cannon", "model_race",
+                    "dashboard_storm", "multimodal_incident_commander", "architecture_explainer",
+                    "visual_rag_barrage", "token_cannon_multimodal", "image_to_manual"}
         assert set(PROFILES.keys()) == expected
 
     def test_each_profile_has_task_mix(self):
@@ -113,5 +115,5 @@ class TestListProfiles:
     def test_list_profiles(self):
         from overdrive.workload_profiles import list_profiles
         profiles = list_profiles()
-        assert len(profiles) == 4
+        assert len(profiles) == 10
         assert all("name" in p and "description" in p for p in profiles)

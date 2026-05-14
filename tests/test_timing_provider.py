@@ -53,8 +53,8 @@ class TestMockTimingProvider:
     def test_latency_scales_with_tokens(self):
         from overdrive.timing_provider import MockTimingProvider
         tp = MockTimingProvider(seed=42)
-        small = tp.simulate("eco", "classification", 500, 50)
-        large = tp.simulate("eco", "classification", 4000, 500)
+        small = tp.simulate("eco", "classification", 100, 10)
+        large = tp.simulate("eco", "classification", 50000, 5000)
         assert large["latency_ms"] > small["latency_ms"]
 
     def test_all_values_positive(self):

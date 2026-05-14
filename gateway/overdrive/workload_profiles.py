@@ -286,6 +286,7 @@ PROFILES = {
                 "Generate an operator's manual for this network switch shown in the image. Include port layout, initial configuration, VLAN setup, and monitoring commands.",
             ],
             "screenshot_summary": ["Describe the hardware configuration visible in this server management interface screenshot."],
+            "document_visual_summary": ["Summarize this hardware installation guide with embedded photos showing component placement and cable routing."],
         },
         "task_mix": [
             {"task_type": "image_classification", "weight": 20, "token_range": [500, 2000], "priority": "normal", "modality": "image", "image_count_range": [1, 1]},

@@ -54,7 +54,7 @@ async def verify_api_key(x_api_key: str = Header(default="", alias="X-API-Key"))
 
 
 _rate_limits: dict = defaultdict(list)
-RATE_LIMIT_RPM = int(os.getenv("RATE_LIMIT_RPM", "120"))
+RATE_LIMIT_RPM = int(os.getenv("RATE_LIMIT_RPM", "85"))
 
 
 def check_rate_limit(client_ip: str):
