@@ -94,10 +94,11 @@ export default function CockpitDashboard() {
           });
         }
 
-        // Transition to done — only if OUR run was active then stopped
-        if (!isActive && newCompleted > 0) {
-          const lc = d.latest_completed as Record<string, unknown> | null;
-          const lcRunId = lc?.run_id as string | undefined;
+        // Transition to done — our run finished (no active + either we saw progress OR latest_completed matches our run)
+        const lc = d.latest_completed as Record<string, unknown> | null;
+        const lcRunId = lc?.run_id as string | undefined;
+        const ourRunDone = !isActive && (newCompleted > 0 || (currentRunId && lcRunId === currentRunId));
+        if (ourRunDone) {
           if (lc && (!currentRunId || lcRunId === currentRunId)) {
             const lcRc = (lc.route_counts || {}) as Record<string, number>;
             if (Object.keys(lcRc).length > 0) setRoutes(lcRc);
