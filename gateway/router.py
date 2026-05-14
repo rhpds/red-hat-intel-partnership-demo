@@ -830,8 +830,9 @@ class OverdriveRouteBody(BaseModel):
 
 
 @app.post("/v1/overdrive/route")
-async def overdrive_route(body: OverdriveRouteBody):
+async def overdrive_route(body: OverdriveRouteBody, raw_request: Request):
     """Route a request through the Overdrive lane evaluation engine."""
+    check_rate_limit(raw_request.client.host)
     if not _overdrive_engine:
         raise HTTPException(status_code=503, detail="Overdrive engine not available")
 
@@ -854,8 +855,9 @@ class OverdriveBatchBody(BaseModel):
 
 
 @app.post("/v1/overdrive/batch")
-async def overdrive_batch(body: OverdriveBatchBody):
+async def overdrive_batch(body: OverdriveBatchBody, raw_request: Request):
     """Route a batch of requests and return a summary report."""
+    check_rate_limit(raw_request.client.host)
     if not _overdrive_engine:
         raise HTTPException(status_code=503, detail="Overdrive engine not available")
 

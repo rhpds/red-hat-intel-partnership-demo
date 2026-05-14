@@ -212,34 +212,45 @@ export default function CockpitDashboard() {
         {/* Route Distribution */}
         <div style={{ background: '#141414', border: '1px solid #2a2a2a', borderRadius: '8px', padding: '16px' }}>
           <div style={{ fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#888', marginBottom: '10px' }}>Route Distribution</div>
-          {m.totalReqs > 0 ? (
-            <>
-              <div style={{ display: 'flex', height: '24px', borderRadius: '4px', overflow: 'hidden', marginBottom: '8px' }}>
-                {m.ecoCount > 0 && <div style={{ width: `${(m.ecoCount / m.totalReqs) * 100}%`, background: '#00c853', minWidth: '20px' }} />}
-                {m.perfCount > 0 && <div style={{ width: `${(m.perfCount / m.totalReqs) * 100}%`, background: '#0071c5', minWidth: '20px' }} />}
-                {m.gaudiCount > 0 && <div style={{ width: `${(m.gaudiCount / m.totalReqs) * 100}%`, background: '#ff6d00', minWidth: '20px' }} />}
-              </div>
-              <div style={{ display: 'flex', gap: '16px', fontSize: '0.78rem' }}>
-                <span><span style={{ color: '#00c853' }}>●</span> Eco: {m.ecoCount}</span>
-                <span><span style={{ color: '#0071c5' }}>●</span> Perf: {m.perfCount}</span>
-                <span><span style={{ color: '#ff6d00' }}>●</span> Gaudi: {m.gaudiCount}</span>
-                <span style={{ color: '#888', marginLeft: 'auto' }}>Total: {m.totalReqs.toLocaleString()}</span>
-              </div>
-            </>
-          ) : (
-            <div style={{ color: '#555', fontSize: '0.85rem' }}>Waiting for workload...</div>
-          )}
+          {(() => {
+            const rc = (lc?.route_counts || {}) as Record<string, number>;
+            const rEco = rc.eco || 0; const rPerf = rc.performance || 0; const rGaudi = rc.overdrive || 0;
+            const dEco = lc ? rEco : m.ecoCount; const dPerf = lc ? rPerf : m.perfCount; const dGaudi = lc ? rGaudi : m.gaudiCount;
+            const dTotal = dEco + dPerf + dGaudi || 1;
+            const hasData = dEco + dPerf + dGaudi > 0;
+            return hasData ? (
+              <>
+                <div style={{ display: 'flex', height: '24px', borderRadius: '4px', overflow: 'hidden', marginBottom: '8px' }}>
+                  {dEco > 0 && <div style={{ width: `${(dEco / dTotal) * 100}%`, background: '#00c853', minWidth: '20px' }} />}
+                  {dPerf > 0 && <div style={{ width: `${(dPerf / dTotal) * 100}%`, background: '#0071c5', minWidth: '20px' }} />}
+                  {dGaudi > 0 && <div style={{ width: `${(dGaudi / dTotal) * 100}%`, background: '#ff6d00', minWidth: '20px' }} />}
+                </div>
+                <div style={{ display: 'flex', gap: '16px', fontSize: '0.78rem' }}>
+                  <span><span style={{ color: '#00c853' }}>●</span> Eco: {dEco}</span>
+                  <span><span style={{ color: '#0071c5' }}>●</span> Perf: {dPerf}</span>
+                  <span><span style={{ color: '#ff6d00' }}>●</span> Gaudi: {dGaudi}</span>
+                  <span style={{ color: '#888', marginLeft: 'auto' }}>Total: {(dEco + dPerf + dGaudi).toLocaleString()}</span>
+                </div>
+              </>
+            ) : (
+              <div style={{ color: '#555', fontSize: '0.85rem' }}>Waiting for workload...</div>
+            );
+          })()}
 
           {/* Multimodal metrics */}
-          {(m.imgPerSec > 0 || m.docPerSec > 0) && (
+          {(() => {
+            const imgs = lc ? (lc.total_images as number || 0) : m.imgPerSec;
+            const docs = lc ? (lc.total_documents as number || 0) : m.docPerSec;
+            return (imgs > 0 || docs > 0) ? (
             <div style={{ marginTop: '12px', paddingTop: '12px', borderTop: '1px solid #2a2a2a' }}>
               <div style={{ fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#888', marginBottom: '6px' }}>Multimodal</div>
               <div style={{ display: 'flex', gap: '20px', fontSize: '0.85rem' }}>
-                <div><span style={{ fontSize: '1.2rem', fontWeight: 700, fontFamily: 'Red Hat Mono, monospace' }}>{m.imgPerSec.toFixed(1)}</span> <span style={{ color: '#888' }}>img/s</span></div>
-                <div><span style={{ fontSize: '1.2rem', fontWeight: 700, fontFamily: 'Red Hat Mono, monospace' }}>{m.docPerSec.toFixed(1)}</span> <span style={{ color: '#888' }}>doc/s</span></div>
+                <div><span style={{ fontSize: '1.2rem', fontWeight: 700, fontFamily: 'Red Hat Mono, monospace' }}>{imgs}</span> <span style={{ color: '#888' }}>{lc ? 'images' : 'img/s'}</span></div>
+                <div><span style={{ fontSize: '1.2rem', fontWeight: 700, fontFamily: 'Red Hat Mono, monospace' }}>{docs}</span> <span style={{ color: '#888' }}>{lc ? 'documents' : 'doc/s'}</span></div>
               </div>
             </div>
-          )}
+          ) : null;
+          })()}
         </div>
 
         {/* Event Feed */}
