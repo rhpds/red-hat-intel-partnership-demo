@@ -43,6 +43,7 @@ LATENCY_DEFAULTS = {
     "visual_rag_question": 5000,
     "multimodal_incident_summary": 5000,
     "multimodal_rca": 5000,
+    "image_to_manual": 10000,
 }
 
 

@@ -273,6 +273,27 @@ PROFILES = {
             {"task_type": "multimodal_rca", "weight": 25, "token_range": [25000, 50000], "priority": "critical", "modality": "mixed", "image_count_range": [4, 8]},
         ],
     },
+    "image_to_manual": {
+        "description": "Generate technical manuals and documentation from product/equipment images.",
+        "expected_lane_bias": {"eco": "image classification", "overdrive": "manual generation"},
+        "narrative": {"title": "Image to Manual", "story": "Product images and equipment photos are submitted. The platform identifies what it's looking at, then generates installation guides, operating manuals, and troubleshooting docs — all from a single image.", "phases": []},
+        "prompts": {
+            "image_classification": ["Identify this hardware component: is it a server, accelerator card, network switch, or storage device?", "Classify this equipment image: rack-mounted, blade, tower, or standalone appliance."],
+            "image_to_manual": [
+                "Generate a complete installation manual for the Intel Gaudi accelerator card shown in this image. Include safety precautions, hardware requirements, step-by-step installation, verification commands, and troubleshooting.",
+                "Create a quick-start guide for this 2U rack server. Include what's in the box, rack installation steps, first boot procedure, and OpenShift node setup instructions.",
+                "Write a hardware maintenance guide for this server based on the image. Include component identification, replacement procedures, LED indicator meanings, and preventive maintenance schedule.",
+                "Generate an operator's manual for this network switch shown in the image. Include port layout, initial configuration, VLAN setup, and monitoring commands.",
+            ],
+            "screenshot_summary": ["Describe the hardware configuration visible in this server management interface screenshot."],
+        },
+        "task_mix": [
+            {"task_type": "image_classification", "weight": 20, "token_range": [500, 2000], "priority": "normal", "modality": "image", "image_count_range": [1, 1]},
+            {"task_type": "image_to_manual", "weight": 50, "token_range": [10000, 35000], "priority": "high", "modality": "image", "image_count_range": [1, 3]},
+            {"task_type": "screenshot_summary", "weight": 15, "token_range": [8000, 16000], "priority": "high", "modality": "screenshot", "image_count_range": [1, 1]},
+            {"task_type": "document_visual_summary", "weight": 15, "token_range": [16000, 30000], "priority": "high", "modality": "document", "page_count_range": [5, 20]},
+        ],
+    },
 }
 
 

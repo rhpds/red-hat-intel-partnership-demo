@@ -205,6 +205,9 @@ def run_workload_streaming(
             task_type=req.task_type,
             token_estimate=req.token_estimate,
             expected_output_tokens=expected_output,
+            modality=req.modality,
+            image_count=req.image_count,
+            page_count=req.page_count,
         )
 
         reason_codes = decision.reason_codes or []
@@ -221,6 +224,9 @@ def run_workload_streaming(
             "hw": hw_label,
             "routing_reason": routing_reason,
             "outcome": decision.outcome,
+            "modality": req.modality,
+            "image_count": req.image_count,
+            "page_count": req.page_count,
         }
         results.append(result_entry)
 
@@ -233,6 +239,8 @@ def run_workload_streaming(
             "latency_ms": t["latency_ms"],
             "input_tokens": req.token_estimate,
             "routing_reason": routing_reason,
+            "modality": req.modality,
+            "image_count": req.image_count,
         })
 
         if run_state:

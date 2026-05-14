@@ -29,6 +29,7 @@ const PROFILES = [
   { value: 'architecture_explainer', label: 'Architecture Explainer', desc: 'Multimodal — diagrams explained with vision-language reasoning' },
   { value: 'visual_rag_barrage', label: 'Visual RAG', desc: 'Multimodal — embed images, search visually, answer with context' },
   { value: 'token_cannon_multimodal', label: 'Token Cannon MM', desc: 'Multimodal — stress heavy visual generation across Gaudi' },
+  { value: 'image_to_manual', label: 'Image to Manual', desc: 'Multimodal — generate installation guides and manuals from equipment images' },
 ];
 
 const NARRATIVES: Record<string, { title: string; story: string; phases: Array<{ name: string; tasks: string[]; hw: string; desc: string }> }> = {
@@ -113,6 +114,15 @@ const NARRATIVES: Record<string, { title: string; story: string; phases: Array<{
     story: 'Maximum multimodal generation. Nearly everything routes to Gaudi — vision-language reasoning with large context windows across screenshots, charts, and documents.',
     phases: [
       { name: 'Heavy Visual Gen', tasks: ['screenshot_summary', 'chart_interpretation', 'document_visual_summary', 'multimodal_rca'], hw: 'Gaudi', desc: 'All heavy multimodal generation on Gaudi HBM.' },
+    ],
+  },
+  image_to_manual: {
+    title: 'Image to Manual (Multimodal)',
+    story: 'Product images and equipment photos are submitted. Xeon 6 identifies the hardware. Gaudi generates complete installation guides, operating manuals, and troubleshooting docs from a single image.',
+    phases: [
+      { name: 'Image Identify', tasks: ['image_classification'], hw: 'Xeon 6 Eco', desc: 'Identify hardware type from the image — server, accelerator, switch.' },
+      { name: 'Manual Generate', tasks: ['image_to_manual'], hw: 'Gaudi', desc: 'Generate full technical documentation from the equipment image.' },
+      { name: 'Config Capture', tasks: ['screenshot_summary'], hw: 'Gaudi', desc: 'Capture configuration details from management interface screenshots.' },
     ],
   },
 };
