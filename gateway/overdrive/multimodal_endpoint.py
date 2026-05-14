@@ -55,13 +55,16 @@ class MockMultimodalEndpoint:
     def __init__(self, seed: int = 42):
         self._seed = seed
 
-    def respond(self, task_type: str, request_id: str = "") -> dict:
+    def respond(self, task_type: str, request_id: str = "", image_url: str = "") -> dict:
         rng = random.Random(self._seed ^ hash(request_id))
         responses = MOCK_RESPONSES.get(task_type, ["[Synthetic multimodal response for " + task_type + "]"])
         text = responses[rng.randint(0, len(responses) - 1)]
-        return {
+        result = {
             "response_text": text,
             "task_type": task_type,
             "endpoint": "mock_multimodal",
             "source": "synthetic",
         }
+        if image_url:
+            result["image_url"] = image_url
+        return result

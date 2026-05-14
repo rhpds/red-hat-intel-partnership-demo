@@ -187,7 +187,7 @@ export default function WorkloadDemo() {
   const GOVERNED = new Set(['boost', 'overdrive', 'max_q']);
   const needsUnlock = liveMode && GOVERNED.has(mode);
 
-  const [progress, setProgress] = useState<{ completed: number; total: number; results: Array<{ lane: string; task_type: string; latency_ms: number; prompt?: string; hw?: string; routing_reason?: string; outcome?: string }> } | null>(null);
+  const [progress, setProgress] = useState<{ completed: number; total: number; results: Array<{ lane: string; task_type: string; latency_ms: number; prompt?: string; hw?: string; routing_reason?: string; outcome?: string; image_url?: string; image_title?: string; modality?: string }> } | null>(null);
   const [expandedRequest, setExpandedRequest] = useState<number | null>(null);
   const [expandedPhaseFilter, setExpandedPhaseFilter] = useState<string | null>(null);
 
@@ -718,6 +718,22 @@ export default function WorkloadDemo() {
                     {/* Expanded detail */}
                     {isExpanded && (
                       <div style={{ marginTop: '10px', marginLeft: '18px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        {/* Image asset */}
+                        {r.image_url && (
+                          <div style={{
+                            padding: '8px', borderRadius: '6px',
+                            background: 'var(--rh-color--surface-secondary)', border: '1px solid var(--rh-color--border)',
+                          }}>
+                            <div style={{ fontWeight: 600, fontSize: '0.78rem', marginBottom: '6px', textTransform: 'uppercase', color: 'var(--rh-color--text-secondary)' }}>
+                              Input: {r.image_title || r.modality || 'Image'}
+                            </div>
+                            <img src={r.image_url} alt={r.image_title || 'Demo asset'} style={{
+                              maxWidth: '100%', maxHeight: '200px', borderRadius: '4px',
+                              border: '1px solid var(--rh-color--border)',
+                            }} />
+                          </div>
+                        )}
+
                         {/* Routing reasoning */}
                         {r.routing_reason && (
                           <div style={{

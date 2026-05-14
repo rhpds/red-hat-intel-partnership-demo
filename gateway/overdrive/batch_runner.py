@@ -136,6 +136,7 @@ def run_workload(
             "input_tokens": req.token_estimate,
             "modality": req.modality,
             "image_count": req.image_count,
+            "image_url": req.metadata.get("image_url", ""),
         })
 
     elapsed = (time.monotonic() - start) * 1000
@@ -227,6 +228,8 @@ def run_workload_streaming(
             "modality": req.modality,
             "image_count": req.image_count,
             "page_count": req.page_count,
+            "image_url": req.metadata.get("image_url", ""),
+            "image_title": req.metadata.get("image_title", ""),
         }
         results.append(result_entry)
 
@@ -241,6 +244,8 @@ def run_workload_streaming(
             "routing_reason": routing_reason,
             "modality": req.modality,
             "image_count": req.image_count,
+            "image_url": req.metadata.get("image_url", ""),
+            "image_title": req.metadata.get("image_title", ""),
         })
 
         if run_state:

@@ -5,6 +5,27 @@ from .models import InferenceRequest
 from .power_modes import get_mode_config
 from .workload_profiles import PROFILES
 
+MULTIMODAL_DEMO_ASSETS = {
+    "screenshot": [
+        {"url": "/demo-assets/dashboard-latency-spike.svg", "title": "Inference Gateway Latency Spike", "description": "Grafana dashboard showing p99 latency spike from 200ms to 4,500ms with correlated error rate increase."},
+        {"url": "/demo-assets/error-rate-dashboard.svg", "title": "Error Rate Monitor", "description": "HTTP 502 error tracking with affected services and incident timeline."},
+        {"url": "/demo-assets/chart-throughput-comparison.svg", "title": "Throughput vs Utilization", "description": "24-hour throughput chart showing Gaudi utilization correlation with request volume."},
+    ],
+    "diagram": [
+        {"url": "/demo-assets/architecture-dual-path.svg", "title": "Dual-Path Routing Architecture", "description": "Three-lane routing diagram: Eco (Xeon 6), Performance (Xeon 6 + AMX), Overdrive (Gaudi)."},
+    ],
+    "image": [
+        {"url": "/demo-assets/gaudi-accelerator-card.svg", "title": "Intel Gaudi 2 Accelerator", "description": "Intel Gaudi 2 HL-225 PCIe card with 96GB HBM2E and 24 Tensor Cores."},
+        {"url": "/demo-assets/server-rack-xeon6.svg", "title": "2U Rack Server — Xeon 6 + Gaudi", "description": "Rack-mounted servers with CPU worker node and Gaudi worker node."},
+    ],
+    "document": [
+        {"url": "/demo-assets/architecture-dual-path.svg", "title": "Platform Architecture Document", "description": "15-page technical architecture document with embedded diagrams."},
+    ],
+    "mixed": [
+        {"url": "/demo-assets/dashboard-latency-spike.svg", "title": "Multi-Source Incident Evidence", "description": "Dashboard screenshots combined with log analysis for incident synthesis."},
+    ],
+}
+
 MULTIMODAL_IMAGE_FIXTURES = [
     "fixtures/multimodal/images/dashboard-latency-spike-001.json",
     "fixtures/multimodal/images/dashboard-kafka-lag-001.json",
@@ -98,6 +119,14 @@ def generate_workload(
             page_count = rng.randint(pcr[0], pcr[1])
             document_ref = MULTIMODAL_DOC_FIXTURES[rng.randint(0, len(MULTIMODAL_DOC_FIXTURES) - 1)]
 
+        metadata = {}
+        if modality in MULTIMODAL_DEMO_ASSETS and MULTIMODAL_DEMO_ASSETS[modality]:
+            assets = MULTIMODAL_DEMO_ASSETS[modality]
+            asset = assets[rng.randint(0, len(assets) - 1)]
+            metadata["image_url"] = asset["url"]
+            metadata["image_title"] = asset["title"]
+            metadata["image_description"] = asset["description"]
+
         requests.append(InferenceRequest(
             request_id=f"wl-{seed}-{i:05d}",
             task_type=entry["task_type"],
@@ -110,6 +139,7 @@ def generate_workload(
             document_ref=document_ref,
             image_count=image_count,
             page_count=page_count,
+            metadata=metadata,
         ))
 
     return requests
