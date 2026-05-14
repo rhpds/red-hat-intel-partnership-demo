@@ -110,13 +110,14 @@ export default function CockpitDashboard() {
   }, [demoState]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const launchDemo = async (profileId: string) => {
+    const sc = SCALES.find(s => s.id === scale) || SCALES[1];
     setLaunching(true);
     setActiveDemo(profileId);
     setCompleted(0); setTotal(0); setRoutes({}); setRps(0); setTps(0); setP95(0); setImages(0);
     setHistory([]); setModels({}); setShowTelemetry(true);
     startTimeRef.current = Date.now();
     setDemoState('running');
-    try { await api.workloadRun(profileId, selectedScale.mode, 42, true, selectedScale.locked ? unlockCode : ''); } catch { /* ignore */ }
+    try { await api.workloadRun(profileId, sc.mode, 42, true, sc.locked ? unlockCode : ''); } catch { /* ignore */ }
     setLaunching(false);
   };
 
