@@ -15,7 +15,7 @@ const SCALES = [
 ];
 
 const MODEL_COLORS: Record<string, string> = { 'granite-4-0-h-tiny': '#3e8635', 'codellama-7b-instruct': '#0068b5', 'llama-scout-17b': '#e67e22' };
-const MODEL_HW: Record<string, string> = { 'granite-4-0-h-tiny': 'Intel Xeon 6 · Eco', 'codellama-7b-instruct': 'Intel Xeon 6 + AMX', 'llama-scout-17b': 'Intel Gaudi' };
+// MODEL_HW used inline in model cards below
 
 interface Snapshot { t: number; completed: number; eco: number; perf: number; gaudi: number; images: number; }
 
@@ -26,7 +26,7 @@ export default function CockpitDashboard() {
   const [activeDemo, setActiveDemo] = useState<string | null>(null);
   const [launching, setLaunching] = useState(false);
   const [currentRunId, setCurrentRunId] = useState<string | null>(null);
-  const [showTelemetry, setShowTelemetry] = useState(true);
+  // telemetry always visible
   const [scale, setScale] = useState('standard');
   const [unlockCode, setUnlockCode] = useState('');
   const selectedScale = SCALES.find(s => s.id === scale) || SCALES[1];
@@ -58,18 +58,30 @@ export default function CockpitDashboard() {
         const activeRuns = d.active_runs as Array<Record<string, unknown>> | undefined;
         const isActive = activeRuns && activeRuns.some(r => r.type === 'workload');
 
-        // Update metrics from current run
+        // Update metrics — only climb within this run, never drop
         const newCompleted = lp?.completed ?? 0;
         const newTotal = lp?.total ?? 0;
-        if (newCompleted > 0) setCompleted(newCompleted);
-        if (newTotal > 0) setTotal(newTotal);
-        if (Object.keys(rc).length > 0) setRoutes(rc);
-        if (agg?.requests_per_second) setRps(Math.round(agg.requests_per_second as number));
-        if (agg?.estimated_tokens_per_second) setTps(Math.round(agg.estimated_tokens_per_second as number));
-        if (agg?.p95_latency_ms) setP95(Math.round(agg.p95_latency_ms as number));
+        if (newCompleted > 0) setCompleted(prev => Math.max(prev, newCompleted));
+        if (newTotal > 0) setTotal(prev => Math.max(prev, newTotal));
+        if (Object.keys(rc).length > 0) setRoutes(prev => {
+          const merged = { ...prev };
+          for (const [k, v] of Object.entries(rc)) merged[k] = Math.max(merged[k] || 0, v);
+          return merged;
+        });
+        if (agg?.requests_per_second) setRps(prev => Math.max(prev, Math.round(agg.requests_per_second as number)));
+        if (agg?.estimated_tokens_per_second) setTps(prev => Math.max(prev, Math.round(agg.estimated_tokens_per_second as number)));
+        if (agg?.p95_latency_ms) setP95(prev => Math.max(prev, Math.round(agg.p95_latency_ms as number)));
         const newImages = agg?.total_images as number || 0;
-        if (newImages > 0) setImages(newImages);
-        if (Object.keys(mt).length > 0) setModels(mt);
+        if (newImages > 0) setImages(prev => Math.max(prev, newImages));
+        // Model telemetry — only update if counts are higher
+        if (Object.keys(mt).length > 0) setModels(prev => {
+          const merged = { ...prev };
+          for (const [k, v] of Object.entries(mt)) {
+            const existing = merged[k];
+            if (!existing || (v.count as number) >= (existing.count as number)) merged[k] = v;
+          }
+          return merged;
+        });
 
         // Add to history if progress changed
         const snapCompleted = newCompleted > 0 ? newCompleted : (Object.values(rc).reduce((a, b) => a + b, 0) || 0);
@@ -112,7 +124,7 @@ export default function CockpitDashboard() {
     setLaunching(true);
     setActiveDemo(profileId);
     setCompleted(0); setTotal(0); setRoutes({}); setRps(0); setTps(0); setP95(0); setImages(0);
-    setHistory([]); setModels({}); setShowTelemetry(true);
+    setHistory([]); setModels({});
     startTimeRef.current = Date.now();
     setDemoState('running');
     try {
@@ -296,41 +308,51 @@ export default function CockpitDashboard() {
             ))}
           </div>
 
-          {/* Summary stats — appear once we have data, persist */}
-          {rps > 0 && (
-            <div style={{ display: 'flex', gap: '16px', marginBottom: '16px', fontSize: '0.82rem', flexWrap: 'wrap' }}>
-              <span><span style={{ fontFamily: 'Red Hat Mono, monospace', fontWeight: 700, fontSize: '1rem' }}>{rps}</span> req/s</span>
-              <span><span style={{ fontFamily: 'Red Hat Mono, monospace', fontWeight: 700, fontSize: '1rem' }}>{tps.toLocaleString()}</span> tok/s</span>
-              <span><span style={{ fontFamily: 'Red Hat Mono, monospace', fontWeight: 700, fontSize: '1rem' }}>{p95}</span> ms p95</span>
-              {images > 0 && <span><span style={{ fontFamily: 'Red Hat Mono, monospace', fontWeight: 700, fontSize: '1rem' }}>{images}</span> images</span>}
-            </div>
-          )}
+          {/* Summary stats — always visible */}
+          <div style={{ display: 'flex', gap: '16px', marginBottom: '16px', fontSize: '0.82rem', flexWrap: 'wrap', padding: '10px 14px', background: '#141414', border: '1px solid #2a2a2a', borderRadius: '6px' }}>
+            <span><span style={{ fontFamily: 'RedHatMono, monospace', fontWeight: 700, fontSize: '1rem', color: rps > 0 ? '#e8e8e8' : '#444' }}>{rps}</span> <span style={{ color: '#888' }}>req/s</span></span>
+            <span><span style={{ fontFamily: 'RedHatMono, monospace', fontWeight: 700, fontSize: '1rem', color: tps > 0 ? '#e8e8e8' : '#444' }}>{tps.toLocaleString()}</span> <span style={{ color: '#888' }}>tok/s</span></span>
+            <span><span style={{ fontFamily: 'RedHatMono, monospace', fontWeight: 700, fontSize: '1rem', color: p95 > 0 ? '#e8e8e8' : '#444' }}>{p95}</span> <span style={{ color: '#888' }}>ms p95</span></span>
+            <span><span style={{ fontFamily: 'RedHatMono, monospace', fontWeight: 700, fontSize: '1rem', color: images > 0 ? '#e8e8e8' : '#444' }}>{images}</span> <span style={{ color: '#888' }}>images</span></span>
+          </div>
 
-          {/* Model telemetry — appears when data arrives, persists */}
-          {Object.keys(models).length > 0 && (
-            <div style={{ marginBottom: '16px' }}>
-              <div style={{ fontSize: '0.68rem', textTransform: 'uppercase', letterSpacing: '0.06em', color: '#888', marginBottom: '8px', cursor: 'pointer' }}
-                onClick={() => setShowTelemetry(!showTelemetry)}>
-                {showTelemetry ? '▼' : '▶'} MODEL DETAIL
-              </div>
-              {showTelemetry && (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '8px' }}>
-                  {Object.entries(models).map(([model, stats]) => (
-                    <div key={model} style={{ background: '#141414', border: `1px solid ${MODEL_COLORS[model] || '#2a2a2a'}`, borderRadius: '6px', padding: '10px', borderLeft: `3px solid ${MODEL_COLORS[model] || '#555'}` }}>
-                      <div style={{ fontWeight: 700, fontSize: '0.78rem', color: MODEL_COLORS[model] }}>{model}</div>
-                      <div style={{ fontSize: '0.65rem', color: '#888', marginBottom: '4px' }}>{MODEL_HW[model]}</div>
-                      <div style={{ fontSize: '0.75rem', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2px' }}>
-                        <div><b>{stats.count as number}</b> reqs</div>
-                        <div><b>{(stats.avg_latency_ms as number).toFixed(0)}</b> ms</div>
-                        <div><b>{(stats.total_input_tokens as number).toLocaleString()}</b> in</div>
-                        <div><b>{(stats.tokens_per_sec as number).toLocaleString()}</b> tok/s</div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+          {/* Model telemetry — always visible */}
+          <div style={{ marginBottom: '16px' }}>
+            <div style={{ fontSize: '0.68rem', textTransform: 'uppercase', letterSpacing: '0.06em', color: '#888', marginBottom: '8px' }}>
+              MODEL ACTIVITY
             </div>
-          )}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '8px' }}>
+              {[
+                { key: 'granite-4-0-h-tiny', name: 'Granite Tiny', hw: 'Intel Xeon 6 · Eco' },
+                { key: 'codellama-7b-instruct', name: 'CodeLlama 7B', hw: 'Intel Xeon 6 + AMX' },
+                { key: 'llama-scout-17b', name: 'Llama Scout 17B', hw: 'Intel Gaudi' },
+              ].map(m => {
+                const stats = models[m.key];
+                const count = stats ? stats.count as number : 0;
+                const latency = stats ? (stats.avg_latency_ms as number).toFixed(0) : '—';
+                const tokSec = stats ? (stats.tokens_per_sec as number).toLocaleString() : '—';
+                const active = count > 0;
+                return (
+                  <div key={m.key} style={{
+                    background: '#141414',
+                    border: `1px solid ${active ? MODEL_COLORS[m.key] || '#555' : '#2a2a2a'}`,
+                    borderRadius: '6px', padding: '10px',
+                    borderLeft: `3px solid ${MODEL_COLORS[m.key] || '#555'}`,
+                    opacity: active ? 1 : 0.5,
+                    transition: 'opacity 0.4s, border-color 0.4s',
+                  }}>
+                    <div style={{ fontWeight: 700, fontSize: '0.78rem', color: MODEL_COLORS[m.key] }}>{m.name}</div>
+                    <div style={{ fontSize: '0.65rem', color: '#888', marginBottom: '4px' }}>{m.hw}</div>
+                    <div style={{ fontSize: '0.75rem', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2px' }}>
+                      <div><b style={{ color: active ? '#e8e8e8' : '#444' }}>{count}</b> <span style={{ color: '#888' }}>reqs</span></div>
+                      <div><b style={{ color: active ? '#e8e8e8' : '#444' }}>{latency}</b> <span style={{ color: '#888' }}>ms</span></div>
+                      <div style={{ gridColumn: 'span 2' }}><b style={{ color: active ? MODEL_COLORS[m.key] : '#444' }}>{tokSec}</b> <span style={{ color: '#888' }}>tok/s</span></div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
 
           {/* Actions — only show when done */}
           {isDone && (
