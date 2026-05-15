@@ -28,6 +28,7 @@ from starlette.responses import Response
 from routing_policy import RoutingPolicy, load_config
 import db
 from api import api_router
+from tenant_api import tenant_router
 
 try:
     import local_inference
@@ -57,12 +58,13 @@ _rate_limits: dict = defaultdict(list)
 RATE_LIMIT_RPM = int(os.getenv("RATE_LIMIT_RPM", "85"))
 
 
-def check_rate_limit(client_ip: str):
+def check_rate_limit(client_ip: str, tenant_id: str = ""):
+    key = f"{tenant_id}:{client_ip}" if tenant_id else client_ip
     now = time_module.time()
-    _rate_limits[client_ip] = [t for t in _rate_limits[client_ip] if now - t < 60]
-    if len(_rate_limits[client_ip]) >= RATE_LIMIT_RPM:
+    _rate_limits[key] = [t for t in _rate_limits[key] if now - t < 60]
+    if len(_rate_limits[key]) >= RATE_LIMIT_RPM:
         raise HTTPException(status_code=429, detail="Rate limit exceeded")
-    _rate_limits[client_ip].append(now)
+    _rate_limits[key].append(now)
 
 VALID_TASKS = {"embeddings", "classification", "reranking", "completion", "batch_generation", "search", "governance", "policy"}
 
@@ -114,6 +116,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 app.include_router(api_router)
+app.include_router(tenant_router)
 
 
 class RouteRequest(BaseModel):

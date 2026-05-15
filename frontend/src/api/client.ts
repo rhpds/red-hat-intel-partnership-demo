@@ -142,4 +142,13 @@ export const api = {
 
   recoveryRun: (seed: number) =>
     request<Record<string, unknown>>('/v1/recovery/run', { method: 'POST', body: JSON.stringify({ seed }) }),
+
+  listTenants: () =>
+    request<Record<string, unknown>>('/api/v1/tenants'),
+
+  createTenant: (slug: string, display_name: string, tier: string = 'pilot') =>
+    request<Record<string, unknown>>('/api/v1/tenants', { method: 'POST', body: JSON.stringify({ slug, display_name, tier }) }),
+
+  getTenant: (slug: string) =>
+    request<Record<string, unknown>>(`/api/v1/tenants/${slug}`),
 };

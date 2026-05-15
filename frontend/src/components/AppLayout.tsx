@@ -55,6 +55,12 @@ const navSections = [
       { path: '/docs', label: 'Documentation' },
     ],
   },
+  {
+    title: 'Admin',
+    items: [
+      { path: '/admin/tenants', label: 'Tenant Management' },
+    ],
+  },
 ];
 
 export default function AppLayout() {

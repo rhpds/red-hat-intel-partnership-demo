@@ -439,3 +439,153 @@ async def _audit(conn, entity_type: str, entity_id, action: str, changes: dict):
         )
     except Exception as e:
         logger.error("Failed to write audit log: %s", e)
+
+
+# ─── Tenant Management ───
+
+async def get_tenant_by_slug(slug: str) -> Optional[dict]:
+    if not _pool:
+        return None
+    try:
+        async with _pool.acquire() as conn:
+            row = await conn.fetchrow(
+                "SELECT * FROM tenants WHERE slug = $1 AND active = TRUE", slug
+            )
+            return dict(row) if row else None
+    except Exception as e:
+        logger.error("Failed to get tenant %s: %s", slug, e)
+        return None
+
+
+async def get_tenant_by_id(tenant_id: str) -> Optional[dict]:
+    if not _pool:
+        return None
+    try:
+        async with _pool.acquire() as conn:
+            row = await conn.fetchrow(
+                "SELECT * FROM tenants WHERE id = $1", uuid.UUID(tenant_id)
+            )
+            return dict(row) if row else None
+    except Exception as e:
+        logger.error("Failed to get tenant %s: %s", tenant_id, e)
+        return None
+
+
+async def create_tenant(slug: str, display_name: str, tier: str = "pilot",
+                        resource_quota: dict = None, config: dict = None) -> Optional[str]:
+    if not _pool:
+        return None
+    try:
+        async with _pool.acquire() as conn:
+            row = await conn.fetchrow(
+                """INSERT INTO tenants (slug, display_name, tier, resource_quota, config)
+                   VALUES ($1, $2, $3, $4, $5) RETURNING id""",
+                slug, display_name, tier,
+                json.dumps(resource_quota or {}),
+                json.dumps(config or {})
+            )
+            await _audit(conn, 'tenants', row['id'], 'create',
+                         {'slug': slug, 'tier': tier})
+            return str(row['id'])
+    except Exception as e:
+        logger.error("Failed to create tenant: %s", e)
+        return None
+
+
+async def list_tenants() -> list:
+    if not _pool:
+        return []
+    try:
+        async with _pool.acquire() as conn:
+            rows = await conn.fetch(
+                "SELECT id, slug, display_name, tier, active, created_at, expires_at FROM tenants ORDER BY slug"
+            )
+            return [dict(r) for r in rows]
+    except Exception as e:
+        logger.error("Failed to list tenants: %s", e)
+        return []
+
+
+async def update_tenant(slug: str, **kwargs) -> bool:
+    if not _pool:
+        return False
+    try:
+        async with _pool.acquire() as conn:
+            sets = []
+            params = []
+            idx = 1
+            for k, v in kwargs.items():
+                if k in ('display_name', 'tier', 'expires_at'):
+                    sets.append(f"{k} = ${idx}")
+                    params.append(v)
+                    idx += 1
+                elif k in ('resource_quota', 'config'):
+                    sets.append(f"{k} = ${idx}")
+                    params.append(json.dumps(v))
+                    idx += 1
+            if not sets:
+                return False
+            params.append(slug)
+            result = await conn.execute(
+                f"UPDATE tenants SET {', '.join(sets)} WHERE slug = ${idx}", *params
+            )
+            return result != 'UPDATE 0'
+    except Exception as e:
+        logger.error("Failed to update tenant %s: %s", slug, e)
+        return False
+
+
+async def deactivate_tenant(slug: str) -> bool:
+    if not _pool:
+        return False
+    try:
+        async with _pool.acquire() as conn:
+            result = await conn.execute(
+                "UPDATE tenants SET active = FALSE WHERE slug = $1", slug
+            )
+            return result != 'UPDATE 0'
+    except Exception as e:
+        logger.error("Failed to deactivate tenant %s: %s", slug, e)
+        return False
+
+
+async def verify_api_key_db(key_hash: str) -> Optional[dict]:
+    if not _pool:
+        return None
+    try:
+        async with _pool.acquire() as conn:
+            row = await conn.fetchrow(
+                """SELECT k.tenant_id, k.scopes, t.slug as tenant_slug, t.tier
+                   FROM api_keys k JOIN tenants t ON k.tenant_id = t.id
+                   WHERE k.key_hash = $1 AND k.active = TRUE AND t.active = TRUE
+                   AND (k.expires_at IS NULL OR k.expires_at > NOW())""",
+                key_hash
+            )
+            if row:
+                return {"tenant_id": str(row['tenant_id']), "tenant_slug": row['tenant_slug'],
+                        "tier": row['tier'], "scopes": list(row['scopes'])}
+            return None
+    except Exception as e:
+        logger.error("Failed to verify API key: %s", e)
+        return None
+
+
+async def create_api_key(tenant_id: str, label: str = "default",
+                         key_hash: str = "", scopes: list = None) -> Optional[str]:
+    if not _pool:
+        return None
+    try:
+        async with _pool.acquire() as conn:
+            row = await conn.fetchrow(
+                """INSERT INTO api_keys (tenant_id, key_hash, label, scopes)
+                   VALUES ($1, $2, $3, $4) RETURNING id""",
+                uuid.UUID(tenant_id), key_hash, label, scopes or ["read", "write"]
+            )
+            return str(row['id'])
+    except Exception as e:
+        logger.error("Failed to create API key: %s", e)
+        return None
+
+
+async def set_tenant_context(conn, tenant_id: str):
+    await conn.execute(f"SET app.current_tenant_id = '{tenant_id}'")
