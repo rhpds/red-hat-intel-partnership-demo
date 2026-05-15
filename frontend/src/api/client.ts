@@ -130,4 +130,10 @@ export const api = {
 
   platformStatus: () =>
     request<Record<string, unknown>>('/v1/platform/status'),
+
+  swarmRun: (scenario: string, seed: number) =>
+    request<Record<string, unknown>>('/v1/swarm/run', { method: 'POST', body: JSON.stringify({ scenario, seed }) }),
+
+  swarmStatus: (runId: string) =>
+    request<Record<string, unknown>>(`/v1/swarm/status/${runId}`),
 };

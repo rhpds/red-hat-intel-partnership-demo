@@ -1149,6 +1149,40 @@ async def agent_approve(run_id: str, step_name: str):
 
 
 _training_runs: dict = {}
+_swarm_runs: dict = {}
+
+
+class SwarmRunRequest(BaseModel):
+    scenario: str = "incident"
+    seed: int = 42
+
+
+@app.post("/v1/swarm/run")
+async def swarm_run(req: SwarmRunRequest, raw_request: Request):
+    check_rate_limit(raw_request.client.host)
+    import uuid as _uuid
+    run_id = f"swarm-{_uuid.uuid4().hex[:8]}"
+    run_state = {"run_id": run_id, "status": "running", "agent_results": [], "timeline": []}
+    _swarm_runs[run_id] = run_state
+
+    def _run():
+        try:
+            from overdrive.swarm import run_swarm
+            run_swarm(scenario=req.scenario, seed=req.seed, run_state=run_state)
+        except Exception as e:
+            run_state["status"] = "error"
+            run_state["error"] = str(e)
+
+    thread = threading.Thread(target=_run, daemon=True)
+    thread.start()
+    return {"run_id": run_id, "status": "running"}
+
+
+@app.get("/v1/swarm/status/{run_id}")
+async def swarm_status(run_id: str):
+    if run_id not in _swarm_runs:
+        raise HTTPException(status_code=404, detail=f"Swarm run '{run_id}' not found")
+    return _swarm_runs[run_id]
 
 
 @app.get("/v1/training/profiles")
