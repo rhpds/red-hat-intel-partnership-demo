@@ -15,6 +15,8 @@ import ResearchAgent from './pages/ResearchAgent';
 import TrainingDemo from './pages/TrainingDemo';
 import OptimizationDemo from './pages/OptimizationDemo';
 import SwarmDemo from './pages/SwarmDemo';
+import ReplayDemo from './pages/ReplayDemo';
+import RecoveryDemo from './pages/RecoveryDemo';
 import CockpitDashboard from './pages/CockpitDashboard';
 
 const queryClient = new QueryClient({
@@ -42,6 +44,8 @@ export default function App() {
             <Route path="/training" element={<TrainingDemo />} />
             <Route path="/optimization" element={<OptimizationDemo />} />
             <Route path="/swarm" element={<SwarmDemo />} />
+            <Route path="/replay" element={<ReplayDemo />} />
+            <Route path="/recovery" element={<RecoveryDemo />} />
             <Route path="/cockpit" element={<CockpitDashboard />} />
             <Route path="/docs" element={<Docs />} />
           </Route>

@@ -787,6 +787,16 @@ async def platform_status():
         elif run.get("status") == "completed":
             training_info = {"status": "completed", "run_id": run_id, "model": run.get("model_profile_id", ""), "base_score": run.get("evaluation", {}).get("base_score", 0), "tuned_score": run.get("evaluation", {}).get("tuned_score", 0), "improvement": run.get("evaluation", {}).get("improvement", 0)}
 
+    swarm_completed = None
+    for run_id, run in _swarm_runs.items():
+        if run.get("status") == "running":
+            agent_results = run.get("agent_results", [])
+            total_agents = len(run.get("timeline", [])) or len(agent_results)
+            active_runs.append({"type": "swarm", "run_id": run_id, "scenario": run.get("scenario", ""), "agents_done": len([a for a in agent_results if a.get("status") == "done"]), "agents_total": total_agents})
+        elif run.get("status") == "completed":
+            if swarm_completed is None:
+                swarm_completed = {"run_id": run_id, "scenario": run.get("scenario", ""), "agent_count": run.get("agent_count", 0), "route_counts": run.get("route_counts", {}), "total_ms": run.get("total_ms", 0)}
+
     agg_mode = "STANDBY"
     agg_rps = 0
     agg_tps = 0
@@ -910,6 +920,7 @@ async def platform_status():
         "active_runs": active_runs,
         "latest_completed": latest_completed,
         "training": training_info,
+        "swarm_completed": swarm_completed,
         "live_progress": live_progress,
         "model_telemetry": mt,
         "task_telemetry": tt,
@@ -1155,6 +1166,7 @@ _swarm_runs: dict = {}
 class SwarmRunRequest(BaseModel):
     scenario: str = "incident"
     seed: int = 42
+    depth: str = Field(default="full", pattern=r"^(triage|full|deep)$")
 
 
 @app.post("/v1/swarm/run")
@@ -1162,13 +1174,13 @@ async def swarm_run(req: SwarmRunRequest, raw_request: Request):
     check_rate_limit(raw_request.client.host)
     import uuid as _uuid
     run_id = f"swarm-{_uuid.uuid4().hex[:8]}"
-    run_state = {"run_id": run_id, "status": "running", "agent_results": [], "timeline": []}
+    run_state = {"run_id": run_id, "status": "running", "agent_results": [], "timeline": [], "type": "swarm"}
     _swarm_runs[run_id] = run_state
 
     def _run():
         try:
             from overdrive.swarm import run_swarm
-            run_swarm(scenario=req.scenario, seed=req.seed, run_state=run_state)
+            run_swarm(scenario=req.scenario, depth=req.depth, seed=req.seed, run_state=run_state)
         except Exception as e:
             run_state["status"] = "error"
             run_state["error"] = str(e)
@@ -1299,6 +1311,33 @@ async def tokenize_text(req: TokenizeRequest, raw_request: Request):
             "cost_estimate": cost,
         }
     return {"models": results}
+
+
+# ─── Replay Comparison ───
+
+class ReplayCompareRequest(BaseModel):
+    profile: str = Field(default="incident_storm")
+    seed: int = Field(default=42)
+
+@app.post("/v1/replay/compare")
+async def replay_compare(req: ReplayCompareRequest, raw_request: Request):
+    check_rate_limit(raw_request.client.host)
+    from overdrive.replay import run_comparison
+    result = run_comparison(profile=req.profile, seed=req.seed)
+    return result
+
+
+# ─── Recovery Demo ───
+
+class RecoveryRunRequest(BaseModel):
+    seed: int = Field(default=42)
+
+@app.post("/v1/recovery/run")
+async def recovery_run(req: RecoveryRunRequest, raw_request: Request):
+    check_rate_limit(raw_request.client.host)
+    from overdrive.recovery import run_recovery_demo
+    result = run_recovery_demo(seed=req.seed)
+    return result
 
 
 if __name__ == "__main__":

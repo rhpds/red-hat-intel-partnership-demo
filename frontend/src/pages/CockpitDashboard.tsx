@@ -3,11 +3,24 @@ import { api } from '../api/client';
 import '../styles/cockpit.css';
 
 /* ─── Config ─── */
-const DEMOS = [
+const WORKLOAD_DEMOS = [
   { id: 'incident_storm', name: 'Incident Storm', desc: 'Enterprise alert flood — classify on Xeon 6, deep analysis on Gaudi.', phases: ['Alert Triage (Xeon 6)', 'Knowledge Search (Xeon 6)', 'Deep Analysis (Gaudi)', 'Batch Reporting (Gaudi)'] },
-  { id: 'dashboard_storm', name: 'Dashboard Storm', desc: 'Operational screenshots — classify on Xeon 6, interpret on Gaudi.', phases: ['Screenshot Classify (Xeon 6)', 'Chart Interpret (Gaudi)', 'Summary Generation (Gaudi)', 'Incident Synthesis (Gaudi)'] },
+  { id: 'rag_barrage', name: 'RAG Barrage', desc: 'High-throughput RAG — embed, search, rerank, answer generation.', phases: ['Document Indexing (Xeon 6)', 'Relevance Scoring (Xeon 6)', 'Answer Generation (Mixed)', 'Document Distillation (Gaudi)'] },
+  { id: 'token_cannon', name: 'Token Cannon', desc: 'Maximum generation throughput — stress Gaudi with heavy output.', phases: ['Long Analysis (Gaudi)', 'Batch Reports (Gaudi)', 'Doc Distillation (Gaudi)', 'Code Review (Gaudi)'] },
   { id: 'model_race', name: 'Model Race', desc: 'Same tasks across all hardware — compare Xeon 6 vs Gaudi live.', phases: ['Small Tasks (Xeon Eco)', 'Mid Tasks (Xeon Perf)', 'Large Tasks (Gaudi)'] },
+  { id: 'dashboard_storm', name: 'Dashboard Storm', desc: 'Multimodal — operational screenshots classified and interpreted.', phases: ['Screenshot Classify (Xeon 6)', 'Chart Interpret (Gaudi)', 'Summary Generation (Gaudi)', 'Incident Synthesis (Gaudi)'] },
+  { id: 'multimodal_incident_commander', name: 'Incident Commander', desc: 'Multimodal — screenshots + logs + metrics into incident synthesis.', phases: ['Screenshot Classify (Xeon 6)', 'Diagram Analysis (Gaudi)', 'Incident Synthesis (Gaudi)'] },
+  { id: 'architecture_explainer', name: 'Architecture Explainer', desc: 'Multimodal — diagrams explained with vision-language reasoning.', phases: ['Diagram Classify (Xeon 6)', 'Diagram Explain (Gaudi)', 'Architecture Summary (Gaudi)'] },
+  { id: 'visual_rag_barrage', name: 'Visual RAG', desc: 'Multimodal — embed images, search visually, answer with context.', phases: ['Image Embedding (Xeon 6)', 'Visual Rerank (Xeon 6)', 'Image Q&A (Gaudi)'] },
+  { id: 'token_cannon_multimodal', name: 'Token Cannon MM', desc: 'Multimodal — stress heavy visual generation across Gaudi.', phases: ['Chart Interpretation (Gaudi)', 'Doc Explanation (Gaudi)', 'Visual Summary (Gaudi)'] },
+  { id: 'image_to_manual', name: 'Image to Manual', desc: 'Multimodal — generate installation guides from equipment images.', phases: ['Image Classify (Xeon 6)', 'Manual Generation (Gaudi)', 'Doc Distillation (Gaudi)'] },
 ];
+const SWARM_DEMOS = [
+  { id: 'swarm:incident', name: 'Swarm: Incident', desc: 'Multi-agent incident investigation across Xeon 6 + Gaudi.', phases: ['Wave 1: Investigation', 'Wave 2: Root Cause', 'Wave 3: Report'] },
+  { id: 'swarm:security_audit', name: 'Swarm: Security Audit', desc: 'Multi-agent security scan — CVEs, compliance, threat analysis.', phases: ['Wave 1: Scanning', 'Wave 2: Risk Assessment', 'Wave 3: Audit Report'] },
+  { id: 'swarm:capacity_planning', name: 'Swarm: Capacity Plan', desc: 'Multi-agent capacity analysis — utilization, growth, cost.', phases: ['Wave 1: Data Collection', 'Wave 2: Cost Optimization', 'Wave 3: Report'] },
+];
+const DEMOS = [...WORKLOAD_DEMOS, ...SWARM_DEMOS];
 const SCALES = [
   { id: 'quick', label: 'Quick', mode: 'standby', count: 5, time: '~5s', locked: false },
   { id: 'standard', label: 'Standard', mode: 'drive', count: 25, time: '~20s', locked: false },
@@ -116,26 +129,49 @@ export default function CockpitDashboard() {
         const rc = (agg?.route_counts || {}) as Record<string, number>;
         const mt = (d.model_telemetry || {}) as Record<string, Record<string, unknown>>;
         const activeRuns = d.active_runs as Array<Record<string, unknown>> | undefined;
-        const isActive = activeRuns && activeRuns.some(r => r.type === 'workload');
+        const isSwarm = state.demoId?.startsWith('swarm:');
+        const isActive = activeRuns && activeRuns.some(r => isSwarm ? r.type === 'swarm' : r.type === 'workload');
 
         // Check if our run completed
-        const lc = d.latest_completed as Record<string, unknown> | null;
+        const lc = isSwarm ? d.swarm_completed as Record<string, unknown> | null : d.latest_completed as Record<string, unknown> | null;
         if (!isActive && lc && lc.run_id === state.runId) {
-          dispatch({
-            type: 'COMPLETE',
-            completed: lc.total_requests as number || 0,
-            routes: (lc.route_counts || {}) as Record<string, number>,
-            rps: Math.round(lc.requests_per_second as number || 0),
-            tps: Math.round(lc.estimated_tokens_per_second as number || 0),
-            p95: Math.round(lc.p95_latency_ms as number || 0),
-            images: lc.total_images as number || 0,
-            models: mt,
-          });
+          if (isSwarm) {
+            dispatch({
+              type: 'COMPLETE',
+              completed: lc.agent_count as number || 0,
+              routes: (lc.route_counts || {}) as Record<string, number>,
+              rps: 0, tps: 0, p95: Math.round(lc.total_ms as number || 0),
+              images: 0, models: {},
+            });
+          } else {
+            dispatch({
+              type: 'COMPLETE',
+              completed: lc.total_requests as number || 0,
+              routes: (lc.route_counts || {}) as Record<string, number>,
+              rps: Math.round(lc.requests_per_second as number || 0),
+              tps: Math.round(lc.estimated_tokens_per_second as number || 0),
+              p95: Math.round(lc.p95_latency_ms as number || 0),
+              images: lc.total_images as number || 0,
+              models: mt,
+            });
+          }
           return;
         }
 
         // Still running — update with climbing values
-        if (lp && lp.completed > 0) {
+        if (isSwarm) {
+          const swarmRun = activeRuns?.find(r => r.type === 'swarm');
+          if (swarmRun) {
+            const elapsed = Math.round((Date.now() - state.startTime) / 1000);
+            dispatch({
+              type: 'POLL',
+              completed: swarmRun.agents_done as number || 0,
+              total: swarmRun.agents_total as number || 0,
+              routes: rc, rps: 0, tps: 0, p95: 0, images: 0, models: {},
+              elapsed,
+            });
+          }
+        } else if (lp && lp.completed > 0) {
           const elapsed = Math.round((Date.now() - state.startTime) / 1000);
           dispatch({
             type: 'POLL',
@@ -157,13 +193,20 @@ export default function CockpitDashboard() {
     return () => { if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; } };
   }, [state.phase, state.runId, state.startTime]);
 
-  const launchDemo = async (profileId: string) => {
+  const launchDemo = async (demoId: string) => {
     const sc = SCALES.find(s => s.id === scale) || SCALES[1];
     setLaunching(true);
     try {
-      const resp = await api.workloadRun(profileId, sc.mode, 42, true, sc.locked ? unlockCode : '') as { run_id?: string };
+      let resp: { run_id?: string };
+      if (demoId.startsWith('swarm:')) {
+        const scenario = demoId.replace('swarm:', '');
+        const swarmDepth = sc.id === 'quick' ? 'triage' : sc.id === 'extended' ? 'deep' : 'full';
+        resp = await api.swarmRun(scenario, 42, swarmDepth) as { run_id?: string };
+      } else {
+        resp = await api.workloadRun(demoId, sc.mode, 42, true, sc.locked ? unlockCode : '') as { run_id?: string };
+      }
       if (resp.run_id) {
-        dispatch({ type: 'LAUNCH', demoId: profileId, runId: resp.run_id });
+        dispatch({ type: 'LAUNCH', demoId, runId: resp.run_id });
       }
     } catch { /* ignore — stay idle */ }
     setLaunching(false);
@@ -228,18 +271,27 @@ export default function CockpitDashboard() {
           <div style={{ textAlign: 'center', marginBottom: '20px', fontSize: '0.7rem', color: '#555' }}>
             Live · {selectedScale.count} requests · {selectedScale.time}
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '10px' }}>
-            {DEMOS.map(d => {
-              const disabled = launching || (selectedScale.locked && !unlockCode);
-              return (
-                <div key={d.id} onClick={() => !disabled && launchDemo(d.id)}
-                  className="ck-card" style={{ opacity: disabled ? 0.5 : 1, cursor: disabled ? 'not-allowed' : 'pointer' }}>
-                  <div style={{ fontWeight: 700, fontSize: '0.88rem', marginBottom: '4px' }}>{d.name}</div>
-                  <div style={{ fontSize: '0.75rem', color: '#888' }}>{d.desc}</div>
-                </div>
-              );
-            })}
-          </div>
+          {[
+            { label: 'TEXT WORKLOADS', demos: WORKLOAD_DEMOS.slice(0, 4) },
+            { label: 'MULTIMODAL WORKLOADS', demos: WORKLOAD_DEMOS.slice(4) },
+            { label: 'AGENT SWARMS', demos: SWARM_DEMOS },
+          ].map(section => (
+            <div key={section.label}>
+              <div style={{ fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.08em', color: '#555', margin: '12px 0 6px', textTransform: 'uppercase' }}>{section.label}</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '10px', marginBottom: '8px' }}>
+                {section.demos.map(d => {
+                  const disabled = launching || (selectedScale.locked && !unlockCode);
+                  return (
+                    <div key={d.id} onClick={() => !disabled && launchDemo(d.id)}
+                      className="ck-card" style={{ opacity: disabled ? 0.5 : 1, cursor: disabled ? 'not-allowed' : 'pointer' }}>
+                      <div style={{ fontWeight: 700, fontSize: '0.88rem', marginBottom: '4px' }}>{d.name}</div>
+                      <div style={{ fontSize: '0.75rem', color: '#888' }}>{d.desc}</div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
         </>
       )}
 

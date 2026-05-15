@@ -131,9 +131,15 @@ export const api = {
   platformStatus: () =>
     request<Record<string, unknown>>('/v1/platform/status'),
 
-  swarmRun: (scenario: string, seed: number) =>
-    request<Record<string, unknown>>('/v1/swarm/run', { method: 'POST', body: JSON.stringify({ scenario, seed }) }),
+  swarmRun: (scenario: string, seed: number, depth: string = 'full') =>
+    request<Record<string, unknown>>('/v1/swarm/run', { method: 'POST', body: JSON.stringify({ scenario, seed, depth }) }),
 
   swarmStatus: (runId: string) =>
     request<Record<string, unknown>>(`/v1/swarm/status/${runId}`),
+
+  replayCompare: (profile: string, seed: number) =>
+    request<Record<string, unknown>>('/v1/replay/compare', { method: 'POST', body: JSON.stringify({ profile, seed }) }),
+
+  recoveryRun: (seed: number) =>
+    request<Record<string, unknown>>('/v1/recovery/run', { method: 'POST', body: JSON.stringify({ seed }) }),
 };

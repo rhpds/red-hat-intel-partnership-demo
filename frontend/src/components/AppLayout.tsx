@@ -42,6 +42,8 @@ const navSections = [
       { path: '/swarm', label: 'Agent Swarm' },
       { path: '/training', label: 'Train + Serve' },
       { path: '/optimization', label: 'Optimization' },
+      { path: '/replay', label: 'Replay Comparison' },
+      { path: '/recovery', label: 'Recovery & Resilience' },
     ],
   },
   {
