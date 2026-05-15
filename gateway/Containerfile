@@ -13,6 +13,9 @@ RUN pip install --no-cache-dir torch --extra-index-url https://download.pytorch.
 COPY router.py .
 COPY routing_policy.py .
 COPY api.py .
+COPY auth.py .
+COPY tenant_api.py .
+COPY content_validator.py .
 COPY db.py .
 COPY local_inference.py .
 COPY __init__.py .
