@@ -151,4 +151,20 @@ export const api = {
 
   getTenant: (slug: string) =>
     request<Record<string, unknown>>(`/api/v1/tenants/${slug}`),
+
+  capacityOverview: () =>
+    request<Record<string, unknown>>('/v1/capacity/overview'),
+
+  runHistory: (runType?: string) => {
+    const qs = runType ? `?run_type=${runType}` : '';
+    return request<Record<string, unknown>>(`/v1/runs/history${qs}`);
+  },
+
+  validateContent: (name: string, type: string, source: string) =>
+    request<Record<string, unknown>>('/v1/content/validate', { method: 'POST', body: JSON.stringify({ name, type, source }) }),
+
+  galleryPocs: (category?: string) => {
+    const qs = category ? `?category=${category}` : '';
+    return request<Record<string, unknown>>(`/v1/gallery/pocs${qs}`);
+  },
 };

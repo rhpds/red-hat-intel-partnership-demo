@@ -1088,6 +1088,16 @@ async def workload_run(req: WorkloadRunRequest, raw_request: Request):
             run_state.update(result)
             run_state["status"] = "complete"
             run_state["completed_at"] = time_module.time()
+            import asyncio
+            try:
+                loop = asyncio.new_event_loop()
+                loop.run_until_complete(db.persist_run(
+                    run_id=run_id, run_type="workload", status="complete",
+                    summary={"profile": req.profile, "mode": req.mode, "total": run_state.get("total", 0), "route_counts": run_state.get("route_counts", {})}
+                ))
+                loop.close()
+            except Exception:
+                pass
         except PermissionError as e:
             run_state["status"] = "error"
             run_state["error"] = str(e)
@@ -1341,6 +1351,92 @@ async def recovery_run(req: RecoveryRunRequest, raw_request: Request):
     from overdrive.recovery import run_recovery_demo
     result = run_recovery_demo(seed=req.seed)
     return result
+
+
+# ─── Run History ───
+
+@app.get("/v1/runs/history")
+async def run_history(run_type: str = None, limit: int = 50):
+    runs = await db.get_run_history(run_type=run_type, limit=limit)
+    return {"runs": runs}
+
+
+# ─── Capacity Overview ───
+
+@app.get("/v1/capacity/overview")
+async def capacity_overview():
+    tenants = await db.list_tenants()
+    active_counts = {}
+    for run_dict_name, run_type in [("_workload_runs", "workload"), ("_swarm_runs", "swarm"), ("_training_runs", "training"), ("_agent_runs", "agent")]:
+        run_dict = globals().get(run_dict_name, {})
+        for run_id, run in run_dict.items():
+            tid = run.get("tenant_id", "internal")
+            if run.get("status") == "running":
+                active_counts[tid] = active_counts.get(tid, 0) + 1
+
+    capacity = []
+    for t in tenants:
+        quota = t.get("resource_quota", {}) if isinstance(t.get("resource_quota"), dict) else {}
+        capacity.append({
+            "slug": t.get("slug", ""),
+            "display_name": t.get("display_name", ""),
+            "tier": t.get("tier", ""),
+            "active": t.get("active", True),
+            "expires_at": str(t.get("expires_at", "")) if t.get("expires_at") else None,
+            "resource_quota": quota,
+            "active_runs": active_counts.get(str(t.get("id", "")), 0),
+        })
+    return {"tenants": capacity, "total_active_runs": sum(active_counts.values())}
+
+
+# ─── Content Validation ───
+
+class ContentValidateRequest(BaseModel):
+    name: str
+    type: str = "model"
+    source: str = "partner"
+
+@app.post("/v1/content/validate")
+async def validate_content(req: ContentValidateRequest):
+    from content_validator import validate_artifact
+    return validate_artifact({"name": req.name, "type": req.type, "source": req.source})
+
+
+# ─── Publishing House Gallery ───
+
+GALLERY_POCS = [
+    {"id": "intelligent-routing", "title": "Intelligent Hardware Routing", "category": "inference", "status": "live",
+     "description": "Route AI workloads across Intel Xeon 6 and Gaudi based on task complexity, cost, and hardware capability.",
+     "hardware": ["Xeon 6", "Gaudi"], "tags": ["routing", "inference", "cost-optimization"]},
+    {"id": "multi-agent-swarm", "title": "Multi-Agent Incident Swarm", "category": "agents", "status": "live",
+     "description": "5-8 specialized agents coordinate across Intel hardware to investigate, analyze, and report on incidents.",
+     "hardware": ["Xeon 6", "Gaudi"], "tags": ["agents", "incident-response", "parallel"]},
+    {"id": "training-pipeline", "title": "Fine-Tuning on Intel Hardware", "category": "training", "status": "live",
+     "description": "LoRA/QLoRA fine-tuning with hardware benchmarks comparing Xeon 6 vs Gaudi training performance.",
+     "hardware": ["Xeon 6", "Gaudi"], "tags": ["training", "fine-tuning", "lora"]},
+    {"id": "multimodal-inference", "title": "Multimodal Vision-Language", "category": "inference", "status": "live",
+     "description": "Image classification, chart interpretation, and document analysis with vision-language models on Gaudi.",
+     "hardware": ["Gaudi"], "tags": ["multimodal", "vision", "documents"]},
+    {"id": "recovery-resilience", "title": "Hardware Failure Recovery", "category": "resilience", "status": "live",
+     "description": "Automatic rerouting when Gaudi goes offline — zero dropped requests, graceful degradation to Xeon 6.",
+     "hardware": ["Xeon 6", "Gaudi"], "tags": ["resilience", "failover", "zero-downtime"]},
+    {"id": "sovereign-cloud", "title": "Sovereign Cloud Deployment", "category": "infrastructure", "status": "planned",
+     "description": "Air-gapped deployment model with mirrored images and no external egress for regulated environments.",
+     "hardware": ["Xeon 6", "Gaudi"], "tags": ["sovereign", "air-gap", "compliance"]},
+    {"id": "tdx-confidential", "title": "Intel TDX Confidential Computing", "category": "security", "status": "planned",
+     "description": "Attestation-aware routing with Intel Trust Domain Extensions for partner workload confidentiality.",
+     "hardware": ["Xeon 6 + TDX"], "tags": ["tdx", "confidential", "attestation"]},
+    {"id": "capacity-virtualization", "title": "Capacity Virtualization", "category": "infrastructure", "status": "in-progress",
+     "description": "Per-tenant resource allocation with dynamic capacity planning and auto-scaling recommendations.",
+     "hardware": ["Xeon 6", "Gaudi"], "tags": ["capacity", "quotas", "scaling"]},
+]
+
+@app.get("/v1/gallery/pocs")
+async def gallery_pocs(category: str = None):
+    items = GALLERY_POCS
+    if category:
+        items = [p for p in items if p["category"] == category]
+    return {"items": items, "total": len(items)}
 
 
 if __name__ == "__main__":

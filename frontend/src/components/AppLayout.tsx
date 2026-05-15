@@ -50,9 +50,16 @@ const navSections = [
     title: 'Observe',
     items: [
       { path: '/cockpit', label: 'Cockpit' },
+      { path: '/capacity', label: 'Capacity & Allocation' },
       { path: '/operations', label: 'Operations' },
       { path: '/governance', label: 'Governance Audit' },
       { path: '/docs', label: 'Documentation' },
+    ],
+  },
+  {
+    title: 'Discover',
+    items: [
+      { path: '/gallery', label: 'Publishing House' },
     ],
   },
   {

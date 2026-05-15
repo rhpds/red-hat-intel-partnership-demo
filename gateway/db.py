@@ -589,3 +589,72 @@ async def create_api_key(tenant_id: str, label: str = "default",
 
 async def set_tenant_context(conn, tenant_id: str):
     await conn.execute(f"SET app.current_tenant_id = '{tenant_id}'")
+
+
+# ─── Run Persistence ───
+
+async def persist_run(run_id: str, run_type: str, status: str,
+                      tenant_id: str = None, summary: dict = None) -> Optional[str]:
+    if not _pool:
+        return None
+    try:
+        async with _pool.acquire() as conn:
+            t_id = uuid.UUID(tenant_id) if tenant_id else None
+            row = await conn.fetchrow(
+                """INSERT INTO demo_runs (run_id, run_type, tenant_id, status, summary, completed_at)
+                   VALUES ($1, $2, $3, $4, $5, NOW()) RETURNING id""",
+                run_id, run_type, t_id, status, json.dumps(summary or {})
+            )
+            return str(row['id'])
+    except Exception as e:
+        logger.error("Failed to persist run %s: %s", run_id, e)
+        return None
+
+
+async def get_run_history(run_type: str = None, limit: int = 50) -> list:
+    if not _pool:
+        return []
+    try:
+        async with _pool.acquire() as conn:
+            if run_type:
+                rows = await conn.fetch(
+                    "SELECT * FROM demo_runs WHERE run_type = $1 ORDER BY completed_at DESC LIMIT $2",
+                    run_type, limit
+                )
+            else:
+                rows = await conn.fetch(
+                    "SELECT * FROM demo_runs ORDER BY completed_at DESC LIMIT $1", limit
+                )
+            return [dict(r) for r in rows]
+    except Exception as e:
+        logger.error("Failed to get run history: %s", e)
+        return []
+
+
+async def get_tenant_runs(tenant_id: str, limit: int = 50) -> list:
+    if not _pool:
+        return []
+    try:
+        async with _pool.acquire() as conn:
+            rows = await conn.fetch(
+                "SELECT * FROM demo_runs WHERE tenant_id = $1 ORDER BY completed_at DESC LIMIT $2",
+                uuid.UUID(tenant_id), limit
+            )
+            return [dict(r) for r in rows]
+    except Exception as e:
+        logger.error("Failed to get tenant runs: %s", e)
+        return []
+
+
+async def get_expired_tenants() -> list:
+    if not _pool:
+        return []
+    try:
+        async with _pool.acquire() as conn:
+            rows = await conn.fetch(
+                "SELECT slug, display_name, expires_at FROM tenants WHERE active = TRUE AND expires_at < NOW()"
+            )
+            return [dict(r) for r in rows]
+    except Exception as e:
+        logger.error("Failed to get expired tenants: %s", e)
+        return []

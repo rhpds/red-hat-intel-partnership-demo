@@ -19,6 +19,8 @@ import ReplayDemo from './pages/ReplayDemo';
 import RecoveryDemo from './pages/RecoveryDemo';
 import CockpitDashboard from './pages/CockpitDashboard';
 import TenantAdmin from './pages/TenantAdmin';
+import CapacityDashboard from './pages/CapacityDashboard';
+import PublishingHouse from './pages/PublishingHouse';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -48,6 +50,8 @@ export default function App() {
             <Route path="/replay" element={<ReplayDemo />} />
             <Route path="/recovery" element={<RecoveryDemo />} />
             <Route path="/cockpit" element={<CockpitDashboard />} />
+            <Route path="/capacity" element={<CapacityDashboard />} />
+            <Route path="/gallery" element={<PublishingHouse />} />
             <Route path="/admin/tenants" element={<TenantAdmin />} />
             <Route path="/docs" element={<Docs />} />
           </Route>
