@@ -21,6 +21,7 @@ import CockpitDashboard from './pages/CockpitDashboard';
 import TenantAdmin from './pages/TenantAdmin';
 import CapacityDashboard from './pages/CapacityDashboard';
 import PublishingHouse from './pages/PublishingHouse';
+import { TenantProvider } from './context/TenantContext';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -31,6 +32,7 @@ const queryClient = new QueryClient({
 export default function App() {
   return (
     <ErrorBoundary>
+    <TenantProvider>
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <Routes>
@@ -58,6 +60,7 @@ export default function App() {
         </Routes>
       </BrowserRouter>
     </QueryClientProvider>
+    </TenantProvider>
     </ErrorBoundary>
   );
 }

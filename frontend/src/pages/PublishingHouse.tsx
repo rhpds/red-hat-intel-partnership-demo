@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Card, CardBody, Content, Label, PageSection, Spinner } from '@patternfly/react-core';
+import { Card, CardBody, Content, Label, PageSection, Spinner, ToggleGroup, ToggleGroupItem } from '@patternfly/react-core';
 import { api } from '../api/client';
 
 interface PocItem {
@@ -27,19 +27,26 @@ const CATEGORY_COLORS: Record<string, 'green' | 'blue' | 'orange' | 'purple' | '
   security: 'purple',
 };
 
+const CATEGORIES = ['all', 'inference', 'agents', 'training', 'resilience', 'infrastructure', 'security'];
+
 export default function PublishingHouse() {
   const [items, setItems] = useState<PocItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState('all');
+  const [error, setError] = useState(false);
 
   useEffect(() => {
     (async () => {
       try {
         const resp = await api.galleryPocs() as { items: PocItem[] };
         setItems(resp.items || []);
-      } catch { /* ignore */ }
+      } catch { setError(true); }
       setLoading(false);
     })();
   }, []);
+
+  const filtered = filter === 'all' ? items : items.filter(i => i.category === filter);
+  const statusCounts = { live: items.filter(i => i.status === 'live').length, 'in-progress': items.filter(i => i.status === 'in-progress').length, planned: items.filter(i => i.status === 'planned').length };
 
   return (
     <>
@@ -51,13 +58,32 @@ export default function PublishingHouse() {
             Intel-Red Hat AI Inference Platform. Each POC demonstrates a capability that
             partners can evaluate and build upon.
           </Content>
+          {!loading && (
+            <div style={{ display: 'flex', gap: '12px', marginTop: '8px', fontSize: '0.82rem' }}>
+              <span><Label isCompact color="green">{statusCounts.live} Live</Label></span>
+              <span><Label isCompact color="blue">{statusCounts['in-progress']} In Progress</Label></span>
+              <span><Label isCompact color="orange">{statusCounts.planned} Planned</Label></span>
+            </div>
+          )}
         </Content>
       </PageSection>
 
       <PageSection>
-        {loading && <Spinner size="lg" />}
+        {loading && <div style={{ textAlign: 'center', padding: '32px' }}><Spinner size="lg" /> Loading gallery...</div>}
+        {error && <Card><CardBody style={{ color: '#c9190b' }}>Failed to load gallery. Check API connection.</CardBody></Card>}
+
+        {!loading && !error && (
+          <div style={{ marginBottom: '16px' }}>
+            <ToggleGroup aria-label="Category filter">
+              {CATEGORIES.map(cat => (
+                <ToggleGroupItem key={cat} text={cat === 'all' ? 'All' : cat.charAt(0).toUpperCase() + cat.slice(1)} isSelected={filter === cat} onChange={() => setFilter(cat)} />
+              ))}
+            </ToggleGroup>
+          </div>
+        )}
+
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '12px' }}>
-          {items.map(item => (
+          {filtered.map(item => (
             <Card key={item.id} style={{ borderLeft: `3px solid ${item.status === 'live' ? '#3e8635' : item.status === 'in-progress' ? '#0068b5' : '#888'}` }}>
               <CardBody>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '6px' }}>

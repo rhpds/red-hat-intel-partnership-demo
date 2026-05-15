@@ -22,6 +22,7 @@ import {
 } from '@patternfly/react-core';
 import { BarsIcon } from '@patternfly/react-icons';
 import { useHealth } from '../api/hooks';
+import { useTenant } from '../context/TenantContext';
 
 const navSections = [
   {
@@ -72,6 +73,12 @@ const navSections = [
 
 export default function AppLayout() {
   const { data: health } = useHealth();
+  const { tenant, isAdmin } = useTenant();
+
+  const visibleSections = navSections.filter(s => {
+    if (s.title === 'Admin' && !isAdmin) return false;
+    return true;
+  });
 
   const masthead = (
     <Masthead>
@@ -102,6 +109,13 @@ export default function AppLayout() {
       <MastheadContent>
         <Toolbar isStatic>
           <ToolbarContent>
+            <ToolbarItem>
+              {tenant && (
+                <Label isCompact color={tenant.tier === 'internal' ? 'blue' : 'orange'}>
+                  {tenant.tenant_slug}
+                </Label>
+              )}
+            </ToolbarItem>
             <ToolbarItem align={{ default: 'alignEnd' }}>
               <Label
                 color={health?.status === 'healthy' ? 'green' : 'red'}
@@ -119,7 +133,7 @@ export default function AppLayout() {
     <PageSidebar>
       <PageSidebarBody>
         <Nav aria-label="Main navigation">
-          {navSections.map((section) => (
+          {visibleSections.map((section) => (
             <div key={section.title}>
               <div style={{
                 padding: '12px 16px 4px', fontSize: '0.7rem', fontWeight: 700,

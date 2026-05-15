@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button, Card, CardBody, Content, Label, PageSection, TextInput } from '@patternfly/react-core';
 import { api } from '../api/client';
 import { useTenant } from '../context/TenantContext';
@@ -26,6 +26,8 @@ export default function TenantAdmin() {
       setLoaded(true);
     } catch { setMessage('Failed to load tenants (DB may not be connected)'); setLoaded(true); }
   };
+
+  useEffect(() => { if (isAdmin) loadTenants(); }, [isAdmin]);
 
   const createTenant = async () => {
     if (!slug || !displayName) return;
@@ -70,12 +72,14 @@ export default function TenantAdmin() {
           </CardBody>
         </Card>
 
-        {!loaded && <Button variant="secondary" onClick={loadTenants}>Load Tenants</Button>}
-        {loaded && (
-          <Card>
-            <CardBody>
-              <div style={{ fontWeight: 700, marginBottom: '8px' }}>Tenants ({tenants.length})</div>
-              {tenants.length === 0 && <div style={{ color: 'var(--pf-t--global--text--color--subtle)', fontSize: '0.85rem' }}>No tenants found (DB may not be connected)</div>}
+        <Card>
+          <CardBody>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+              <span style={{ fontWeight: 700 }}>Tenants ({tenants.length})</span>
+              <Button variant="link" onClick={loadTenants} isDisabled={!loaded}>Refresh</Button>
+            </div>
+            {!loaded && <div style={{ color: 'var(--pf-t--global--text--color--subtle)', fontSize: '0.85rem' }}>Loading tenants...</div>}
+              {loaded && tenants.length === 0 && <div style={{ color: 'var(--pf-t--global--text--color--subtle)', fontSize: '0.85rem' }}>No tenants found (DB may not be connected)</div>}
               {tenants.map(t => (
                 <div key={t.slug} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 0', borderBottom: '1px solid var(--pf-t--global--border--color--default)' }}>
                   <span style={{ fontWeight: 600, minWidth: '120px' }}>{t.slug}</span>
@@ -84,9 +88,8 @@ export default function TenantAdmin() {
                   <Label isCompact color={t.active ? 'green' : 'grey'}>{t.active ? 'Active' : 'Inactive'}</Label>
                 </div>
               ))}
-            </CardBody>
-          </Card>
-        )}
+          </CardBody>
+        </Card>
       </PageSection>
     </>
   );
