@@ -6,7 +6,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/your-org/red_hat_intel_partner_demo.git
+    repoURL: https://github.com/rhpds/red-hat-intel-partnership-demo.git
     targetRevision: main
     path: deploy/cluster
   destination:

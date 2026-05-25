@@ -1,5 +1,10 @@
 # OpenShift Manifests - Gaudi GPU Inference Path
 
+> **IMPORTANT:** Do not deploy GPU inference workloads directly to production clusters.
+> GPU model deployments on rac-maas require Ashok's approval. Use MAAS endpoints
+> (`litellm-prod.apps.maas.redhatworkshops.io`) for model access instead.
+> For experiments, use CNV (OpenShift Virtualization) clusters.
+
 Kubernetes/OpenShift manifests for deploying vLLM GPU inference on Intel Gaudi accelerators.
 
 ## Structure

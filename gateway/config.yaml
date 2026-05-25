@@ -3,8 +3,23 @@
 #
 # Defines available backends and routing rules.
 # The gateway uses this to decide which backend handles each request.
+#
+# Default: route through MAAS (LiteLLM proxy).
+# For direct cluster endpoints, see config.local.yaml or config.direct.yaml.
 
 backends:
+  - name: maas-proxy
+    url: ${LITELLM_API_BASE:-https://litellm-prod.apps.maas.redhatworkshops.io}
+    accelerator: maas
+    capabilities:
+      - completion
+      - embeddings
+      - classification
+      - reranking
+      - batch_generation
+    cost_per_1k_tokens: 0.005
+    max_concurrent: 20
+
   - name: openvino-cpu
     url: http://embeddings-minilm.intel-rh-openvino-inference.svc.cluster.local
     accelerator: xeon6
@@ -36,32 +51,23 @@ backends:
 
 routes:
   - task: embeddings
-    backend: openvino-cpu
-    reason: "Embeddings are compute-bound, AMX-accelerated on Xeon 6"
+    backend: maas-proxy
+    reason: "Route through MAAS — models available via LiteLLM proxy"
 
   - task: classification
-    backend: openvino-cpu
-    reason: "Classification models run efficiently on CPU with ONNX/OpenVINO"
+    backend: maas-proxy
+    reason: "Route through MAAS — models available via LiteLLM proxy"
 
   - task: reranking
-    backend: openvino-cpu
-    reason: "Reranking is latency-sensitive, CPU avoids GPU queue contention"
+    backend: maas-proxy
+    reason: "Route through MAAS — models available via LiteLLM proxy"
 
   - task: completion
-    conditions:
-      - model_size_b: 3
-        operator: "<="
-        backend: vllm-cpu
-        reason: "Small models (<= 3B) run well on Xeon 6 with BF16/AMX"
-      - model_size_b: 3
-        operator: ">"
-        backend: vllm-gaudi
-        reason: "Large models (> 3B) need Gaudi HBM and tensor acceleration"
-    default_backend: vllm-gaudi
-    reason: "Completions route by model size — small to CPU, large to Gaudi"
+    backend: maas-proxy
+    reason: "Route through MAAS — all model sizes available via LiteLLM proxy"
     fallback: local
 
   - task: batch_generation
-    backend: vllm-gaudi
-    reason: "Batch workloads benefit from Gaudi throughput and parallelism"
+    backend: maas-proxy
+    reason: "Route through MAAS — batch processing via LiteLLM proxy"
     fallback: local
