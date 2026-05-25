@@ -15,6 +15,11 @@ class InferenceRequest:
     token_estimate: int
     latency_target_ms: int
     prompt: str = ""
+    modality: str = "text"
+    image_ref: str = ""
+    document_ref: str = ""
+    image_count: int = 0
+    page_count: int = 0
     metadata: Dict[str, Any] = field(default_factory=dict)
 
 

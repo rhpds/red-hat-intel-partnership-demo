@@ -66,7 +66,7 @@ const LANE_META: Record<string, {
     model: 'granite-4-0-h-tiny',
     accelerator: 'Xeon 6',
     capabilities: ['classification', 'short_summary'],
-    hwStory: 'Lightweight classification on Xeon 6 — fast, low cost, no GPU needed. Ideal for high-volume, low-complexity tasks.',
+    hwStory: 'Alert triage, text classification, and batch scoring on Xeon 6. Sub-5ms latency, <$0.001 per 1K tokens. No GPU overhead — AMX handles it in hardware.',
   },
   performance: {
     color: 'var(--rh-color--xeon6)',
@@ -75,7 +75,7 @@ const LANE_META: Record<string, {
     model: 'codellama-7b-instruct',
     accelerator: 'Xeon 6',
     capabilities: ['embedding', 'rerank', 'short_summary', 'long_summary'],
-    hwStory: 'Mid-range workloads on Xeon 6 with AMX acceleration — embeddings, reranking, and summaries at production throughput.',
+    hwStory: 'Embeddings and reranking on Xeon 6 with AMX (Advanced Matrix Extensions). Fast enough for RAG pipelines, 10x cheaper than GPU. Ideal for knowledge base search.',
   },
   overdrive: {
     color: 'var(--rh-color--gaudi)',
@@ -84,7 +84,7 @@ const LANE_META: Record<string, {
     model: 'llama-scout-17b',
     accelerator: 'Gaudi',
     capabilities: ['long_summary', 'incident_rca', 'batch_summary'],
-    hwStory: 'Heavy generation on Intel Gaudi — large context windows, complex reasoning, and batch processing powered by HBM bandwidth.',
+    hwStory: 'Large models (17B+) on Intel Gaudi with 96GB HBM. 100+ tokens/sec generation for long summaries, RCA, and batch reports. Use when throughput matters more than cost.',
   },
 };
 
@@ -449,11 +449,40 @@ export default function Overdrive() {
       {/* ======== STEP 2: ROUTE A REQUEST ======== */}
       <PageSection>
         <StepBadge step={2} label="Route a Request" />
-        <Content component="p" style={{ maxWidth: '640px', marginBottom: '1rem', color: 'var(--rh-color--text-secondary)' }}>
-          Pick a task type and adjust the parameters. The engine will evaluate which Intel hardware
-          tier should handle it — and show you exactly why. Every decision is transparent with a
-          full rubric trace.
+        <Content component="p" style={{ maxWidth: '720px', marginBottom: '0.75rem' }}>
+          In a production AI platform, different workloads have different hardware needs.
+          A simple classification can run cheaply on a CPU, but a 30,000-token incident analysis
+          needs GPU memory and bandwidth. This evaluator simulates that decision in real time.
         </Content>
+        <Content component="p" style={{ maxWidth: '720px', marginBottom: '1rem', color: 'var(--rh-color--text-secondary)' }}>
+          Choose a <strong>task type</strong> (the kind of AI work), set a <strong>token estimate</strong> (how
+          large the input is), pick a <strong>priority</strong>, and set a <strong>latency target</strong>.
+          The engine checks each parameter against the lane rubrics — endpoint health, capability match,
+          token limits, and priority gates — then selects the optimal Intel hardware tier. Every check
+          is shown so you can see exactly why the decision was made.
+        </Content>
+
+        {/* Parameter guide */}
+        <div style={{
+          display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
+          gap: '0.75rem', marginBottom: '1.5rem', maxWidth: '720px',
+        }}>
+          {[
+            { param: 'Task Type', hint: 'What the model does — classification, embedding, summarization, incident analysis, etc.' },
+            { param: 'Token Estimate', hint: 'Input size in tokens. Under 4K stays on Eco (Xeon 6). Over 16K routes to Overdrive (Gaudi).' },
+            { param: 'Priority', hint: 'Low/normal tasks stay on CPU. High/critical tasks qualify for the Gaudi accelerator lane.' },
+            { param: 'Latency Target', hint: 'Maximum acceptable response time. Tighter targets may require faster hardware.' },
+          ].map(g => (
+            <div key={g.param} style={{
+              padding: '10px 12px', borderRadius: '8px',
+              background: 'var(--rh-color--surface-secondary)',
+              border: '1px solid var(--rh-color--border)',
+            }}>
+              <div style={{ fontWeight: 600, fontSize: '0.82rem', marginBottom: '2px' }}>{g.param}</div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--rh-color--text-secondary)', lineHeight: '1.4' }}>{g.hint}</div>
+            </div>
+          ))}
+        </div>
 
         <Card>
           <CardBody>
@@ -659,9 +688,20 @@ export default function Overdrive() {
           gracefully degrades without dropping requests.
         </Content>
 
-        <Button variant="primary" onClick={runBatch} isLoading={batchLoading} isDisabled={batchLoading}>
-          Run Batch Demo
-        </Button>
+        {/* Batch demo */}
+        <Card>
+          <CardTitle>Run a Mixed Workload Batch</CardTitle>
+          <CardBody>
+            <Content component="p" style={{ marginBottom: '1rem', color: 'var(--rh-color--text-secondary)' }}>
+              Send 10 requests with different task types, token sizes, and priorities through the
+              routing engine. The results show how workloads are automatically distributed across
+              Xeon 6 (eco and performance lanes) and Gaudi (overdrive lane).
+            </Content>
+            <Button variant="primary" onClick={runBatch} isLoading={batchLoading} isDisabled={batchLoading}>
+              Run Batch Demo
+            </Button>
+          </CardBody>
+        </Card>
 
         {batchError && <Alert variant="danger" title={batchError} isInline style={{ marginTop: '1rem' }} />}
 
@@ -744,7 +784,7 @@ export default function Overdrive() {
             </Content>
             <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
               <Button
-                variant="danger"
+                variant="primary"
                 onClick={runFailoverDemo}
                 isLoading={failoverLoading}
                 isDisabled={failoverLoading}

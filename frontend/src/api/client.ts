@@ -83,4 +83,88 @@ export const api = {
     request<Record<string, unknown>>(`/v1/overdrive/health/${lane}?healthy=${healthy}`, {
       method: 'POST',
     }),
+
+  tokenize: (text: string, mode: 'approximate' | 'real' = 'approximate') =>
+    request<Record<string, unknown>>('/v1/tokenize', {
+      method: 'POST',
+      body: JSON.stringify({ text, mode }),
+    }),
+
+  workloadProfiles: () =>
+    request<Record<string, unknown>>('/v1/workload/profiles'),
+
+  workloadRun: (profile: string, mode: string, seed: number, live = false, unlock_code = '') =>
+    request<Record<string, unknown>>('/v1/workload/run', {
+      method: 'POST',
+      body: JSON.stringify({ profile, mode, seed, live, unlock_code }),
+    }),
+
+  workloadStatus: (runId: string) =>
+    request<Record<string, unknown>>(`/v1/workload/status/${runId}`),
+
+  agentResearch: (question: string, governance_mode: string, live = false) =>
+    request<Record<string, unknown>>('/v1/agent/research', {
+      method: 'POST',
+      body: JSON.stringify({ question, governance_mode, live }),
+    }),
+
+  agentStatus: (runId: string) =>
+    request<Record<string, unknown>>(`/v1/agent/status/${runId}`),
+
+  agentApprove: (runId: string, stepName: string) =>
+    request<Record<string, unknown>>(`/v1/agent/approve/${runId}/${stepName}`, {
+      method: 'POST',
+    }),
+
+  trainingProfiles: () =>
+    request<Record<string, unknown>>('/v1/training/profiles'),
+
+  trainingRun: (task: string, model: string, dataset: string, mode: string, seed: number) =>
+    request<Record<string, unknown>>('/v1/training/run', {
+      method: 'POST',
+      body: JSON.stringify({ task, model, dataset, mode, seed }),
+    }),
+
+  trainingStatus: (runId: string) =>
+    request<Record<string, unknown>>(`/v1/training/status/${runId}`),
+
+  platformStatus: () =>
+    request<Record<string, unknown>>('/v1/platform/status'),
+
+  swarmRun: (scenario: string, seed: number, depth: string = 'full') =>
+    request<Record<string, unknown>>('/v1/swarm/run', { method: 'POST', body: JSON.stringify({ scenario, seed, depth }) }),
+
+  swarmStatus: (runId: string) =>
+    request<Record<string, unknown>>(`/v1/swarm/status/${runId}`),
+
+  replayCompare: (profile: string, seed: number) =>
+    request<Record<string, unknown>>('/v1/replay/compare', { method: 'POST', body: JSON.stringify({ profile, seed }) }),
+
+  recoveryRun: (seed: number) =>
+    request<Record<string, unknown>>('/v1/recovery/run', { method: 'POST', body: JSON.stringify({ seed }) }),
+
+  listTenants: () =>
+    request<Record<string, unknown>>('/api/v1/tenants'),
+
+  createTenant: (slug: string, display_name: string, tier: string = 'pilot') =>
+    request<Record<string, unknown>>('/api/v1/tenants', { method: 'POST', body: JSON.stringify({ slug, display_name, tier }) }),
+
+  getTenant: (slug: string) =>
+    request<Record<string, unknown>>(`/api/v1/tenants/${slug}`),
+
+  capacityOverview: () =>
+    request<Record<string, unknown>>('/v1/capacity/overview'),
+
+  runHistory: (runType?: string) => {
+    const qs = runType ? `?run_type=${runType}` : '';
+    return request<Record<string, unknown>>(`/v1/runs/history${qs}`);
+  },
+
+  validateContent: (name: string, type: string, source: string) =>
+    request<Record<string, unknown>>('/v1/content/validate', { method: 'POST', body: JSON.stringify({ name, type, source }) }),
+
+  galleryPocs: (category?: string) => {
+    const qs = category ? `?category=${category}` : '';
+    return request<Record<string, unknown>>(`/v1/gallery/pocs${qs}`);
+  },
 };

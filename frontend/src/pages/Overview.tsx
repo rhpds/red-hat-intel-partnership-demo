@@ -28,8 +28,8 @@ export default function Overview() {
             Enterprise AI Inference Platform
           </Content>
           <Content component={"p"} style={{ fontSize: '1.15rem', maxWidth: '720px', color: 'var(--pf-t--global--text--color--subtle)' }}>
-            Intel Xeon 6 and Gaudi accelerators, operated on Red Hat OpenShift AI.
-            The gateway routes every request to the optimal hardware — and tells you why.
+            Intel Xeon 6 handles fast, small AI tasks cheaply. Intel Gaudi powers large models
+            at scale. One gateway decides which hardware runs each request — and explains every decision.
           </Content>
           <Split hasGutter style={{ marginTop: '1.5rem' }}>
             <SplitItem>
@@ -62,8 +62,9 @@ export default function Overview() {
               <CardBody>
                 <Content>
                   <Content component={"p"}>
-                    Embeddings, classification, and reranking run on Intel Xeon 6 with AMX acceleration.
-                    Fast, cost-efficient, and always available.
+                    Embeddings, classification, and reranking run on Intel Xeon 6 with AMX
+                    (Advanced Matrix Extensions) — hardware-accelerated matrix operations that make
+                    AI inference 5-10x faster than standard CPUs, at a fraction of GPU cost.
                   </Content>
                   <Content component={"small"} style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>
                     $0.001–0.002 per 1K tokens &bull; &lt;10ms latency &bull; Models up to 8B parameters
@@ -82,8 +83,9 @@ export default function Overview() {
               <CardBody>
                 <Content>
                   <Content component={"p"}>
-                    Large language model generation and batch processing on Intel Gaudi accelerators.
-                    10–20x faster than CPU for heavyweight inference.
+                    Large language models (17B+ parameters) need GPU memory bandwidth. Intel Gaudi
+                    delivers 100+ tokens/sec generation with 96GB HBM — 10-20x faster than CPU for
+                    tasks that demand sustained token generation.
                   </Content>
                   <Content component={"small"} style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>
                     $0.001 per 1K tokens &bull; &lt;2s TTFT &bull; Models 8B–70B+ parameters
@@ -102,8 +104,9 @@ export default function Overview() {
               <CardBody>
                 <Content>
                   <Content component={"p"}>
-                    Intelligent routing, governance gates, full audit trail, and cost observability.
-                    The platform selects the right hardware — you just send the request.
+                    One API, smart decisions. The gateway evaluates task type, model size, and
+                    priority to route each request. Every decision is logged with full evidence —
+                    cost, latency, and reasoning.
                   </Content>
                   <Content component={"small"} style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>
                     {health.data?.routes || '—'} routing rules &bull; Policy enforcement &bull; Every decision logged
@@ -119,17 +122,18 @@ export default function Overview() {
         <Content>
           <Content component={"h2"}>The Demo Story</Content>
           <Content component={"p"} style={{ maxWidth: '720px' }}>
-            This platform doesn't just run models. It decides which hardware runs each request,
-            explains why, measures the cost, and enforces governance — all in the routing response.
-            That's what makes Intel + Red Hat credible for enterprise AI.
+            Enterprise AI isn't one model on one GPU. It's a pipeline — embeddings, search,
+            reranking, generation, governance — where each step has different hardware needs. This
+            platform routes each step to the right Intel hardware, proves the cost savings, and
+            provides full decision transparency. That's what makes Intel + Red Hat credible.
           </Content>
         </Content>
         <Gallery hasGutter minWidths={{ default: '250px' }} style={{ marginTop: '1rem' }}>
           {[
-            { num: '1', title: 'See the Architecture', desc: 'Understand the routing logic and hardware tiers.', path: '/architecture' },
-            { num: '2', title: 'Try It Live', desc: 'Send a request and watch the gateway route it.', path: '/try-it' },
-            { num: '3', title: 'Explore Use Cases', desc: 'RAG, AIOps, and governed agents — built on this platform.', path: '/use-cases' },
-            { num: '4', title: 'Check Operations', desc: 'Live request history, latency, cost, and routing distribution.', path: '/operations' },
+            { num: '1', title: 'See the Architecture', desc: 'Understand the routing logic and Intel hardware tiers.', path: '/architecture' },
+            { num: '2', title: 'Explore the Routing Engine', desc: 'Learn the 3 lanes. Route a request. See exactly why Xeon 6 or Gaudi was chosen.', path: '/overdrive' },
+            { num: '3', title: 'Try It Live', desc: 'Watch RAG, AIOps, and Agent workflows use intelligent routing in real time.', path: '/try-it' },
+            { num: '4', title: 'Run at Scale', desc: 'Simulate 25 to 1,000 enterprise requests and see hardware distribution.', path: '/workload' },
           ].map((step) => (
             <GalleryItem key={step.num}>
               <Card isClickable isSelectable onClick={() => navigate(step.path)}>

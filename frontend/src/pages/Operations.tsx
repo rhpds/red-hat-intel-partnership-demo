@@ -61,7 +61,9 @@ export default function Operations() {
           <Content>
             <Content component={"h1"}>Platform Operations</Content>
             <Content component={"p"}>
-              Live request history, routing distribution, latency percentiles, and cost breakdown.
+              See which Intel hardware handled every request, how fast it ran, and what it cost.
+              This data proves that intelligent routing across Xeon 6 and Gaudi cuts costs
+              without sacrificing performance.
             </Content>
           </Content>
           <Button

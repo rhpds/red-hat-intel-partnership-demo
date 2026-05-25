@@ -1,0 +1,16 @@
+---
+# Development environment overrides
+# Single replica, small resources, debug-friendly
+
+gateway_replicas: 1
+frontend_replicas: 1
+
+gateway_cpu_request: "250m"
+gateway_memory_request: "128Mi"
+gateway_memory_limit: "256Mi"
+
+postgres_storage_size: "1Gi"
+
+rate_limit_rpm: 0
+local_fallback_enabled: true
+cors_origins: "*"

@@ -1,0 +1,20 @@
+---
+# Sample variable overrides for local testing with AgnosticD
+# Usage: ansible-playbook software.yml -e @sample_vars.yml
+
+guid: "dev01"
+ocp_project_name: "intel-rh-demo-dev01"
+
+# Override images for local registry
+gateway_image: "image-registry.openshift-image-registry.svc:5000/intel-rh-demo/inference-gateway:latest"
+frontend_image: "image-registry.openshift-image-registry.svc:5000/intel-rh-demo/inference-frontend:latest"
+
+# Secrets — supply these at runtime, never commit real values
+postgres_password: "CHANGE-ME"
+litellm_api_key: ""
+
+# Scaled down for dev
+gateway_replicas: 1
+postgres_storage_size: "1Gi"
+rate_limit_rpm: 0
+local_fallback_enabled: true

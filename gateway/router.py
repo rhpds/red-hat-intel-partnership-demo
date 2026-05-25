@@ -28,6 +28,7 @@ from starlette.responses import Response
 from routing_policy import RoutingPolicy, load_config
 import db
 from api import api_router
+from tenant_api import tenant_router
 
 try:
     import local_inference
@@ -54,15 +55,18 @@ async def verify_api_key(x_api_key: str = Header(default="", alias="X-API-Key"))
 
 
 _rate_limits: dict = defaultdict(list)
-RATE_LIMIT_RPM = int(os.getenv("RATE_LIMIT_RPM", "120"))
+RATE_LIMIT_RPM = int(os.getenv("RATE_LIMIT_RPM", "85"))
 
 
-def check_rate_limit(client_ip: str):
+def check_rate_limit(client_ip: str, tenant_id: str = ""):
+    if not RATE_LIMIT_RPM:
+        return
+    key = f"{tenant_id}:{client_ip}" if tenant_id else client_ip
     now = time_module.time()
-    _rate_limits[client_ip] = [t for t in _rate_limits[client_ip] if now - t < 60]
-    if len(_rate_limits[client_ip]) >= RATE_LIMIT_RPM:
+    _rate_limits[key] = [t for t in _rate_limits[key] if now - t < 60]
+    if len(_rate_limits[key]) >= RATE_LIMIT_RPM:
         raise HTTPException(status_code=429, detail="Rate limit exceeded")
-    _rate_limits[client_ip].append(now)
+    _rate_limits[key].append(now)
 
 VALID_TASKS = {"embeddings", "classification", "reranking", "completion", "batch_generation", "search", "governance", "policy"}
 
@@ -109,11 +113,12 @@ app = FastAPI(
 )
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=os.getenv("CORS_ORIGINS", "*").split(","),
+    allow_origins=os.getenv("CORS_ORIGINS", "http://localhost:5173,http://localhost:3000").split(","),
     allow_methods=["GET", "POST", "OPTIONS"],
-    allow_headers=["*"],
+    allow_headers=["X-API-Key", "Authorization", "Content-Type"],
 )
 app.include_router(api_router)
+app.include_router(tenant_router)
 
 
 class RouteRequest(BaseModel):
@@ -763,6 +768,181 @@ async def health():
     }
 
 
+@app.get("/v1/platform/status")
+async def platform_status():
+    """Unified platform status — aggregates all active runs for cockpit dashboard."""
+    active_runs = []
+    latest_completed = None
+    training_info = None
+
+    for run_id, run in _workload_runs.items():
+        if run.get("status") == "running":
+            active_runs.append({"type": "workload", "run_id": run_id, "profile": run.get("workload_profile", ""), "mode": run.get("power_mode", ""), "completed": run.get("completed", 0), "total": run.get("total", 0)})
+        elif run.get("status") == "complete" and (latest_completed is None or run.get("completed_at", 0) > latest_completed.get("_completed_at", 0)):
+            latest_completed = {"type": "workload", "run_id": run_id, "_completed_at": run.get("completed_at", 0), **{k: run.get(k) for k in ["workload_profile", "power_mode", "total_requests", "completed_requests", "route_counts", "requests_per_second", "estimated_tokens_per_second", "p50_latency_ms", "p95_latency_ms", "p99_latency_ms", "xeon_eco_utilization_pct", "xeon_performance_utilization_pct", "gaudi_overdrive_utilization_pct", "total_images", "total_documents", "modality_counts", "mode_label", "results"]}}
+
+    for run_id, run in _agent_runs.items():
+        if run.get("status") == "running":
+            active_runs.append({"type": "agent", "run_id": run_id, "steps_done": len([s for s in run.get("steps", []) if s.get("status") == "done"]), "steps_total": len(run.get("steps", []))})
+
+    for run_id, run in _training_runs.items():
+        if run.get("status") == "running":
+            active_runs.append({"type": "training", "run_id": run_id})
+            training_info = {"status": "running", "run_id": run_id}
+        elif run.get("status") == "completed":
+            training_info = {"status": "completed", "run_id": run_id, "model": run.get("model_profile_id", ""), "base_score": run.get("evaluation", {}).get("base_score", 0), "tuned_score": run.get("evaluation", {}).get("tuned_score", 0), "improvement": run.get("evaluation", {}).get("improvement", 0)}
+
+    swarm_completed = None
+    for run_id, run in _swarm_runs.items():
+        if run.get("status") == "running":
+            agent_results = run.get("agent_results", [])
+            total_agents = len(run.get("timeline", [])) or len(agent_results)
+            active_runs.append({"type": "swarm", "run_id": run_id, "scenario": run.get("scenario", ""), "agents_done": len([a for a in agent_results if a.get("status") == "done"]), "agents_total": total_agents})
+        elif run.get("status") == "completed":
+            if swarm_completed is None:
+                swarm_completed = {"run_id": run_id, "scenario": run.get("scenario", ""), "agent_count": run.get("agent_count", 0), "route_counts": run.get("route_counts", {}), "total_ms": run.get("total_ms", 0)}
+
+    agg_mode = "STANDBY"
+    agg_rps = 0
+    agg_tps = 0
+    agg_p95 = 0
+    agg_routes = {}
+    agg_images = 0
+    agg_docs = 0
+    agg_modalities = {}
+    live_progress = None
+
+    active_workloads = [r for r in _workload_runs.values() if r.get("status") == "running"]
+    if active_workloads:
+        aw = active_workloads[0]
+        agg_mode = (aw.get("power_mode", aw.get("mode", "DRIVE")) or "DRIVE").upper()
+        results = aw.get("results", [])
+        completed = aw.get("completed", 0)
+        total = aw.get("total", 0)
+        if results:
+            from collections import Counter
+            rc = dict(Counter(r.get("lane", "unknown") for r in results))
+            agg_routes = rc
+            latencies = sorted(r.get("latency_ms", 0) for r in results)
+            agg_images = sum(r.get("image_count", 0) for r in results)
+            agg_docs = sum(1 for r in results if r.get("page_count", 0) > 0)
+            agg_modalities = dict(Counter(r.get("modality", "text") for r in results))
+            elapsed_sec = max(sum(r.get("latency_ms", 0) for r in results) / 1000, 0.1)
+            agg_rps = round(len(results) / elapsed_sec, 1)
+            total_tokens = sum(r.get("input_tokens", 0) + r.get("output_tokens", 0) for r in results)
+            agg_tps = round(total_tokens / elapsed_sec, 0)
+            if latencies:
+                idx = int(len(latencies) * 0.95)
+                agg_p95 = round(latencies[min(idx, len(latencies) - 1)], 1)
+        live_progress = {"completed": completed, "total": total, "pct": round(completed / total * 100) if total else 0}
+
+        from collections import defaultdict as _dd
+        model_stats = _dd(lambda: {"count": 0, "total_latency": 0, "total_input_tokens": 0, "total_output_tokens": 0, "tasks": _dd(int)})
+        task_stats = _dd(lambda: {"count": 0, "total_latency": 0, "lanes": _dd(int)})
+        for r in results:
+            lane = r.get("lane", "unknown")
+            task = r.get("task_type", "unknown")
+            lat = r.get("latency_ms", 0)
+            inp = r.get("input_tokens", 0)
+            out = r.get("output_tokens", 0)
+            model_map = {"eco": "granite-4-0-h-tiny", "performance": "codellama-7b-instruct", "overdrive": "llama-scout-17b"}
+            model_name = model_map.get(lane, "unknown")
+            ms = model_stats[model_name]
+            ms["count"] += 1
+            ms["total_latency"] += lat
+            ms["total_input_tokens"] += inp
+            ms["total_output_tokens"] += out
+            ms["tasks"][task] += 1
+            ts = task_stats[task]
+            ts["count"] += 1
+            ts["total_latency"] += lat
+            ts["lanes"][lane] += 1
+
+        model_telemetry = {}
+        for mname, ms in model_stats.items():
+            avg_lat = round(ms["total_latency"] / ms["count"], 1) if ms["count"] else 0
+            tps = round(ms["total_output_tokens"] / (ms["total_latency"] / 1000)) if ms["total_latency"] > 0 else 0
+            model_telemetry[mname] = {
+                "count": ms["count"],
+                "avg_latency_ms": avg_lat,
+                "total_input_tokens": ms["total_input_tokens"],
+                "total_output_tokens": ms["total_output_tokens"],
+                "tokens_per_sec": tps,
+                "tasks": dict(ms["tasks"]),
+            }
+
+        task_telemetry = {}
+        for tname, ts in task_stats.items():
+            avg_lat = round(ts["total_latency"] / ts["count"], 1) if ts["count"] else 0
+            task_telemetry[tname] = {"count": ts["count"], "avg_latency_ms": avg_lat, "lanes": dict(ts["lanes"])}
+    elif latest_completed:
+        agg_rps = latest_completed.get("requests_per_second", 0) or 0
+        agg_tps = latest_completed.get("estimated_tokens_per_second", 0) or 0
+        agg_routes = latest_completed.get("route_counts", {}) or {}
+        agg_mode = (latest_completed.get("power_mode", "standby") or "standby").upper()
+        agg_p95 = latest_completed.get("p95_latency_ms", 0) or 0
+        agg_images = latest_completed.get("total_images", 0) or 0
+        agg_docs = latest_completed.get("total_documents", 0) or 0
+        agg_modalities = latest_completed.get("modality_counts", {}) or {}
+
+        results = latest_completed.get("results", [])
+        if results:
+            from collections import defaultdict as _dd
+            model_stats = _dd(lambda: {"count": 0, "total_latency": 0, "total_input_tokens": 0, "total_output_tokens": 0, "tasks": _dd(int)})
+            task_stats = _dd(lambda: {"count": 0, "total_latency": 0, "lanes": _dd(int)})
+            for r in results:
+                lane = r.get("lane", "unknown")
+                task = r.get("task_type", "unknown")
+                lat = r.get("latency_ms", 0)
+                inp = r.get("input_tokens", 0)
+                out = r.get("output_tokens", 0)
+                model_map = {"eco": "granite-4-0-h-tiny", "performance": "codellama-7b-instruct", "overdrive": "llama-scout-17b"}
+                model_name = model_map.get(lane, "unknown")
+                ms = model_stats[model_name]
+                ms["count"] += 1
+                ms["total_latency"] += lat
+                ms["total_input_tokens"] += inp
+                ms["total_output_tokens"] += out
+                ms["tasks"][task] += 1
+                ts = task_stats[task]
+                ts["count"] += 1
+                ts["total_latency"] += lat
+                ts["lanes"][lane] += 1
+            model_telemetry = {}
+            for mname, ms in model_stats.items():
+                avg_lat = round(ms["total_latency"] / ms["count"], 1) if ms["count"] else 0
+                tps_val = round(ms["total_output_tokens"] / (ms["total_latency"] / 1000)) if ms["total_latency"] > 0 else 0
+                model_telemetry[mname] = {"count": ms["count"], "avg_latency_ms": avg_lat, "total_input_tokens": ms["total_input_tokens"], "total_output_tokens": ms["total_output_tokens"], "tokens_per_sec": tps_val, "tasks": dict(ms["tasks"])}
+            task_telemetry = {}
+            for tname, ts in task_stats.items():
+                avg_lat = round(ts["total_latency"] / ts["count"], 1) if ts["count"] else 0
+                task_telemetry[tname] = {"count": ts["count"], "avg_latency_ms": avg_lat, "lanes": dict(ts["lanes"])}
+
+    mt = model_telemetry if 'model_telemetry' in dir() else {}
+    tt = task_telemetry if 'task_telemetry' in dir() else {}
+
+    return {
+        "active_runs": active_runs,
+        "latest_completed": latest_completed,
+        "training": training_info,
+        "swarm_completed": swarm_completed,
+        "live_progress": live_progress,
+        "model_telemetry": mt,
+        "task_telemetry": tt,
+        "aggregate": {
+            "mode": agg_mode,
+            "requests_per_second": agg_rps,
+            "estimated_tokens_per_second": agg_tps,
+            "p95_latency_ms": agg_p95,
+            "route_counts": agg_routes,
+            "total_images": agg_images,
+            "total_documents": agg_docs,
+            "modality_counts": agg_modalities,
+            "active_count": len(active_runs),
+        },
+    }
+
+
 @app.get("/metrics")
 async def metrics():
     """Prometheus metrics endpoint"""
@@ -778,8 +958,9 @@ class OverdriveRouteBody(BaseModel):
 
 
 @app.post("/v1/overdrive/route")
-async def overdrive_route(body: OverdriveRouteBody):
+async def overdrive_route(body: OverdriveRouteBody, raw_request: Request):
     """Route a request through the Overdrive lane evaluation engine."""
+    check_rate_limit(raw_request.client.host)
     if not _overdrive_engine:
         raise HTTPException(status_code=503, detail="Overdrive engine not available")
 
@@ -802,8 +983,9 @@ class OverdriveBatchBody(BaseModel):
 
 
 @app.post("/v1/overdrive/batch")
-async def overdrive_batch(body: OverdriveBatchBody):
+async def overdrive_batch(body: OverdriveBatchBody, raw_request: Request):
     """Route a batch of requests and return a summary report."""
+    check_rate_limit(raw_request.client.host)
     if not _overdrive_engine:
         raise HTTPException(status_code=503, detail="Overdrive engine not available")
 
@@ -844,6 +1026,419 @@ async def overdrive_set_health(lane_id: str, healthy: bool = True):
         raise HTTPException(status_code=404, detail=f"Lane '{lane_id}' not found")
     _overdrive_engine.set_route_health(lane_id, healthy)
     return {"lane": lane_id, "healthy": healthy}
+
+
+@app.get("/v1/workload/profiles")
+async def workload_profiles():
+    from overdrive.workload_profiles import list_profiles, SCENARIO_NARRATIVES
+    from overdrive.power_modes import list_modes
+    return {"profiles": list_profiles(), "modes": list_modes(), "narratives": SCENARIO_NARRATIVES}
+
+
+class WorkloadRunRequest(BaseModel):
+    profile: str
+    mode: str
+    seed: int = 42
+    live: bool = False
+    unlock_code: str = ""
+
+
+import threading
+
+_workload_runs: dict = {}
+_WORKLOAD_EXPIRY_SECONDS = 600
+
+
+def _cleanup_old_runs():
+    now = time_module.time()
+    expired = [k for k, v in _workload_runs.items() if now - v.get("started_at", now) > _WORKLOAD_EXPIRY_SECONDS]
+    for k in expired:
+        _workload_runs.pop(k, None)
+
+
+@app.post("/v1/workload/run")
+async def workload_run(req: WorkloadRunRequest, raw_request: Request):
+    check_rate_limit(raw_request.client.host)
+    from overdrive.batch_runner import run_workload_streaming, _verify_unlock, GOVERNED_MODES
+
+    if req.live and req.mode in GOVERNED_MODES:
+        if not req.unlock_code or not _verify_unlock(req.unlock_code):
+            raise HTTPException(status_code=403, detail="Unlock code required for live mode with this power mode")
+
+    _cleanup_old_runs()
+
+    import uuid
+    run_id = f"run-{uuid.uuid4().hex[:8]}"
+
+    run_state = {
+        "run_id": run_id,
+        "status": "running",
+        "completed": 0,
+        "total": 0,
+        "results": [],
+        "started_at": time_module.time(),
+    }
+    _workload_runs[run_id] = run_state
+
+    def _run_in_background():
+        try:
+            result = run_workload_streaming(
+                profile=req.profile, mode=req.mode, seed=req.seed,
+                live=req.live, unlock_code=req.unlock_code,
+                run_state=run_state,
+            )
+            run_state.update(result)
+            run_state["status"] = "complete"
+            run_state["completed_at"] = time_module.time()
+            import asyncio
+            try:
+                loop = asyncio.new_event_loop()
+                loop.run_until_complete(db.persist_run(
+                    run_id=run_id, run_type="workload", status="complete",
+                    summary={"profile": req.profile, "mode": req.mode, "total": run_state.get("total", 0), "route_counts": run_state.get("route_counts", {})}
+                ))
+                loop.close()
+            except Exception:
+                pass
+        except PermissionError as e:
+            run_state["status"] = "error"
+            run_state["error"] = str(e)
+        except Exception as e:
+            run_state["status"] = "error"
+            run_state["error"] = str(e)
+
+    thread = threading.Thread(target=_run_in_background, daemon=True)
+    thread.start()
+
+    return {"run_id": run_id, "status": "running"}
+
+
+@app.get("/v1/workload/status/{run_id}")
+async def workload_status(run_id: str):
+    if run_id not in _workload_runs:
+        raise HTTPException(status_code=404, detail=f"Run '{run_id}' not found")
+    return _workload_runs[run_id]
+
+
+_agent_runs: dict = {}
+
+
+class AgentResearchRequest(BaseModel):
+    question: str = Field(min_length=5, max_length=500)
+    governance_mode: str = Field(default="open", pattern=r"^(open|supervised|locked)$")
+    live: bool = False
+
+
+@app.post("/v1/agent/research")
+async def agent_research(req: AgentResearchRequest, raw_request: Request):
+    check_rate_limit(raw_request.client.host)
+    import uuid
+    run_id = f"agent-{uuid.uuid4().hex[:8]}"
+    run_state = {"run_id": run_id, "status": "running", "steps": []}
+    _agent_runs[run_id] = run_state
+
+    def _run():
+        try:
+            from overdrive.research_agent import run_research_agent
+            run_research_agent(
+                question=_sanitize_prompt(req.question),
+                governance_mode=req.governance_mode,
+                live=req.live,
+                run_state=run_state,
+            )
+        except Exception as e:
+            run_state["status"] = "error"
+            run_state["error"] = str(e)
+
+    thread = threading.Thread(target=_run, daemon=True)
+    thread.start()
+    return {"run_id": run_id, "status": "running"}
+
+
+@app.get("/v1/agent/status/{run_id}")
+async def agent_status(run_id: str):
+    if run_id not in _agent_runs:
+        raise HTTPException(status_code=404, detail=f"Agent run '{run_id}' not found")
+    return _agent_runs[run_id]
+
+
+@app.post("/v1/agent/approve/{run_id}/{step_name}")
+async def agent_approve(run_id: str, step_name: str):
+    if run_id not in _agent_runs:
+        raise HTTPException(status_code=404, detail=f"Agent run '{run_id}' not found")
+    run = _agent_runs[run_id]
+    for step in run.get("steps", []):
+        if step["name"] == step_name and step["status"] == "awaiting_approval":
+            step["status"] = "approved"
+            return {"approved": True, "step": step_name}
+    return {"approved": False, "detail": f"Step '{step_name}' not awaiting approval"}
+
+
+_training_runs: dict = {}
+_swarm_runs: dict = {}
+
+
+class SwarmRunRequest(BaseModel):
+    scenario: str = "incident"
+    seed: int = 42
+    depth: str = Field(default="full", pattern=r"^(triage|full|deep)$")
+
+
+@app.post("/v1/swarm/run")
+async def swarm_run(req: SwarmRunRequest, raw_request: Request):
+    check_rate_limit(raw_request.client.host)
+    import uuid as _uuid
+    run_id = f"swarm-{_uuid.uuid4().hex[:8]}"
+    run_state = {"run_id": run_id, "status": "running", "agent_results": [], "timeline": [], "type": "swarm"}
+    _swarm_runs[run_id] = run_state
+
+    def _run():
+        try:
+            from overdrive.swarm import run_swarm
+            run_swarm(scenario=req.scenario, depth=req.depth, seed=req.seed, run_state=run_state)
+        except Exception as e:
+            run_state["status"] = "error"
+            run_state["error"] = str(e)
+
+    thread = threading.Thread(target=_run, daemon=True)
+    thread.start()
+    return {"run_id": run_id, "status": "running"}
+
+
+@app.get("/v1/swarm/status/{run_id}")
+async def swarm_status(run_id: str):
+    if run_id not in _swarm_runs:
+        raise HTTPException(status_code=404, detail=f"Swarm run '{run_id}' not found")
+    return _swarm_runs[run_id]
+
+
+@app.get("/v1/training/profiles")
+async def training_profiles():
+    from overdrive.training_models import list_model_profiles, list_dataset_profiles, list_training_tasks
+    return {"models": list_model_profiles(), "datasets": list_dataset_profiles(), "tasks": list_training_tasks()}
+
+
+class TrainingRunRequest(BaseModel):
+    task: str
+    model: str
+    dataset: str
+    mode: str = "mock_lora"
+    seed: int = 42
+
+
+@app.post("/v1/training/run")
+async def training_run(req: TrainingRunRequest, raw_request: Request):
+    check_rate_limit(raw_request.client.host)
+    import uuid as _uuid
+    run_id = f"train-{_uuid.uuid4().hex[:8]}"
+    run_state = {"run_id": run_id, "status": "running"}
+    _training_runs[run_id] = run_state
+
+    def _run():
+        try:
+            from overdrive.training_backend import MockTrainingBackend
+            from overdrive.training_report import generate_training_markdown, generate_model_card
+            backend = MockTrainingBackend(seed=req.seed)
+            result = backend.run(req.task, req.model, req.dataset, req.mode, req.seed)
+            candidate = backend.create_serving_candidate(result)
+            from dataclasses import asdict
+            run_state.update(asdict(result))
+            run_state["serving_candidate"] = asdict(candidate)
+            run_state["report_md"] = generate_training_markdown(result)
+            run_state["model_card"] = generate_model_card(result)
+            run_state["status"] = "completed"
+        except Exception as e:
+            run_state["status"] = "error"
+            run_state["error"] = str(e)
+
+    thread = threading.Thread(target=_run, daemon=True)
+    thread.start()
+    return {"run_id": run_id, "status": "running"}
+
+
+@app.get("/v1/training/status/{run_id}")
+async def training_status(run_id: str):
+    if run_id not in _training_runs:
+        raise HTTPException(status_code=404, detail=f"Training run '{run_id}' not found")
+    return _training_runs[run_id]
+
+
+_tokenizer_cache: dict = {}
+
+TOKENIZER_MODELS = {
+    "granite-4-0-h-tiny": {"cost_per_1k": 0.0004, "multiplier": 1.3},
+    "codellama-7b-instruct": {"cost_per_1k": 0.0004, "multiplier": 1.35},
+    "llama-scout-17b": {"cost_per_1k": 0.001, "multiplier": 1.25},
+}
+
+
+def _approximate_tokenize(text: str) -> dict:
+    """Split text into approximate tokens using whitespace + punctuation."""
+    import re as _re
+    raw = _re.findall(r"\w+|[^\w\s]", text)
+    return raw if raw else [""]
+
+
+def _real_tokenize(text: str, model_name: str) -> list[str]:
+    """Tokenize using a real HuggingFace tokenizer, cached after first load."""
+    if model_name not in _tokenizer_cache:
+        try:
+            from transformers import AutoTokenizer
+            hf_name = {
+                "granite-4-0-h-tiny": "ibm-granite/granite-3.0-2b-instruct",
+                "codellama-7b-instruct": "codellama/CodeLlama-7b-Instruct-hf",
+                "llama-scout-17b": "meta-llama/Llama-3.2-3B-Instruct",
+            }.get(model_name, model_name)
+            _tokenizer_cache[model_name] = AutoTokenizer.from_pretrained(
+                hf_name
+            )
+        except Exception:
+            return _approximate_tokenize(text)
+    tokenizer = _tokenizer_cache[model_name]
+    ids = tokenizer.encode(text)
+    return [tokenizer.decode([tid]) for tid in ids]
+
+
+class TokenizeRequest(BaseModel):
+    text: str = Field(min_length=1, max_length=5000)
+    mode: str = Field(default="approximate", pattern=r"^(approximate|real)$")
+
+
+@app.post("/v1/tokenize")
+async def tokenize_text(req: TokenizeRequest, raw_request: Request):
+    check_rate_limit(raw_request.client.host)
+    req.text = _sanitize_prompt(req.text)
+    results = {}
+    for model_name, meta in TOKENIZER_MODELS.items():
+        if req.mode == "real":
+            tokens = _real_tokenize(req.text, model_name)
+        else:
+            base_tokens = _approximate_tokenize(req.text)
+            multiplier = meta["multiplier"]
+            count = max(1, int(len(base_tokens) * multiplier))
+            tokens = base_tokens[:count] if count <= len(base_tokens) else base_tokens + base_tokens[:count - len(base_tokens)]
+        token_count = len(tokens)
+        cost = round((token_count / 1000) * meta["cost_per_1k"], 6)
+        results[model_name] = {
+            "token_count": token_count,
+            "tokens": tokens,
+            "mode": req.mode,
+            "cost_estimate": cost,
+        }
+    return {"models": results}
+
+
+# ─── Replay Comparison ───
+
+class ReplayCompareRequest(BaseModel):
+    profile: str = Field(default="incident_storm")
+    seed: int = Field(default=42)
+
+@app.post("/v1/replay/compare")
+async def replay_compare(req: ReplayCompareRequest, raw_request: Request):
+    check_rate_limit(raw_request.client.host)
+    from overdrive.replay import run_comparison
+    result = run_comparison(profile=req.profile, seed=req.seed)
+    return result
+
+
+# ─── Recovery Demo ───
+
+class RecoveryRunRequest(BaseModel):
+    seed: int = Field(default=42)
+
+@app.post("/v1/recovery/run")
+async def recovery_run(req: RecoveryRunRequest, raw_request: Request):
+    check_rate_limit(raw_request.client.host)
+    from overdrive.recovery import run_recovery_demo
+    result = run_recovery_demo(seed=req.seed)
+    return result
+
+
+# ─── Run History ───
+
+@app.get("/v1/runs/history")
+async def run_history(run_type: str = None, limit: int = 50):
+    runs = await db.get_run_history(run_type=run_type, limit=limit)
+    return {"runs": runs}
+
+
+# ─── Capacity Overview ───
+
+@app.get("/v1/capacity/overview")
+async def capacity_overview():
+    tenants = await db.list_tenants()
+    active_counts = {}
+    for run_dict_name, run_type in [("_workload_runs", "workload"), ("_swarm_runs", "swarm"), ("_training_runs", "training"), ("_agent_runs", "agent")]:
+        run_dict = globals().get(run_dict_name, {})
+        for run_id, run in run_dict.items():
+            tid = run.get("tenant_id", "internal")
+            if run.get("status") == "running":
+                active_counts[tid] = active_counts.get(tid, 0) + 1
+
+    capacity = []
+    for t in tenants:
+        quota = t.get("resource_quota", {}) if isinstance(t.get("resource_quota"), dict) else {}
+        capacity.append({
+            "slug": t.get("slug", ""),
+            "display_name": t.get("display_name", ""),
+            "tier": t.get("tier", ""),
+            "active": t.get("active", True),
+            "expires_at": str(t.get("expires_at", "")) if t.get("expires_at") else None,
+            "resource_quota": quota,
+            "active_runs": active_counts.get(str(t.get("id", "")), 0),
+        })
+    return {"tenants": capacity, "total_active_runs": sum(active_counts.values())}
+
+
+# ─── Content Validation ───
+
+class ContentValidateRequest(BaseModel):
+    name: str
+    type: str = "model"
+    source: str = "partner"
+
+@app.post("/v1/content/validate")
+async def validate_content(req: ContentValidateRequest):
+    from content_validator import validate_artifact
+    return validate_artifact({"name": req.name, "type": req.type, "source": req.source})
+
+
+# ─── Publishing House Gallery ───
+
+GALLERY_POCS = [
+    {"id": "intelligent-routing", "title": "Intelligent Hardware Routing", "category": "inference", "status": "live",
+     "description": "Route AI workloads across Intel Xeon 6 and Gaudi based on task complexity, cost, and hardware capability.",
+     "hardware": ["Xeon 6", "Gaudi"], "tags": ["routing", "inference", "cost-optimization"]},
+    {"id": "multi-agent-swarm", "title": "Multi-Agent Incident Swarm", "category": "agents", "status": "live",
+     "description": "5-8 specialized agents coordinate across Intel hardware to investigate, analyze, and report on incidents.",
+     "hardware": ["Xeon 6", "Gaudi"], "tags": ["agents", "incident-response", "parallel"]},
+    {"id": "training-pipeline", "title": "Fine-Tuning on Intel Hardware", "category": "training", "status": "live",
+     "description": "LoRA/QLoRA fine-tuning with hardware benchmarks comparing Xeon 6 vs Gaudi training performance.",
+     "hardware": ["Xeon 6", "Gaudi"], "tags": ["training", "fine-tuning", "lora"]},
+    {"id": "multimodal-inference", "title": "Multimodal Vision-Language", "category": "inference", "status": "live",
+     "description": "Image classification, chart interpretation, and document analysis with vision-language models on Gaudi.",
+     "hardware": ["Gaudi"], "tags": ["multimodal", "vision", "documents"]},
+    {"id": "recovery-resilience", "title": "Hardware Failure Recovery", "category": "resilience", "status": "live",
+     "description": "Automatic rerouting when Gaudi goes offline — zero dropped requests, graceful degradation to Xeon 6.",
+     "hardware": ["Xeon 6", "Gaudi"], "tags": ["resilience", "failover", "zero-downtime"]},
+    {"id": "sovereign-cloud", "title": "Sovereign Cloud Deployment", "category": "infrastructure", "status": "planned",
+     "description": "Air-gapped deployment model with mirrored images and no external egress for regulated environments.",
+     "hardware": ["Xeon 6", "Gaudi"], "tags": ["sovereign", "air-gap", "compliance"]},
+    {"id": "tdx-confidential", "title": "Intel TDX Confidential Computing", "category": "security", "status": "planned",
+     "description": "Attestation-aware routing with Intel Trust Domain Extensions for partner workload confidentiality.",
+     "hardware": ["Xeon 6 + TDX"], "tags": ["tdx", "confidential", "attestation"]},
+    {"id": "capacity-virtualization", "title": "Capacity Virtualization", "category": "infrastructure", "status": "in-progress",
+     "description": "Per-tenant resource allocation with dynamic capacity planning and auto-scaling recommendations.",
+     "hardware": ["Xeon 6", "Gaudi"], "tags": ["capacity", "quotas", "scaling"]},
+]
+
+@app.get("/v1/gallery/pocs")
+async def gallery_pocs(category: str = None):
+    items = GALLERY_POCS
+    if category:
+        items = [p for p in items if p["category"] == category]
+    return {"items": items, "total": len(items)}
 
 
 if __name__ == "__main__":

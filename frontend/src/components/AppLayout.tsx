@@ -22,20 +22,63 @@ import {
 } from '@patternfly/react-core';
 import { BarsIcon } from '@patternfly/react-icons';
 import { useHealth } from '../api/hooks';
+import { useTenant } from '../context/TenantContext';
 
-const navItems = [
-  { path: '/', label: 'Overview' },
-  { path: '/architecture', label: 'Architecture' },
-  { path: '/try-it', label: 'Try It' },
-  { path: '/use-cases', label: 'Use Cases' },
-  { path: '/operations', label: 'Operations' },
-  { path: '/governance', label: 'Governance' },
-  { path: '/overdrive', label: 'Overdrive' },
-  { path: '/docs', label: 'Documentation' },
+const navSections = [
+  {
+    title: 'Understand',
+    items: [
+      { path: '/', label: 'Overview' },
+      { path: '/architecture', label: 'Architecture' },
+    ],
+  },
+  {
+    title: 'Experience',
+    items: [
+      { path: '/overdrive', label: 'Routing Engine' },
+      { path: '/tokenizer', label: 'Tokenizer & Cost' },
+      { path: '/try-it', label: 'Try It' },
+      { path: '/workload', label: 'Workload Simulation' },
+      { path: '/agent', label: 'Research Agent' },
+      { path: '/swarm', label: 'Agent Swarm' },
+      { path: '/training', label: 'Train + Serve' },
+      { path: '/optimization', label: 'Optimization' },
+      { path: '/replay', label: 'Replay Comparison' },
+      { path: '/recovery', label: 'Recovery & Resilience' },
+    ],
+  },
+  {
+    title: 'Observe',
+    items: [
+      { path: '/cockpit', label: 'Cockpit' },
+      { path: '/capacity', label: 'Capacity & Allocation' },
+      { path: '/operations', label: 'Operations' },
+      { path: '/governance', label: 'Governance Audit' },
+      { path: '/docs', label: 'Documentation' },
+    ],
+  },
+  {
+    title: 'Discover',
+    items: [
+      { path: '/gallery', label: 'Publishing House' },
+    ],
+  },
+  {
+    title: 'Admin',
+    items: [
+      { path: '/admin/tenants', label: 'Tenant Management' },
+    ],
+  },
 ];
 
 export default function AppLayout() {
   const { data: health } = useHealth();
+  const { tenant, isAdmin } = useTenant();
+
+  const visibleSections = navSections.filter(s => {
+    if (s.title === 'Admin' && !isAdmin) return false;
+    return true;
+  });
 
   const masthead = (
     <Masthead>
@@ -66,6 +109,13 @@ export default function AppLayout() {
       <MastheadContent>
         <Toolbar isStatic>
           <ToolbarContent>
+            <ToolbarItem>
+              {tenant && (
+                <Label isCompact color={tenant.tier === 'internal' ? 'blue' : 'orange'}>
+                  {tenant.tenant_slug}
+                </Label>
+              )}
+            </ToolbarItem>
             <ToolbarItem align={{ default: 'alignEnd' }}>
               <Label
                 color={health?.status === 'healthy' ? 'green' : 'red'}
@@ -83,15 +133,26 @@ export default function AppLayout() {
     <PageSidebar>
       <PageSidebarBody>
         <Nav aria-label="Main navigation">
-          <NavList>
-            {navItems.map(({ path, label }) => (
-              <NavItem key={path}>
-                <NavLink to={path} className={({ isActive }) => isActive ? 'pf-m-current' : ''}>
-                  {label}
-                </NavLink>
-              </NavItem>
-            ))}
-          </NavList>
+          {visibleSections.map((section) => (
+            <div key={section.title}>
+              <div style={{
+                padding: '12px 16px 4px', fontSize: '0.7rem', fontWeight: 700,
+                textTransform: 'uppercase', letterSpacing: '0.05em',
+                color: 'var(--pf-t--global--text--color--subtle)',
+              }}>
+                {section.title}
+              </div>
+              <NavList>
+                {section.items.map(({ path, label }) => (
+                  <NavItem key={path}>
+                    <NavLink to={path} className={({ isActive }) => isActive ? 'pf-m-current' : ''}>
+                      {label}
+                    </NavLink>
+                  </NavItem>
+                ))}
+              </NavList>
+            </div>
+          ))}
         </Nav>
       </PageSidebarBody>
     </PageSidebar>

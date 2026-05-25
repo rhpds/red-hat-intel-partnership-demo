@@ -1,0 +1,33 @@
+---
+# AgnosticV Catalog Entry — Intel-Red Hat AI Inference Demo
+# Common variables shared across all environments (dev/test/prod).
+#
+# This is a REFERENCE for what goes into the shared agnosticv repo.
+# Coordinate with Ashok/Tony on the exact account path.
+
+__meta__:
+  catalog:
+    display_name: "Intel-Red Hat AI Inference Platform"
+    description: >
+      Multi-tenant inference gateway routing across Intel Xeon 6 (CPU)
+      and Gaudi (GPU) backends via MAAS, with governance, observability,
+      and content validation.
+    labels:
+      - intel
+      - ai-inference
+      - gaudi
+      - xeon
+
+env_type: intel-rh-inference-demo
+agnosticd_open_environment: false
+cloud_provider: none
+
+# Base configuration — overridden per stage
+gateway_image: "quay.io/intel-redhat/inference-gateway:latest"
+frontend_image: "quay.io/intel-redhat/inference-frontend:latest"
+postgres_image: "registry.redhat.io/rhel9/postgresql-15:latest"
+
+litellm_api_base: "https://litellm-prod.apps.maas.redhatworkshops.io"
+
+deploy_database: true
+deploy_observability: false

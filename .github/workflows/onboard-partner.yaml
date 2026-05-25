@@ -1,0 +1,110 @@
+name: Onboard Partner Tenant
+
+on:
+  workflow_dispatch:
+    inputs:
+      tenant_slug:
+        description: 'Partner slug (lowercase, alphanumeric + hyphens)'
+        required: true
+        type: string
+      display_name:
+        description: 'Partner display name'
+        required: true
+        type: string
+      tier:
+        description: 'Tenant tier'
+        required: true
+        default: 'pilot'
+        type: choice
+        options:
+          - pilot
+          - partner
+          - internal
+      cpu_cores:
+        description: 'CPU core quota'
+        required: false
+        default: '8'
+        type: string
+      memory_gb:
+        description: 'Memory quota (GB)'
+        required: false
+        default: '32'
+        type: string
+
+jobs:
+  onboard:
+    name: Onboard Partner
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate tenant slug
+        run: |
+          if ! echo "${{ inputs.tenant_slug }}" | grep -qP '^[a-z0-9][a-z0-9-]{1,48}$'; then
+            echo "ERROR: Invalid tenant slug. Must be lowercase alphanumeric with hyphens, 2-49 chars."
+            exit 1
+          fi
+
+      - name: Install Ansible
+        run: pip install ansible
+
+      - name: Configure OpenShift CLI
+        run: |
+          curl -sL https://mirror.openshift.com/pub/openshift-v4/clients/ocp/latest/openshift-client-linux.tar.gz | tar xz
+          sudo mv oc kubectl /usr/local/bin/
+
+      - name: Login to OpenShift
+        run: |
+          oc login --token=${{ secrets.OCP_TOKEN }} --server=${{ secrets.OCP_API_URL }}
+
+      - name: Run onboarding playbook
+        env:
+          TENANT_SLUG: ${{ inputs.tenant_slug }}
+          TENANT_DISPLAY_NAME: ${{ inputs.display_name }}
+          TENANT_TIER: ${{ inputs.tier }}
+          TENANT_CPU: ${{ inputs.cpu_cores }}
+          TENANT_MEM: ${{ inputs.memory_gb }}
+        run: |
+          cd ansible
+          ansible-playbook playbooks/onboard-partner.yaml \
+            -e "tenant_slug=${TENANT_SLUG}" \
+            -e "tenant_display_name=${TENANT_DISPLAY_NAME}" \
+            -e "tenant_tier=${TENANT_TIER}" \
+            -e "cpu_cores=${TENANT_CPU}" \
+            -e "memory_gb=${TENANT_MEM}"
+
+      - name: Generate API key via gateway
+        env:
+          TENANT_SLUG: ${{ inputs.tenant_slug }}
+          TENANT_DISPLAY_NAME: ${{ inputs.display_name }}
+          TENANT_TIER: ${{ inputs.tier }}
+          ADMIN_API_KEY: ${{ secrets.ADMIN_API_KEY }}
+        run: |
+          GATEWAY_URL=$(oc get route inference-gateway -n intel-rh-inference-gateway -o jsonpath='{.spec.host}')
+          RESPONSE=$(curl -s -X POST "https://${GATEWAY_URL}/api/v1/tenants" \
+            -H "Content-Type: application/json" \
+            -H "X-API-Key: ${ADMIN_API_KEY}" \
+            -d "{
+              \"slug\": \"${TENANT_SLUG}\",
+              \"display_name\": \"${TENANT_DISPLAY_NAME}\",
+              \"tier\": \"${TENANT_TIER}\"
+            }")
+          echo "Tenant created: ${RESPONSE}"
+
+          KEY_RESPONSE=$(curl -s -X POST "https://${GATEWAY_URL}/api/v1/tenants/${TENANT_SLUG}/api-keys" \
+            -H "Content-Type: application/json" \
+            -H "X-API-Key: ${ADMIN_API_KEY}" \
+            -d '{"label": "initial-key", "scopes": ["read", "write"]}')
+          echo "::add-mask::$(echo ${KEY_RESPONSE} | jq -r '.key // empty')"
+          echo "API key generated for ${TENANT_SLUG}"
+
+      - name: Verify namespace
+        env:
+          TENANT_SLUG: ${{ inputs.tenant_slug }}
+          TENANT_DISPLAY_NAME: ${{ inputs.display_name }}
+        run: |
+          oc get namespace "intel-rh-partner-${TENANT_SLUG}"
+          oc get resourcequota -n "intel-rh-partner-${TENANT_SLUG}"
+          oc get networkpolicy -n "intel-rh-partner-${TENANT_SLUG}"
+          echo "Partner ${TENANT_DISPLAY_NAME} onboarded successfully!"

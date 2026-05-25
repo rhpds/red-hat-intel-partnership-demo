@@ -1,19 +1,24 @@
 ---
 # Intel-Red Hat AI Partner Demo — Local Development Stack
 #
+# Default: Uses MAAS endpoints for inference (no local model servers).
+#
 # Usage:
-#   podman-compose up --build -d
+#   podman-compose up --build -d            # gateway + frontend + postgres (MAAS mode)
+#   podman-compose --profile local-inference up --build -d   # + local CPU inference
 #   podman-compose logs -f gateway
 #   podman-compose down -v
 #
 # Services:
 #   postgres       — PostgreSQL 15 (port 5432)
 #   gateway        — Inference Gateway + API (port 8080)
-#   cpu-inference  — vLLM CPU inference server (port 8000)
 #   frontend       — React dashboard (port 3000)
 #
+# Optional (local-inference profile):
+#   cpu-inference  — vLLM CPU inference server (port 8000)
+#
 # Not included (require cluster hardware):
-#   gaudi-inference  — needs Intel Gaudi accelerator
+#   gaudi-inference  — needs Intel Gaudi accelerator (coordinate with Ashok)
 #   openvino-cpu     — needs KServe/OpenShift AI operator
 
 services:
@@ -42,18 +47,18 @@ services:
     environment:
       PORT: "8080"
       DATABASE_URL: "postgresql://gateway:dev-only@postgres:5432/inference_platform"
-      CONFIG_PATH: "/opt/app-root/src/config.local.yaml"
       LOCAL_FALLBACK_ENABLED: "true"
     ports:
-      - "8080:8080"
+      - "127.0.0.1:8080:8080"
     depends_on:
       postgres:
         condition: service_healthy
     volumes:
-      - ./gateway/config.local.yaml:/opt/app-root/src/config.local.yaml:ro
       - gateway_model_cache:/opt/app-root/src/.cache
 
   cpu-inference:
+    profiles:
+      - local-inference
     build:
       context: ./containers/vllm-cpu
       dockerfile: Containerfile
@@ -62,7 +67,7 @@ services:
       PORT: "8000"
       USE_BF16: "false"
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
     volumes:
       - model_cache:/opt/app-root/src/.cache
 
@@ -71,7 +76,7 @@ services:
       context: ./frontend
       dockerfile: Containerfile
     ports:
-      - "3030:8080"
+      - "127.0.0.1:3030:8080"
     depends_on:
       - gateway
 

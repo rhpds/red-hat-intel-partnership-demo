@@ -1,0 +1,52 @@
+---
+# Intel-Red Hat AI Inference Platform — AgnosticD Default Variables
+# These are the defaults shipped with the config; override via agnosticv catalog entries.
+
+env_type: intel-rh-inference-demo
+guid: "{{ guid }}"
+
+# ─── Namespace ───
+ocp_project_name: "intel-rh-demo-{{ guid }}"
+
+# ─── Container images ───
+# Pin to specific tags in agnosticv prod.yaml; :latest is for dev only.
+gateway_image: "quay.io/intel-redhat/inference-gateway:latest"
+frontend_image: "quay.io/intel-redhat/inference-frontend:latest"
+postgres_image: "registry.redhat.io/rhel9/postgresql-15:latest"
+
+# ─── Replicas ───
+gateway_replicas: 2
+frontend_replicas: 1
+
+# ─── Resources ───
+gateway_cpu_request: "500m"
+gateway_cpu_limit: "1"
+gateway_memory_request: "256Mi"
+gateway_memory_limit: "512Mi"
+
+frontend_cpu_request: "100m"
+frontend_cpu_limit: "500m"
+frontend_memory_request: "64Mi"
+frontend_memory_limit: "128Mi"
+
+# ─── Database ───
+postgres_storage_size: "10Gi"
+postgres_user: "gateway"
+# postgres_password is expected from a secret variable, not defaults
+postgres_cpu_request: "250m"
+postgres_cpu_limit: "1"
+postgres_memory_request: "256Mi"
+postgres_memory_limit: "512Mi"
+
+# ─── Inference backend (MAAS) ───
+litellm_api_base: "https://litellm-prod.apps.maas.redhatworkshops.io"
+# litellm_api_key is expected from a secret variable, not defaults
+
+# ─── Gateway config ───
+cors_origins: ""
+rate_limit_rpm: 85
+local_fallback_enabled: false
+
+# ─── Feature flags ───
+deploy_database: true
+deploy_observability: false

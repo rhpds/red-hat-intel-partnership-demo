@@ -7,7 +7,7 @@ spec:
   params:
     - name: git-url
       type: string
-      default: "https://github.com/your-org/red_hat_intel_partner_demo.git"
+      default: "https://github.com/rhpds/red-hat-intel-partnership-demo.git"
     - name: git-revision
       type: string
       default: "main"
@@ -49,11 +49,12 @@ spec:
           - name: build-and-push
             image: registry.redhat.io/rhel9/buildah:latest
             securityContext:
-              privileged: true
+              capabilities:
+                add: ["SETUID", "SETGID"]
             script: |
               cd $(workspaces.source.path)/repo
               buildah bud --storage-driver=vfs -f gateway/Containerfile -t $(params.IMAGE) gateway/
-              buildah push --storage-driver=vfs --tls-verify=false $(params.IMAGE)
+              buildah push --storage-driver=vfs $(params.IMAGE)
       params:
         - name: IMAGE
           value: $(params.image-registry)/inference-gateway:latest
@@ -72,11 +73,12 @@ spec:
           - name: build-and-push
             image: registry.redhat.io/rhel9/buildah:latest
             securityContext:
-              privileged: true
+              capabilities:
+                add: ["SETUID", "SETGID"]
             script: |
               cd $(workspaces.source.path)/repo
               buildah bud --storage-driver=vfs -f frontend/Containerfile -t $(params.IMAGE) frontend/
-              buildah push --storage-driver=vfs --tls-verify=false $(params.IMAGE)
+              buildah push --storage-driver=vfs $(params.IMAGE)
       params:
         - name: IMAGE
           value: $(params.image-registry)/inference-frontend:latest

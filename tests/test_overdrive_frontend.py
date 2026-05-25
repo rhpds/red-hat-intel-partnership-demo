@@ -32,30 +32,26 @@ class TestOverdrivePage:
         content = (src_dir / "components" / "AppLayout.tsx").read_text()
         assert 'overdrive' in content.lower()
 
-    def test_overdrive_has_lane_status(self, src_dir):
+    def test_overdrive_has_infrastructure_section(self, src_dir):
         content = (src_dir / "pages" / "Overdrive.tsx").read_text()
-        assert 'Lane Status' in content
+        assert 'See Your Infrastructure' in content
 
     def test_overdrive_has_route_evaluator(self, src_dir):
         content = (src_dir / "pages" / "Overdrive.tsx").read_text()
-        assert 'Route Evaluator' in content
+        assert 'Route a Request' in content
         assert 'Evaluate Route' in content
 
     def test_overdrive_has_batch_demo(self, src_dir):
         content = (src_dir / "pages" / "Overdrive.tsx").read_text()
-        assert 'Batch Demo' in content
         assert 'Run Batch Demo' in content
 
     def test_overdrive_has_failover_demo(self, src_dir):
         content = (src_dir / "pages" / "Overdrive.tsx").read_text()
-        assert 'Failure Scenario' in content or 'Simulate' in content
+        assert 'Simulate' in content
 
-    def test_overdrive_has_visualization_tabs(self, src_dir):
+    def test_overdrive_has_scale_section(self, src_dir):
         content = (src_dir / "pages" / "Overdrive.tsx").read_text()
-        assert 'Lane Architecture' in content
-        assert 'Decision Trace' in content
-        assert 'Request Journey' in content
-        assert 'Split View' in content
+        assert 'See It at Scale' in content
 
     def test_overdrive_uses_patternfly(self, src_dir):
         content = (src_dir / "pages" / "Overdrive.tsx").read_text()

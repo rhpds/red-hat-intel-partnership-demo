@@ -1,0 +1,91 @@
+---
+# Direct-to-model routing — bypasses LiteLLM, hits KServe on Gaudi 3 / CPU
+# Auth: OCP bearer token (set OCP_TOKEN env var via `oc whoami -t`)
+#
+# Hardware:
+#   worker07: Gaudi 3 (8x HPUs) — qwen3-14b (2 replicas)
+#   worker08: Gaudi 3 (8x HPUs) — deepseek-r1-distill-qwen-14b, microsoft-phi-4
+#   worker01: CPU (Supermicro)   — llama-31-70b (Q4 GGUF)
+#
+# No LiteLLM rate limits. Be mindful of shared hardware.
+
+backends:
+  - name: deepseek-gaudi3
+    url: https://deepseek-r1-distill-qwen-14b-llm-hosting.apps.ocp-rac-maas.rs-dfw3.infra.demo.redhat.com
+    api_key: ${OCP_TOKEN}
+    accelerator: gaudi3
+    capabilities:
+      - completion
+      - batch_generation
+      - governance
+      - policy
+    cost_per_1k_tokens: 0.001
+    max_concurrent: 10
+
+  - name: phi4-gaudi3
+    url: https://microsoft-phi-4-llm-hosting.apps.ocp-rac-maas.rs-dfw3.infra.demo.redhat.com
+    api_key: ${OCP_TOKEN}
+    accelerator: gaudi3
+    capabilities:
+      - completion
+      - classification
+      - governance
+      - policy
+    cost_per_1k_tokens: 0.001
+    max_concurrent: 10
+
+  - name: qwen3-gaudi3
+    url: https://qwen3-14b-external-llm-hosting.apps.ocp-rac-maas.rs-dfw3.infra.demo.redhat.com
+    api_key: ${OCP_TOKEN}
+    accelerator: gaudi3
+    capabilities:
+      - completion
+      - batch_generation
+      - governance
+      - policy
+    cost_per_1k_tokens: 0.001
+    max_concurrent: 10
+
+  - name: llama70b-cpu
+    url: https://llama-31-70b-external-llm-hosting.apps.ocp-rac-maas.rs-dfw3.infra.demo.redhat.com
+    api_key: ${OCP_TOKEN}
+    accelerator: xeon
+    capabilities:
+      - completion
+    cost_per_1k_tokens: 0.002
+    max_concurrent: 5
+
+routes:
+  - task: completion
+    conditions:
+      - model_size_b: 15
+        operator: "<="
+        backend: phi4-gaudi3
+        reason: "Phi-4 14B on Gaudi 3 — fast structured output"
+      - model_size_b: 15
+        operator: ">"
+        backend: llama70b-cpu
+        reason: "Llama 3.1 70B Q4 on CPU — large model"
+    default_backend: deepseek-gaudi3
+    reason: "Default to DeepSeek 14B on Gaudi 3"
+    fallback: local
+
+  - task: batch_generation
+    backend: qwen3-gaudi3
+    reason: "Qwen3 14B on Gaudi 3 — 2 replicas for batch throughput"
+    fallback: deepseek-gaudi3
+
+  - task: classification
+    backend: phi4-gaudi3
+    reason: "Phi-4 on Gaudi 3 — structured classification"
+    fallback: local
+
+  - task: governance
+    backend: phi4-gaudi3
+    reason: "Phi-4 on Gaudi 3 — governance evaluation"
+    fallback: local
+
+  - task: policy
+    backend: phi4-gaudi3
+    reason: "Phi-4 on Gaudi 3 — policy compliance"
+    fallback: local

@@ -1,0 +1,19 @@
+---
+# Teardown: Delete all resources for a deployment
+- name: "Intel-Red Hat Inference Demo — Teardown"
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  tasks:
+    - name: Delete project namespace (cascades to all resources)
+      kubernetes.core.k8s:
+        state: absent
+        definition:
+          apiVersion: v1
+          kind: Namespace
+          metadata:
+            name: "{{ ocp_project_name }}"
+
+    - name: Confirm teardown
+      ansible.builtin.debug:
+        msg: "Deleted namespace {{ ocp_project_name }} and all resources within it."

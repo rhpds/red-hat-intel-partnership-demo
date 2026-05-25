@@ -92,7 +92,9 @@ export default function Docs() {
         <Content>
           <Content component={"h1"}>Documentation</Content>
           <Content component={"p"} style={{ maxWidth: '720px' }}>
-            Everything you need to understand, deploy, and extend the Intel-Red Hat AI Inference Platform.
+            Learn how the platform works. Deploy it on your own cluster. Extend it with your
+            own models, routing rules, and workload profiles. Start with the CPU quickstart
+            for Xeon 6 or the Gaudi quickstart for large model inference.
           </Content>
         </Content>
       </PageSection>
