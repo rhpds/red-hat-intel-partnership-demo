@@ -11,12 +11,20 @@ from fastapi import Request, HTTPException, Depends
 logger = logging.getLogger(__name__)
 
 LEGACY_API_KEY = os.getenv("API_KEY", "")
+JWT_SECRET = os.getenv("JWT_SECRET", "")
 
 INTERNAL_TENANT = {
     "tenant_id": "00000000-0000-0000-0000-000000000000",
     "slug": "internal",
     "tier": "internal",
     "scopes": ["read", "write", "admin"],
+}
+
+ANONYMOUS_CONTEXT = {
+    "tenant_id": "00000000-0000-0000-0000-ffffffffffff",
+    "slug": "anonymous",
+    "tier": "pilot",
+    "scopes": ["read"],
 }
 
 TIER_ORDER = ["pilot", "partner", "internal"]
@@ -48,37 +56,42 @@ async def resolve_tenant(request: Request) -> TenantContext:
         ctx = await _resolve_api_key(api_key)
         if ctx:
             return ctx
+        raise HTTPException(status_code=401, detail="Invalid API key")
 
-    if LEGACY_API_KEY and api_key == LEGACY_API_KEY:
-        return TenantContext(**{k: v for k, v in INTERNAL_TENANT.items() if k != "slug"}, tenant_slug=INTERNAL_TENANT["slug"])
+    if not LEGACY_API_KEY:
+        return TenantContext(
+            tenant_id=ANONYMOUS_CONTEXT["tenant_id"],
+            tenant_slug=ANONYMOUS_CONTEXT["slug"],
+            tier=ANONYMOUS_CONTEXT["tier"],
+            scopes=ANONYMOUS_CONTEXT["scopes"],
+        )
 
-    if LEGACY_API_KEY and not api_key:
-        return TenantContext(**{k: v for k, v in INTERNAL_TENANT.items() if k != "slug"}, tenant_slug=INTERNAL_TENANT["slug"])
-
-    if not LEGACY_API_KEY and not api_key:
-        return TenantContext(**{k: v for k, v in INTERNAL_TENANT.items() if k != "slug"}, tenant_slug=INTERNAL_TENANT["slug"])
-
-    raise HTTPException(status_code=401, detail="Invalid or missing authentication")
+    raise HTTPException(status_code=401, detail="Authentication required")
 
 
 async def _resolve_jwt(token: str) -> Optional[TenantContext]:
+    if not JWT_SECRET:
+        logger.warning("JWT received but JWT_SECRET not configured — rejecting")
+        return None
     try:
-        import base64, json
-        parts = token.split(".")
-        if len(parts) != 3:
+        import jwt
+        claims = jwt.decode(token, JWT_SECRET, algorithms=["HS256"])
+        tenant_id = claims.get("tenant_id")
+        tenant_slug = claims.get("tenant_slug")
+        tier = claims.get("tier")
+        scopes = claims.get("scopes")
+        if not all([tenant_id, tenant_slug, tier, scopes]):
+            logger.warning("JWT missing required claims")
             return None
-        payload = parts[1] + "=" * (4 - len(parts[1]) % 4)
-        claims = json.loads(base64.urlsafe_b64decode(payload))
-        tenant_id = claims.get("tenant_id", INTERNAL_TENANT["tenant_id"])
-        tenant_slug = claims.get("tenant_slug", "internal")
-        tier = claims.get("tier", "partner")
-        scopes = claims.get("scopes", ["read", "write"])
-        email = claims.get("email")
+        if tier not in TIER_ORDER:
+            logger.warning("JWT contains invalid tier: %s", tier)
+            return None
         return TenantContext(
             tenant_id=tenant_id, tenant_slug=tenant_slug,
-            tier=tier, scopes=scopes, user_email=email
+            tier=tier, scopes=scopes, user_email=claims.get("email")
         )
-    except Exception:
+    except Exception as e:
+        logger.warning("JWT verification failed: %s", e)
         return None
 
 
@@ -118,7 +131,12 @@ def require_scope(scope: str):
 
 def require_tier(min_tier: str):
     async def _check(tenant: TenantContext = Depends(resolve_tenant)):
-        if TIER_ORDER.index(tenant.tier) < TIER_ORDER.index(min_tier):
+        try:
+            current = TIER_ORDER.index(tenant.tier)
+            required = TIER_ORDER.index(min_tier)
+        except ValueError:
+            raise HTTPException(status_code=403, detail=f"Unknown tier: {tenant.tier}")
+        if current < required:
             raise HTTPException(status_code=403, detail=f"Requires tier: {min_tier}")
         return tenant
     return _check

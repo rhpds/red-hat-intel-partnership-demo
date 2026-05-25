@@ -59,6 +59,8 @@ RATE_LIMIT_RPM = int(os.getenv("RATE_LIMIT_RPM", "85"))
 
 
 def check_rate_limit(client_ip: str, tenant_id: str = ""):
+    if not RATE_LIMIT_RPM:
+        return
     key = f"{tenant_id}:{client_ip}" if tenant_id else client_ip
     now = time_module.time()
     _rate_limits[key] = [t for t in _rate_limits[key] if now - t < 60]
@@ -111,9 +113,9 @@ app = FastAPI(
 )
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=os.getenv("CORS_ORIGINS", "*").split(","),
+    allow_origins=os.getenv("CORS_ORIGINS", "http://localhost:5173,http://localhost:3000").split(","),
     allow_methods=["GET", "POST", "OPTIONS"],
-    allow_headers=["*"],
+    allow_headers=["X-API-Key", "Authorization", "Content-Type"],
 )
 app.include_router(api_router)
 app.include_router(tenant_router)
@@ -1288,7 +1290,7 @@ def _real_tokenize(text: str, model_name: str) -> list[str]:
                 "llama-scout-17b": "meta-llama/Llama-3.2-3B-Instruct",
             }.get(model_name, model_name)
             _tokenizer_cache[model_name] = AutoTokenizer.from_pretrained(
-                hf_name, trust_remote_code=True
+                hf_name
             )
         except Exception:
             return _approximate_tokenize(text)

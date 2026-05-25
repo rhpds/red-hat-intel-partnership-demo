@@ -588,6 +588,9 @@ async def create_api_key(tenant_id: str, label: str = "default",
 
 
 async def set_tenant_context(conn, tenant_id: str):
+    import re
+    if not re.fullmatch(r'[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}', tenant_id):
+        raise ValueError(f"Invalid tenant_id format: {tenant_id}")
     await conn.execute(f"SET app.current_tenant_id = '{tenant_id}'")
 
 

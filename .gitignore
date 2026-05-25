@@ -4,6 +4,8 @@
 !.env.example
 *.env
 deploy/**/hf-token.env
+deploy/database/secret.yaml
+deploy/cluster/secrets-template.yaml
 
 # Python
 __pycache__/
