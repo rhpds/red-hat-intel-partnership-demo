@@ -1,0 +1,32 @@
+---
+# Stage 3: Validate prerequisites before deploying software
+- name: "Intel-Red Hat Inference Demo — Pre-software checks"
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  tasks:
+    - name: Verify oc CLI is available
+      ansible.builtin.command: oc version --client
+      changed_when: false
+
+    - name: Verify cluster connectivity
+      ansible.builtin.command: oc whoami
+      changed_when: false
+
+    - name: Verify required variables are set
+      ansible.builtin.assert:
+        that:
+          - guid is defined and guid | length > 0
+          - ocp_project_name is defined
+          - postgres_password is defined and postgres_password != 'CHANGE-ME'
+        fail_msg: >
+          Missing required variables. Ensure guid, ocp_project_name,
+          and postgres_password are set (not placeholder values).
+
+    - name: Warn if litellm_api_key is empty
+      ansible.builtin.debug:
+        msg: >
+          WARNING: litellm_api_key is empty. The gateway will start but
+          inference routing to MAAS will fail. Set litellm_api_key to
+          enable model access.
+      when: litellm_api_key is not defined or litellm_api_key | length == 0

@@ -1,0 +1,46 @@
+---
+# Stage 5: Health checks and access URL output
+- name: "Intel-Red Hat Inference Demo — Post-deploy verification"
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  tasks:
+    - name: Get Gateway route URL
+      ansible.builtin.command: >
+        oc get route inference-gateway
+        -n {{ ocp_project_name }}
+        -o jsonpath='{.spec.host}'
+      changed_when: false
+      register: gateway_route
+
+    - name: Get Frontend route URL
+      ansible.builtin.command: >
+        oc get route frontend
+        -n {{ ocp_project_name }}
+        -o jsonpath='{.spec.host}'
+      changed_when: false
+      register: frontend_route
+
+    - name: Health check — Gateway
+      ansible.builtin.uri:
+        url: "https://{{ gateway_route.stdout }}/health"
+        validate_certs: true
+        return_content: true
+      register: gateway_health
+      retries: 5
+      delay: 10
+      until: gateway_health.status == 200
+
+    - name: Print access information
+      ansible.builtin.debug:
+        msg: |
+          ═══════════════════════════════════════════════
+          Intel-Red Hat AI Inference Demo — Deployed
+          ═══════════════════════════════════════════════
+          GUID:      {{ guid }}
+          Namespace: {{ ocp_project_name }}
+
+          Frontend:  https://{{ frontend_route.stdout }}
+          Gateway:   https://{{ gateway_route.stdout }}
+          Health:    {{ gateway_health.json | default('OK') }}
+          ═══════════════════════════════════════════════
