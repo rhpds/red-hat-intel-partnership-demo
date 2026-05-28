@@ -1,74 +1,83 @@
 ---
 # Inference Gateway Routing Configuration
 #
-# Defines available backends and routing rules.
-# The gateway uses this to decide which backend handles each request.
+# Dual-path routing through MAAS LiteLLM proxy:
+#   CPU path (Xeon 6 + OpenVINO): small models, classification, embeddings
+#   GPU path (Gaudi 3): large models, complex generation, batch workloads
 #
-# Default: route through MAAS (LiteLLM proxy).
-# For direct cluster endpoints, see config.local.yaml or config.direct.yaml.
+# For direct cluster endpoints, see config.direct.yaml.
 
 backends:
-  - name: maas-proxy
+  - name: maas-cpu
     url: ${LITELLM_API_BASE:-https://litellm-prod.apps.maas.redhatworkshops.io}
     api_key: ${LITELLM_API_KEY}
-    accelerator: maas
+    accelerator: xeon6
     capabilities:
       - completion
       - embeddings
       - classification
       - reranking
-      - batch_generation
-    cost_per_1k_tokens: 0.005
-    max_concurrent: 20
-
-  - name: openvino-cpu
-    url: http://embeddings-minilm.intel-rh-openvino-inference.svc.cluster.local
-    accelerator: xeon6
-    capabilities:
-      - embeddings
-      - classification
-      - reranking
-    cost_per_1k_tokens: 0.001
+      - search
+    cost_per_1k_tokens: 0.0004
     max_concurrent: 10
 
-  - name: vllm-cpu
-    url: http://cpu-inference-example.intel-rh-cpu-inference.svc.cluster.local
-    accelerator: xeon6
-    capabilities:
-      - completion
-    cost_per_1k_tokens: 0.002
-    max_concurrent: 3
-    max_model_size_b: 3
-
-  - name: vllm-gaudi
-    url: http://gaudi-inference-example.intel-rh-gaudi-inference.svc.cluster.local
+  - name: maas-gpu
+    url: ${LITELLM_API_BASE:-https://litellm-prod.apps.maas.redhatworkshops.io}
+    api_key: ${LITELLM_API_KEY}
     accelerator: gaudi
     capabilities:
       - completion
       - batch_generation
-    cost_per_1k_tokens: 0.008
-    max_concurrent: 5
-    min_model_size_b: 1
+      - governance
+      - policy
+    cost_per_1k_tokens: 0.001
+    max_concurrent: 10
 
 routes:
   - task: embeddings
-    backend: maas-proxy
-    reason: "Route through MAAS — models available via LiteLLM proxy"
+    backend: maas-cpu
+    reason: "nomic-embed-text-v1-5 on Xeon 6 — 768-dim embeddings with AMX acceleration"
+    fallback: local
 
   - task: classification
-    backend: maas-proxy
-    reason: "Route through MAAS — models available via LiteLLM proxy"
+    backend: maas-cpu
+    reason: "granite-2b-cpu on Xeon 6 OpenVINO — fast, low-cost classification"
+    fallback: local
 
   - task: reranking
-    backend: maas-proxy
-    reason: "Route through MAAS — models available via LiteLLM proxy"
+    backend: maas-cpu
+    reason: "phi3-mini-cpu on Xeon 6 OpenVINO — cross-encoder reranking"
+    fallback: local
+
+  - task: search
+    backend: maas-cpu
+    reason: "Semantic search via embeddings on Xeon 6"
 
   - task: completion
-    backend: maas-proxy
-    reason: "Route through MAAS — all model sizes available via LiteLLM proxy"
+    conditions:
+      - model_size_b: 4
+        operator: "<="
+        backend: maas-cpu
+        reason: "Small model (<=4B) on Xeon 6 OpenVINO — granite-2b, phi3-mini, qwen25-3b"
+      - model_size_b: 4
+        operator: ">"
+        backend: maas-gpu
+        reason: "Large model (>4B) on Gaudi 3 — llama-scout-17b, deepseek-14b, phi-4"
+    default_backend: maas-gpu
+    reason: "Route by model size — small to Xeon 6 CPU, large to Gaudi 3 GPU"
     fallback: local
 
   - task: batch_generation
-    backend: maas-proxy
-    reason: "Route through MAAS — batch processing via LiteLLM proxy"
+    backend: maas-gpu
+    reason: "Batch workloads on Gaudi 3 — high throughput with HBM bandwidth"
+    fallback: local
+
+  - task: governance
+    backend: maas-cpu
+    reason: "granite-2b-cpu on Xeon 6 OpenVINO — fast governance evaluation"
+    fallback: local
+
+  - task: policy
+    backend: maas-cpu
+    reason: "granite-2b-cpu on Xeon 6 OpenVINO — policy compliance check"
     fallback: local

@@ -1,19 +1,20 @@
 ---
-# Routing config — LiteLLM proxy on Red Hat OpenShift AI
-# Falls back to local TinyLlama if LiteLLM is unreachable
+# Routing config — dual-path through MAAS LiteLLM proxy
 #
-# Confirmed working models:
-#   Xeon 6 (CPU):
-#     granite-4-0-h-tiny       — IBM Granite tiny, fast classification/governance
-#     codellama-7b-instruct    — Code Llama 7B, CPU-efficient completion
-#     nomic-embed-text-v1-5    — Nomic embeddings (768-dim)
-#   Gaudi (GPU):
-#     granite-3-2-8b-instruct  — IBM Granite 8B, general-purpose chat
-#     llama-scout-17b          — Llama Scout 17B, complex reasoning
-#     deepseek-r1-distill-qwen-14b — DeepSeek 14B, deep analysis
-#     microsoft-phi-4          — Phi-4 14B, structured output
+# CPU path (Xeon 6 + OpenVINO):
+#   granite-2b-cpu          — 2B, classification/governance, 26 t/s
+#   phi3-mini-cpu           — 3.8B, reranking/completion, 30 t/s
+#   qwen25-3b-cpu           — 3B, structured output, 24 t/s
+#   nomic-embed-text-v1-5   — embeddings (768-dim)
+#   granite-4-0-h-tiny      — 2B, fast classification, 19 t/s (vLLM)
+#   codellama-7b-instruct   — 7B, code completion, 45 t/s (vLLM)
 #
-#   Down/incompatible: qwen3-14b, Llama-Guard-3-1B, Docling
+# GPU path (Gaudi 3):
+#   llama-scout-17b                — 17B, complex reasoning, 60 t/s
+#   deepseek-r1-distill-qwen-14b  — 14B, deep analysis, 55 t/s
+#   microsoft-phi-4               — 14B, structured output, 47 t/s
+#   qwen3-14b                     — 14B, reasoning (think mode), 37 t/s
+#   granite-3-2-8b-instruct       — 8B, general-purpose, 37 t/s
 
 backends:
   - name: litellm-cpu
@@ -25,6 +26,7 @@ backends:
       - embeddings
       - classification
       - reranking
+      - search
       - governance
       - policy
     cost_per_1k_tokens: 0.0004
@@ -40,7 +42,7 @@ backends:
       - governance
       - policy
     cost_per_1k_tokens: 0.001
-    max_concurrent: 5
+    max_concurrent: 10
 
 routes:
   - task: embeddings
@@ -50,43 +52,43 @@ routes:
 
   - task: classification
     backend: litellm-cpu
-    reason: "granite-4-0-h-tiny on Xeon 6 — fast, low-cost classification"
+    reason: "granite-2b-cpu on Xeon 6 OpenVINO — fast classification"
     fallback: local
 
   - task: search
     backend: litellm-cpu
-    reason: "Vector search via LiteLLM on Xeon 6"
+    reason: "Semantic search via embeddings on Xeon 6"
 
   - task: reranking
     backend: litellm-cpu
-    reason: "codellama-7b-instruct cross-encoder reranking on Xeon 6"
+    reason: "phi3-mini-cpu on Xeon 6 OpenVINO — cross-encoder reranking"
     fallback: local
 
   - task: completion
     conditions:
-      - model_size_b: 8
+      - model_size_b: 4
         operator: "<="
         backend: litellm-cpu
-        reason: "codellama-7b on Xeon 6 — small model, CPU-efficient with AMX"
-      - model_size_b: 8
+        reason: "Small model (<=4B) on Xeon 6 OpenVINO — granite-2b, phi3-mini, qwen25-3b"
+      - model_size_b: 4
         operator: ">"
         backend: litellm-gpu
-        reason: "llama-scout-17b on Gaudi — large model needs HBM and tensor cores"
+        reason: "Large model (>4B) on Gaudi 3 — llama-scout-17b, deepseek-14b, phi-4"
     default_backend: litellm-gpu
-    reason: "Route by model size — small to Xeon 6, large to Gaudi"
+    reason: "Route by model size — small to Xeon 6 CPU, large to Gaudi 3 GPU"
     fallback: local
 
   - task: batch_generation
     backend: litellm-gpu
-    reason: "deepseek-r1-distill-qwen-14b on Gaudi — batch throughput"
+    reason: "Batch workloads on Gaudi 3 — high throughput"
     fallback: local
 
   - task: governance
     backend: litellm-cpu
-    reason: "granite-4-0-h-tiny on Xeon 6 — fast governance evaluation"
+    reason: "granite-2b-cpu on Xeon 6 OpenVINO — fast governance evaluation"
     fallback: local
 
   - task: policy
     backend: litellm-cpu
-    reason: "granite-4-0-h-tiny on Xeon 6 — policy compliance check"
+    reason: "granite-2b-cpu on Xeon 6 OpenVINO — policy compliance check"
     fallback: local
