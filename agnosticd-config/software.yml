@@ -1,0 +1,373 @@
+---
+# Stage 4: Deploy all components to OpenShift
+- name: "Intel-Red Hat Inference Demo — Deploy"
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    database_url: "postgresql://{{ postgres_user }}:{{ postgres_password }}@postgres.{{ ocp_project_name }}.svc:5432/gateway"
+
+  tasks:
+    # ─── Namespace ───
+    - name: Create project namespace
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: Namespace
+          metadata:
+            name: "{{ ocp_project_name }}"
+            labels:
+              app.kubernetes.io/part-of: intel-rh-inference-demo
+              guid: "{{ guid }}"
+
+    # ─── Secrets ───
+    - name: Create postgres credentials secret
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: Secret
+          metadata:
+            name: postgres-credentials
+            namespace: "{{ ocp_project_name }}"
+          type: Opaque
+          stringData:
+            POSTGRES_USER: "{{ postgres_user }}"
+            POSTGRES_PASSWORD: "{{ postgres_password }}"
+            DATABASE_URL: "{{ database_url }}"
+
+    - name: Create gateway secrets
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: Secret
+          metadata:
+            name: gateway-secrets
+            namespace: "{{ ocp_project_name }}"
+          type: Opaque
+          stringData:
+            LITELLM_API_KEY: "{{ litellm_api_key | default('') }}"
+            LITELLM_API_BASE: "{{ litellm_api_base }}"
+
+    # ─── Database ───
+    - name: Deploy PostgreSQL
+      kubernetes.core.k8s:
+        state: present
+        namespace: "{{ ocp_project_name }}"
+        definition:
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: postgres
+            labels:
+              app.kubernetes.io/name: postgres
+          spec:
+            replicas: 1
+            strategy:
+              type: Recreate
+            selector:
+              matchLabels:
+                app.kubernetes.io/name: postgres
+            template:
+              metadata:
+                labels:
+                  app.kubernetes.io/name: postgres
+              spec:
+                containers:
+                  - name: postgres
+                    image: "{{ postgres_image }}"
+                    ports:
+                      - containerPort: 5432
+                    envFrom:
+                      - secretRef:
+                          name: postgres-credentials
+                    resources:
+                      requests:
+                        cpu: "{{ postgres_cpu_request }}"
+                        memory: "{{ postgres_memory_request }}"
+                      limits:
+                        cpu: "{{ postgres_cpu_limit }}"
+                        memory: "{{ postgres_memory_limit }}"
+                    securityContext:
+                      runAsNonRoot: true
+                      allowPrivilegeEscalation: false
+                      capabilities:
+                        drop: ["ALL"]
+                    volumeMounts:
+                      - name: data
+                        mountPath: /var/lib/pgsql/data
+                    livenessProbe:
+                      exec:
+                        command: ["pg_isready", "-U", "{{ postgres_user }}"]
+                      initialDelaySeconds: 15
+                      periodSeconds: 20
+                    readinessProbe:
+                      exec:
+                        command: ["pg_isready", "-U", "{{ postgres_user }}"]
+                      initialDelaySeconds: 5
+                      periodSeconds: 10
+                volumes:
+                  - name: data
+                    persistentVolumeClaim:
+                      claimName: postgres-data
+      when: deploy_database | bool
+
+    - name: Create PostgreSQL PVC
+      kubernetes.core.k8s:
+        state: present
+        namespace: "{{ ocp_project_name }}"
+        definition:
+          apiVersion: v1
+          kind: PersistentVolumeClaim
+          metadata:
+            name: postgres-data
+          spec:
+            accessModes: ["ReadWriteOnce"]
+            resources:
+              requests:
+                storage: "{{ postgres_storage_size }}"
+      when: deploy_database | bool
+
+    - name: Create PostgreSQL Service
+      kubernetes.core.k8s:
+        state: present
+        namespace: "{{ ocp_project_name }}"
+        definition:
+          apiVersion: v1
+          kind: Service
+          metadata:
+            name: postgres
+          spec:
+            selector:
+              app.kubernetes.io/name: postgres
+            ports:
+              - port: 5432
+                targetPort: 5432
+            type: ClusterIP
+      when: deploy_database | bool
+
+    # ─── Gateway ───
+    - name: Deploy Gateway
+      kubernetes.core.k8s:
+        state: present
+        namespace: "{{ ocp_project_name }}"
+        definition:
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: inference-gateway
+            labels:
+              app.kubernetes.io/name: inference-gateway
+          spec:
+            replicas: "{{ gateway_replicas }}"
+            selector:
+              matchLabels:
+                app.kubernetes.io/name: inference-gateway
+            template:
+              metadata:
+                labels:
+                  app.kubernetes.io/name: inference-gateway
+              spec:
+                containers:
+                  - name: gateway
+                    image: "{{ gateway_image }}"
+                    ports:
+                      - name: http
+                        containerPort: 8080
+                    env:
+                      - name: PORT
+                        value: "8080"
+                      - name: CORS_ORIGINS
+                        value: "{{ cors_origins }}"
+                      - name: RATE_LIMIT_RPM
+                        value: "{{ rate_limit_rpm }}"
+                      - name: LOCAL_FALLBACK_ENABLED
+                        value: "{{ local_fallback_enabled | string | lower }}"
+                    envFrom:
+                      - secretRef:
+                          name: postgres-credentials
+                          optional: true
+                      - secretRef:
+                          name: gateway-secrets
+                    resources:
+                      requests:
+                        cpu: "{{ gateway_cpu_request }}"
+                        memory: "{{ gateway_memory_request }}"
+                      limits:
+                        cpu: "{{ gateway_cpu_limit }}"
+                        memory: "{{ gateway_memory_limit }}"
+                    securityContext:
+                      runAsNonRoot: true
+                      readOnlyRootFilesystem: true
+                      allowPrivilegeEscalation: false
+                      capabilities:
+                        drop: ["ALL"]
+                    livenessProbe:
+                      httpGet:
+                        path: /health
+                        port: http
+                      initialDelaySeconds: 5
+                      periodSeconds: 15
+                    readinessProbe:
+                      httpGet:
+                        path: /health
+                        port: http
+                      initialDelaySeconds: 3
+                      periodSeconds: 10
+                    volumeMounts:
+                      - name: tmp
+                        mountPath: /tmp
+                volumes:
+                  - name: tmp
+                    emptyDir: {}
+
+    - name: Create Gateway Service
+      kubernetes.core.k8s:
+        state: present
+        namespace: "{{ ocp_project_name }}"
+        definition:
+          apiVersion: v1
+          kind: Service
+          metadata:
+            name: inference-gateway
+          spec:
+            selector:
+              app.kubernetes.io/name: inference-gateway
+            ports:
+              - name: http
+                port: 8080
+                targetPort: http
+            type: ClusterIP
+
+    - name: Create Gateway Route
+      kubernetes.core.k8s:
+        state: present
+        namespace: "{{ ocp_project_name }}"
+        definition:
+          apiVersion: route.openshift.io/v1
+          kind: Route
+          metadata:
+            name: inference-gateway
+          spec:
+            to:
+              kind: Service
+              name: inference-gateway
+              weight: 100
+            port:
+              targetPort: http
+            tls:
+              termination: edge
+              insecureEdgeTerminationPolicy: Redirect
+
+    # ─── Frontend ───
+    - name: Deploy Frontend
+      kubernetes.core.k8s:
+        state: present
+        namespace: "{{ ocp_project_name }}"
+        definition:
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: frontend
+            labels:
+              app.kubernetes.io/name: frontend
+          spec:
+            replicas: "{{ frontend_replicas }}"
+            selector:
+              matchLabels:
+                app.kubernetes.io/name: frontend
+            template:
+              metadata:
+                labels:
+                  app.kubernetes.io/name: frontend
+              spec:
+                containers:
+                  - name: frontend
+                    image: "{{ frontend_image }}"
+                    ports:
+                      - name: http
+                        containerPort: 8080
+                    resources:
+                      requests:
+                        cpu: "{{ frontend_cpu_request }}"
+                        memory: "{{ frontend_memory_request }}"
+                      limits:
+                        cpu: "{{ frontend_cpu_limit }}"
+                        memory: "{{ frontend_memory_limit }}"
+                    securityContext:
+                      runAsNonRoot: true
+                      allowPrivilegeEscalation: false
+                      capabilities:
+                        drop: ["ALL"]
+                    readinessProbe:
+                      httpGet:
+                        path: /
+                        port: http
+                      initialDelaySeconds: 3
+                      periodSeconds: 10
+                    livenessProbe:
+                      httpGet:
+                        path: /
+                        port: http
+                      initialDelaySeconds: 5
+                      periodSeconds: 15
+
+    - name: Create Frontend Service
+      kubernetes.core.k8s:
+        state: present
+        namespace: "{{ ocp_project_name }}"
+        definition:
+          apiVersion: v1
+          kind: Service
+          metadata:
+            name: frontend
+          spec:
+            selector:
+              app.kubernetes.io/name: frontend
+            ports:
+              - name: http
+                port: 8080
+                targetPort: http
+            type: ClusterIP
+
+    - name: Create Frontend Route
+      kubernetes.core.k8s:
+        state: present
+        namespace: "{{ ocp_project_name }}"
+        definition:
+          apiVersion: route.openshift.io/v1
+          kind: Route
+          metadata:
+            name: frontend
+          spec:
+            to:
+              kind: Service
+              name: frontend
+              weight: 100
+            port:
+              targetPort: http
+            tls:
+              termination: edge
+              insecureEdgeTerminationPolicy: Redirect
+
+    # ─── Wait for rollouts ───
+    - name: Wait for PostgreSQL rollout
+      ansible.builtin.command: >
+        oc rollout status deployment/postgres
+        -n {{ ocp_project_name }} --timeout=120s
+      changed_when: false
+      when: deploy_database | bool
+
+    - name: Wait for Gateway rollout
+      ansible.builtin.command: >
+        oc rollout status deployment/inference-gateway
+        -n {{ ocp_project_name }} --timeout=120s
+      changed_when: false
+
+    - name: Wait for Frontend rollout
+      ansible.builtin.command: >
+        oc rollout status deployment/frontend
+        -n {{ ocp_project_name }} --timeout=60s
+      changed_when: false

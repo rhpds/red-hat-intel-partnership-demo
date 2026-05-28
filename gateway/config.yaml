@@ -1,0 +1,74 @@
+---
+# Inference Gateway Routing Configuration
+#
+# Defines available backends and routing rules.
+# The gateway uses this to decide which backend handles each request.
+#
+# Default: route through MAAS (LiteLLM proxy).
+# For direct cluster endpoints, see config.local.yaml or config.direct.yaml.
+
+backends:
+  - name: maas-proxy
+    url: ${LITELLM_API_BASE:-https://litellm-prod.apps.maas.redhatworkshops.io}
+    api_key: ${LITELLM_API_KEY}
+    accelerator: maas
+    capabilities:
+      - completion
+      - embeddings
+      - classification
+      - reranking
+      - batch_generation
+    cost_per_1k_tokens: 0.005
+    max_concurrent: 20
+
+  - name: openvino-cpu
+    url: http://embeddings-minilm.intel-rh-openvino-inference.svc.cluster.local
+    accelerator: xeon6
+    capabilities:
+      - embeddings
+      - classification
+      - reranking
+    cost_per_1k_tokens: 0.001
+    max_concurrent: 10
+
+  - name: vllm-cpu
+    url: http://cpu-inference-example.intel-rh-cpu-inference.svc.cluster.local
+    accelerator: xeon6
+    capabilities:
+      - completion
+    cost_per_1k_tokens: 0.002
+    max_concurrent: 3
+    max_model_size_b: 3
+
+  - name: vllm-gaudi
+    url: http://gaudi-inference-example.intel-rh-gaudi-inference.svc.cluster.local
+    accelerator: gaudi
+    capabilities:
+      - completion
+      - batch_generation
+    cost_per_1k_tokens: 0.008
+    max_concurrent: 5
+    min_model_size_b: 1
+
+routes:
+  - task: embeddings
+    backend: maas-proxy
+    reason: "Route through MAAS — models available via LiteLLM proxy"
+
+  - task: classification
+    backend: maas-proxy
+    reason: "Route through MAAS — models available via LiteLLM proxy"
+
+  - task: reranking
+    backend: maas-proxy
+    reason: "Route through MAAS — models available via LiteLLM proxy"
+
+  - task: completion
+    backend: maas-proxy
+    reason: "Route through MAAS — all model sizes available via LiteLLM proxy"
+    fallback: local
+
+  - task: batch_generation
+    backend: maas-proxy
+    reason: "Route through MAAS — batch processing via LiteLLM proxy"
+    fallback: local

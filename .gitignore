@@ -1,0 +1,48 @@
+# Environment and secrets
+.env
+.env.*
+!.env.example
+*.env
+deploy/**/hf-token.env
+deploy/database/secret.yaml
+deploy/cluster/secrets-template.yaml
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+venv/
+.venv/
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+htmlcov/
+.coverage
+
+# Node
+node_modules/
+frontend/dist/
+frontend/.env
+
+# Containers
+*.tar
+*.gz
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Model cache
+*.bin
+*.safetensors
+*.gguf
+.cache/
+
+# Claude
+.claude/

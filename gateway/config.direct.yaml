@@ -1,0 +1,89 @@
+---
+# Direct-to-model routing — bypasses LiteLLM, hits KServe on Gaudi 3 / CPU
+# Auth: OCP bearer token (set OCP_TOKEN env var via `oc whoami -t`)
+#
+# IMPORTANT: Update the URLs below with your actual cluster endpoints.
+# Do NOT commit real cluster URLs to the repository.
+#
+# No LiteLLM rate limits. Be mindful of shared hardware.
+
+backends:
+  - name: deepseek-gaudi3
+    url: ${DEEPSEEK_ENDPOINT:-https://deepseek-model.apps.your-cluster.example.com}
+    api_key: ${OCP_TOKEN}
+    accelerator: gaudi3
+    capabilities:
+      - completion
+      - batch_generation
+      - governance
+      - policy
+    cost_per_1k_tokens: 0.001
+    max_concurrent: 10
+
+  - name: phi4-gaudi3
+    url: ${PHI4_ENDPOINT:-https://phi4-model.apps.your-cluster.example.com}
+    api_key: ${OCP_TOKEN}
+    accelerator: gaudi3
+    capabilities:
+      - completion
+      - classification
+      - governance
+      - policy
+    cost_per_1k_tokens: 0.001
+    max_concurrent: 10
+
+  - name: qwen3-gaudi3
+    url: ${QWEN3_ENDPOINT:-https://qwen3-model.apps.your-cluster.example.com}
+    api_key: ${OCP_TOKEN}
+    accelerator: gaudi3
+    capabilities:
+      - completion
+      - batch_generation
+      - governance
+      - policy
+    cost_per_1k_tokens: 0.001
+    max_concurrent: 10
+
+  - name: llama70b-cpu
+    url: ${LLAMA70B_ENDPOINT:-https://llama70b-model.apps.your-cluster.example.com}
+    api_key: ${OCP_TOKEN}
+    accelerator: xeon
+    capabilities:
+      - completion
+    cost_per_1k_tokens: 0.002
+    max_concurrent: 5
+
+routes:
+  - task: completion
+    conditions:
+      - model_size_b: 15
+        operator: "<="
+        backend: phi4-gaudi3
+        reason: "Phi-4 14B on Gaudi 3 — fast structured output"
+      - model_size_b: 15
+        operator: ">"
+        backend: llama70b-cpu
+        reason: "Llama 3.1 70B Q4 on CPU — large model"
+    default_backend: deepseek-gaudi3
+    reason: "Default to DeepSeek 14B on Gaudi 3"
+    fallback: local
+
+  - task: batch_generation
+    backend: qwen3-gaudi3
+    reason: "Qwen3 14B on Gaudi 3 — batch throughput"
+    fallback: deepseek-gaudi3
+
+  - task: classification
+    backend: phi4-gaudi3
+    reason: "Phi-4 on Gaudi 3 — structured classification"
+    fallback: local
+
+  - task: governance
+    backend: phi4-gaudi3
+    reason: "Phi-4 on Gaudi 3 — governance evaluation"
+    fallback: local
+
+  - task: policy
+    backend: phi4-gaudi3
+    reason: "Phi-4 on Gaudi 3 — policy compliance"
+    fallback: local

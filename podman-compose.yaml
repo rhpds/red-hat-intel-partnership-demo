@@ -1,0 +1,86 @@
+---
+# Intel-Red Hat AI Partner Demo — Local Development Stack
+#
+# Default: Uses MAAS endpoints for inference (no local model servers).
+#
+# Usage:
+#   podman-compose up --build -d            # gateway + frontend + postgres (MAAS mode)
+#   podman-compose --profile local-inference up --build -d   # + local CPU inference
+#   podman-compose logs -f gateway
+#   podman-compose down -v
+#
+# Services:
+#   postgres       — PostgreSQL 15 (port 5432)
+#   gateway        — Inference Gateway + API (port 8080)
+#   frontend       — React dashboard (port 3000)
+#
+# Optional (local-inference profile):
+#   cpu-inference  — vLLM CPU inference server (port 8000)
+#
+# Not included (require cluster hardware):
+#   gaudi-inference  — needs Intel Gaudi accelerator (coordinate with Ashok)
+#   openvino-cpu     — needs KServe/OpenShift AI operator
+
+services:
+  postgres:
+    image: docker.io/library/postgres:15-alpine
+    environment:
+      POSTGRES_USER: gateway
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: inference_platform
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "gateway"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  gateway:
+    build:
+      context: ./gateway
+      dockerfile: Containerfile
+    env_file:
+      - .env
+    environment:
+      PORT: "8080"
+      DATABASE_URL: "postgresql://gateway:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@postgres:5432/inference_platform"
+      LOCAL_FALLBACK_ENABLED: "true"
+    ports:
+      - "127.0.0.1:8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - gateway_model_cache:/opt/app-root/src/.cache
+
+  cpu-inference:
+    profiles:
+      - local-inference
+    build:
+      context: ./containers/vllm-cpu
+      dockerfile: Containerfile
+    environment:
+      MODEL_NAME: "TinyLlama/TinyLlama-1.1B-Chat-v1.0"
+      PORT: "8000"
+      USE_BF16: "false"
+    ports:
+      - "127.0.0.1:8000:8000"
+    volumes:
+      - model_cache:/opt/app-root/src/.cache
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Containerfile
+    ports:
+      - "127.0.0.1:3030:8080"
+    depends_on:
+      - gateway
+
+volumes:
+  postgres_data:
+  model_cache:
+  gateway_model_cache:
