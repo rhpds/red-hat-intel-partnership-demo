@@ -1,8 +1,9 @@
 lanes:
   eco:
     target_endpoint: ${LITELLM_API_BASE}
-    model: granite-4-0-h-tiny
+    model: granite-2b-cpu
     accelerator: xeon6
+    runtime: openvino
     capabilities: [classification, short_summary, image_classification, screenshot_classification]
     max_token_estimate: 4000
     max_latency_ms: 8000
@@ -10,8 +11,9 @@ lanes:
 
   performance:
     target_endpoint: ${LITELLM_API_BASE}
-    model: codellama-7b-instruct
+    model: phi3-mini-cpu
     accelerator: xeon6
+    runtime: openvino
     capabilities: [embedding, rerank, short_summary, long_summary, rag_question, image_text_embedding, visual_similarity, ocr_layout_extract]
     max_token_estimate: 16000
     max_latency_ms: 5000
@@ -19,8 +21,9 @@ lanes:
 
   overdrive:
     target_endpoint: ${LITELLM_API_BASE}
-    model: llama-scout-17b
+    model: deepseek-r1-distill-qwen-14b
     accelerator: gaudi
+    runtime: vllm
     capabilities: [long_summary, incident_rca, batch_summary, document_summary, code_summary, rag_question, screenshot_summary, chart_interpretation, diagram_explanation, document_visual_summary, visual_rag_question, multimodal_incident_summary, multimodal_rca, image_to_manual]
     max_token_estimate: 64000
     max_latency_ms: 10000
