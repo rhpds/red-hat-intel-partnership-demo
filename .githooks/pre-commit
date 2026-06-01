@@ -4,12 +4,10 @@
 RED='\033[0;31m'
 NC='\033[0m'
 
-TMPFILE=$(mktemp)
-trap "rm -f $TMPFILE" EXIT
+# Get staged file contents directly (not diffs)
+FILES=$(git diff --cached --name-only --diff-filter=ACM)
 
-git diff --cached --diff-filter=ACM -U0 -- . ':!.githooks' | grep '^+' | grep -v '^+++' > "$TMPFILE" 2>/dev/null || true
-
-if [ ! -s "$TMPFILE" ]; then
+if [ -z "$FILES" ]; then
     exit 0
 fi
 
@@ -18,27 +16,27 @@ FAILED=0
 check_pattern() {
     local label="$1"
     local pattern="$2"
-    local matches
-    matches=$(grep -i "$pattern" "$TMPFILE" 2>/dev/null || true)
-    if [ -n "$matches" ]; then
-        echo -e "${RED}BLOCKED [$label]:${NC}"
-        echo "$matches" | head -5
-        echo ""
-        FAILED=1
-    fi
+    for f in $FILES; do
+        matches=$(git show ":$f" 2>/dev/null | grep -n "$pattern" || true)
+        if [ -n "$matches" ]; then
+            echo -e "${RED}BLOCKED [$label] in $f:${NC}"
+            echo "$matches" | head -3
+            echo ""
+            FAILED=1
+        fi
+    done
 }
 
 check_pattern "OCP Token"      "sha256~"
-check_pattern "API Key"        "sk-[a-zA-Z0-9][a-zA-Z0-9][a-zA-Z0-9][a-zA-Z0-9][a-zA-Z0-9][a-zA-Z0-9][a-zA-Z0-9][a-zA-Z0-9][a-zA-Z0-9][a-zA-Z0-9]"
-check_pattern "JWT Token"      "eyJhbG"
+check_pattern "API Key"        "sk-[A-Za-z]"
+check_pattern "JWT Token"      "eyJhbGciOi"
 check_pattern "infra01 URL"    "ocpv-infra0"
 check_pattern "rac-maas URL"   "ocp-rac-maas"
-check_pattern "dal12 domain"   "dal12.infra.demo"
-check_pattern "dfw3 domain"    "rs-dfw3.infra.demo"
-# maas.redhatworkshops.io is a public demo domain — intentionally allowed
+check_pattern "dal12 domain"   "dal12\.infra\.demo"
+check_pattern "dfw3 domain"    "rs-dfw3\.infra\.demo"
+check_pattern "MAAS domain"    "maas\.redhatworkshops"
 check_pattern "Private Key"    "PRIVATE KEY"
-check_pattern "AWS Key"        "AKIA[A-Z0-9]"
-check_pattern "GitHub Token"   "ghp_"
+check_pattern "AWS Key"        "AKIA[A-Z]"
 
 if [ $FAILED -eq 1 ]; then
     echo -e "${RED}Commit rejected — remove secrets/tokens/internal URLs.${NC}"

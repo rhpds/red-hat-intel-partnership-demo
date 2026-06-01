@@ -1,0 +1,18 @@
+---
+- name: Validate required variables
+  ansible.builtin.assert:
+    that:
+      - intel_rh_inference_litellm_api_key is defined
+      - intel_rh_inference_litellm_api_key | length > 0
+      - intel_rh_inference_postgres_password is defined
+      - intel_rh_inference_postgres_password | length > 0
+    fail_msg: "intel_rh_inference_litellm_api_key and intel_rh_inference_postgres_password are required"
+
+- name: Verify cluster connectivity
+  ansible.builtin.command: oc whoami
+  changed_when: false
+
+- name: pre_workload tasks complete
+  ansible.builtin.debug:
+    msg: "Pre-workload validation passed"
+  when: not silent | bool

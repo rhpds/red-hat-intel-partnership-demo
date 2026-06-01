@@ -1,16 +1,11 @@
 ---
 # Development environment overrides
-# Single replica, small resources, debug-friendly
-
-gateway_replicas: 1
-frontend_replicas: 1
-
-gateway_cpu_request: "250m"
-gateway_memory_request: "128Mi"
-gateway_memory_limit: "256Mi"
-
-postgres_storage_size: "1Gi"
-
-rate_limit_rpm: 0
-local_fallback_enabled: true
-cors_origins: "*"
+intel_rh_inference_gateway_replicas: 1
+intel_rh_inference_frontend_replicas: 1
+intel_rh_inference_gateway_cpu_request: "250m"
+intel_rh_inference_gateway_memory_request: "128Mi"
+intel_rh_inference_gateway_memory_limit: "256Mi"
+intel_rh_inference_postgres_storage: "1Gi"
+intel_rh_inference_rate_limit_rpm: 0
+intel_rh_inference_local_fallback: true
+intel_rh_inference_cors_origins: "*"

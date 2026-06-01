@@ -1,15 +1,10 @@
 ---
 # Test/integration environment overrides
-# Moderate resources, closer to production config
-
-gateway_replicas: 2
-frontend_replicas: 1
-
-gateway_cpu_request: "500m"
-gateway_memory_request: "256Mi"
-gateway_memory_limit: "512Mi"
-
-postgres_storage_size: "10Gi"
-
-rate_limit_rpm: 85
-local_fallback_enabled: false
+intel_rh_inference_gateway_replicas: 2
+intel_rh_inference_frontend_replicas: 1
+intel_rh_inference_gateway_cpu_request: "500m"
+intel_rh_inference_gateway_memory_request: "256Mi"
+intel_rh_inference_gateway_memory_limit: "512Mi"
+intel_rh_inference_postgres_storage: "10Gi"
+intel_rh_inference_rate_limit_rpm: 85
+intel_rh_inference_local_fallback: false

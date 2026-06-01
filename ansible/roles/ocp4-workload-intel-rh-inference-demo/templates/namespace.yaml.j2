@@ -1,0 +1,8 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: "{{ intel_rh_inference_namespace }}"
+  labels:
+    app.kubernetes.io/part-of: intel-rh-inference-demo
+    guid: "{{ guid }}"

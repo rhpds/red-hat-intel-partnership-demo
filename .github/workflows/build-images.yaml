@@ -1,0 +1,61 @@
+name: Build and Push Container Images
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Image tag (e.g., v1.0.0)'
+        required: true
+        type: string
+
+env:
+  REGISTRY: quay.io/intel-redhat
+  GATEWAY_IMAGE: inference-gateway
+  FRONTEND_IMAGE: inference-frontend
+
+jobs:
+  build:
+    name: Build Images
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set image tag
+        run: |
+          if [ -n "${{ inputs.tag }}" ]; then
+            echo "TAG=${{ inputs.tag }}" >> $GITHUB_ENV
+          else
+            echo "TAG=${GITHUB_REF_NAME}" >> $GITHUB_ENV
+          fi
+
+      - name: Log in to Quay.io
+        uses: docker/login-action@v3
+        with:
+          registry: quay.io
+          username: ${{ secrets.QUAY_USERNAME }}
+          password: ${{ secrets.QUAY_PASSWORD }}
+
+      - name: Build and push Gateway
+        uses: docker/build-push-action@v6
+        with:
+          context: gateway
+          file: gateway/Containerfile
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.GATEWAY_IMAGE }}:${{ env.TAG }}
+            ${{ env.REGISTRY }}/${{ env.GATEWAY_IMAGE }}:latest
+          platforms: linux/amd64
+
+      - name: Build and push Frontend
+        uses: docker/build-push-action@v6
+        with:
+          context: frontend
+          file: frontend/Containerfile
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:${{ env.TAG }}
+            ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:latest
+          platforms: linux/amd64
