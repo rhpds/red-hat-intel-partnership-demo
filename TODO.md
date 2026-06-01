@@ -1,7 +1,7 @@
 # Intel-Red Hat AI Inference Platform — Status & Next Steps
 
 **Repo:** https://github.com/rhpds/red-hat-intel-partnership-demo  
-**Updated:** 2026-05-25  
+**Updated:** 2026-06-01  
 **Owner:** Jonathan Kershaw
 
 ---
@@ -53,36 +53,54 @@ A multi-tenant inference gateway that routes AI workloads across Intel hardware 
 - [x] Pushed to `rhpds/red-hat-intel-partnership-demo` with clean single-commit history
 - [x] Updated Tekton pipeline and GitOps application URLs to point to rhpds repo
 - [x] 0 open Dependabot alerts
+- [x] Pre-commit hook blocking secrets, tokens, internal URLs
+
+### Inference & Routing (2026-05-26 — 2026-05-28)
+- [x] Fixed MAAS inference: added `api_key` to maas-proxy backend config
+- [x] Fixed `${VAR:-default}` env var resolution in routing policy
+- [x] Deployed to infra01 cluster (gateway, frontend, postgres all healthy)
+- [x] CPU models added to MAAS: granite-2b-cpu, phi3-mini-cpu, qwen25-3b-cpu
+- [x] Dual-path routing working: classification/embeddings → CPU (Xeon 6 OpenVINO), large completions → GPU (Gaudi 3)
+- [x] Overdrive lanes updated: eco=granite-2b-cpu, performance=phi3-mini-cpu, overdrive=deepseek-14b
+- [x] Concurrent batch runner: workloads use ThreadPoolExecutor with per-mode concurrency
+- [x] API key rotated, cluster secret updated
+
+### RHDP Packaging (2026-06-01)
+- [x] Created `ocp4-workload-intel-rh-inference-demo` role (standard agnosticd workload pattern)
+- [x] Templates for all K8s manifests (namespace, secrets, configmap, postgres, gateway, frontend)
+- [x] AgnosticV catalog updated to reference workload role
+- [x] GitHub Actions workflow for container image builds
+- [ ] **Blocked:** RHDP shared cluster for AI quickstarts not yet available
 
 ---
 
 ## Next Steps — Need Team Input
 
-### For Ashok
+### For Ashok / Tony
 
-1. **AgnosticV catalog placement** — Where in the agnosticv repo does our catalog entry go? Which account path? (`agnosticv-catalog/` in this repo is a reference skeleton ready to copy over)
+1. **RHDP shared cluster timeline** — When will the shared cluster for AI quickstarts be available? The Summit quickstarts currently fail to provision because no shared clusters exist. Our demo is blocked on the same infrastructure.
 
-2. **Existing Intel demo CIs** — Are there existing Intel demo catalog items we should model after or integrate with?
+2. **Catalog entry format** — Should we follow the `rh-ai-quickstart` pattern (app code + Showroom lab guide + Developer Hub template) or the agnosticd workload role pattern? We have the workload role ready at `ansible/roles/ocp4-workload-intel-rh-inference-demo/`.
 
-3. **GPU access for testing** — When we're ready to test the Gaudi inference path live, which CNV cluster should we use? What's the approval process?
+3. **Image registry** — Confirm `quay.io/intel-redhat/` or provide the correct org. GitHub Actions workflow for builds is ready at `.github/workflows/build-images.yaml`.
 
-4. **Image registry** — Which quay.io org should we push container images to? (`quay.io/intel-redhat/` is a placeholder in the manifests)
+4. **MAAS LiteLLM access** — Will the shared cluster have network access to `litellm-prod.apps.maas.redhatworkshops.io`? Our demo depends on it for all inference.
 
-### For Tony
-
-5. **CI/CD pipeline** — What branch/tag triggers the integration environment? Is there a Jenkins/Tekton pipeline we should hook into, or do we use the one in `deploy/pipelines/pipeline.yaml`?
-
-6. **Image build automation** — Should container builds happen in the agnosticd config (during deploy) or pre-built and pushed to a registry?
-
-7. **Secrets management** — What's the standard approach for demo secrets in the Babylon pipeline? Vault? ExternalSecrets? Manual injection?
+5. **Showroom lab guide** — If following the quickstart pattern, we need a Showroom guide (like `rhpds/showroom-ai-quickstart-ai-product-recommender`). Should we create one?
 
 ### For Jonathan (Self)
 
-8. **Learn agnosticd workflow** — Walk through creating a config PR against `github.com/redhat-cop/agnosticd` using an existing config as a template. Ashok/Tony can pair on this.
+6. **Test workload role on infra01** — Run the ocp4-workload role with `ACTION=create` against infra01 to validate end-to-end.
 
-9. **Test devel deployment** — Once items 1-4 are resolved, do a devel deployment to validate the agnosticd config end-to-end.
+7. **Build and push images to quay.io** — Once registry access is confirmed, tag `v1.0.0` and push images.
 
-10. **Smoke deploy (Stage 5)** — Pending cluster access: deploy the full stack to an OpenShift cluster and validate all components work together.
+8. **Create Showroom lab guide** — If that's the format needed, create a guided walkthrough of the demo features.
+
+### Reference: AI Quickstart Ecosystem
+- App repos: [github.com/rh-ai-quickstart](https://github.com/rh-ai-quickstart)
+- Showroom guides: `rhpds/showroom-ai-quickstart-*`
+- Developer Hub templates: [redhat-developer/aiquickstarttemplates](https://github.com/redhat-developer/aiquickstarttemplates)
+- RHDP Skills Marketplace (new tooling): [rhpds/rhdp-skills-marketplace](https://github.com/rhpds/rhdp-skills-marketplace)
 
 ---
 
@@ -91,7 +109,7 @@ A multi-tenant inference gateway that routes AI workloads across Intel hardware 
 These were identified during a full repo review. Fix as time allows.
 
 ### High Priority
-- In-memory rate limiter grows unboundedly — switch to `slowapi` (already in requirements) or add key eviction
+- ~~In-memory rate limiter grows unboundedly~~ — FIXED: periodic eviction + 10K key cap
 - In-memory run dicts (`_agent_runs`, `_training_runs`, `_swarm_runs`) have no cleanup
 - Background threads in `router.py` create new event loops vs shared `asyncpg` pool — use `asyncio.run_coroutine_threadsafe()`
 - Timing attack on unlock hash in `batch_runner.py` — use `hmac.compare_digest()`
