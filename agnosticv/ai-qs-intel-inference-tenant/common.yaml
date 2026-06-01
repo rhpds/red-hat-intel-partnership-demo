@@ -168,7 +168,7 @@ ocp4_workload_showroom_content_ui_config: |
 # Babylon meta variables
 # -------------------------------------------------------------------
 __meta__:
-  asset_uuid: GENERATE-NEW-UUID
+  asset_uuid: be698ed0-6719-483d-b333-d42b92437b76
   owners:
     maintainer:
       - name: Jonathan Kershaw

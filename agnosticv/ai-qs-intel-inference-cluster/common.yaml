@@ -128,7 +128,7 @@ ocp4_workload_gitops_bootstrap_helm_values:
 # -------------------------------------------------------------------
 
 __meta__:
-  asset_uuid: GENERATE-NEW-UUID
+  asset_uuid: 679a5ee5-5a9e-489b-8af5-16d3a11a19f2
   owners:
     maintainer:
     - name: Jonathan Kershaw
