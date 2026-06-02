@@ -1,0 +1,61 @@
+= Dual-Path Routing in Action
+
+In this section you'll run real multi-step AI workflows and watch each step
+route to the optimal Intel hardware.
+
+== Step 1: Run an Enterprise RAG Pipeline
+
+Click *Try It Live* in the sidebar under *Core Demo*.
+
+Select the *Enterprise RAG* tab, then click *Technical question*.
+
+Watch the 4-step pipeline execute:
+
+[cols="1,2,1"]
+|===
+|Step |What It Does |Hardware
+
+|Embed Query
+|Convert the question to a vector embedding
+|Xeon 6
+
+|Vector Search
+|Find relevant documents via similarity search
+|Xeon 6
+
+|Rerank Candidates
+|Score and reorder the top documents
+|Xeon 6
+
+|Generate Answer
+|Synthesize a response from the top documents
+|Gaudi
+|===
+
+Notice: 3 of 4 steps run on Xeon 6 (cheap, fast). Only the generation
+step — which needs large model throughput — routes to Gaudi. This is
+the core cost optimization.
+
+== Step 2: Run an AIOps Copilot Pipeline
+
+Switch to the *AIOps Copilot* tab and click *Latency alert*.
+
+This pipeline:
+
+. *Classifies severity* on Xeon 6 (fast triage)
+. *Finds similar incidents* via embeddings on Xeon 6
+. *Generates root cause analysis* on Gaudi (needs 17B model)
+. *Runs governance gate* on Xeon 6 (policy check)
+
+Each step shows its actual latency, cost, and the routing engine's
+reasoning.
+
+== Step 3: Try the Governed Agent
+
+Switch to the *Governed Agent* tab and try both:
+
+* *Safe action* (read logs) — low risk, auto-approved
+* *Dangerous action* (delete namespace) — high risk, requires approval
+
+Watch how the governance layer evaluates risk and enforces policy, with
+the same intelligent hardware routing underneath.

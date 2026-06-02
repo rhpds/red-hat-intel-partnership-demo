@@ -1,0 +1,47 @@
+= Intel-Red Hat AI Inference Platform
+
+Welcome to the Intel-Red Hat AI Inference Platform quickstart.
+
+This lab walks you through an enterprise AI inference gateway that intelligently
+routes workloads across Intel Xeon 6 CPUs and Intel Gaudi accelerators, deployed
+on Red Hat OpenShift AI.
+
+== What You'll Learn
+
+* How the routing engine evaluates AI requests and selects the optimal hardware
+* Why dual-path inference (CPU + GPU) cuts costs by 60-80% on mixed workloads
+* How Red Hat OpenShift AI provides the enterprise platform — KServe model serving,
+  operator lifecycle management, multi-tenant isolation, and observability
+* How to run enterprise workload scenarios at scale
+
+== Platform Components
+
+[cols="1,3"]
+|===
+|Component |Description
+
+|*Inference Gateway*
+|FastAPI routing engine that evaluates task type, model size, and token count
+to select optimal Intel hardware for each request
+
+|*Intel Xeon 6*
+|CPU inference with AMX (Advanced Matrix Extensions) for embeddings,
+classification, reranking — fast and cost-efficient
+
+|*Intel Gaudi*
+|GPU inference with 96GB HBM for large language model generation — 100+ tokens/sec
+for 17B+ parameter models
+
+|*Red Hat OpenShift AI*
+|Enterprise platform providing KServe model serving, Keycloak SSO, ArgoCD GitOps,
+Prometheus observability, and namespace isolation for multi-tenant access
+
+|*MAAS LiteLLM*
+|Red Hat Model-as-a-Service proxy providing a unified OpenAI-compatible API across
+all models on both hardware tiers
+|===
+
+== Getting Started
+
+Open the *Inference Dashboard* tab to access the platform UI, then follow the
+steps in this guide.

@@ -1,0 +1,5 @@
+name: intel-inference-demo
+title: Intel-Red Hat AI Inference Platform
+version: '1.0'
+nav:
+  - modules/ROOT/nav.adoc

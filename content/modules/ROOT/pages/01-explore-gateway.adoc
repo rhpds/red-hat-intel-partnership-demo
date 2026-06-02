@@ -1,0 +1,55 @@
+= Explore the Inference Gateway
+
+In this section you'll explore the routing engine and understand how it
+decides which Intel hardware handles each request.
+
+== Step 1: Open the Architecture Page
+
+In the *Inference Dashboard* tab, click *Architecture* in the sidebar.
+
+Review the *Platform Stack* diagram — it shows the five layers from Intel
+hardware at the bottom through Red Hat OpenShift AI to the application layer.
+
+== Step 2: Explore the Routing Engine
+
+Click *Routing Engine* in the sidebar under *Core Demo*.
+
+Read the *What Is the Routing Engine?* section to understand:
+
+* *What it is* — a FastAPI gateway that sits between the application and
+  inference backends
+* *Why it exists* — to automatically route each AI request to the cheapest
+  hardware that meets the requirement
+* *How it was built* — Python/FastAPI on OpenShift, YAML routing policy,
+  models served via MAAS LiteLLM proxy
+
+== Step 3: Route a Single Request
+
+Scroll to *Step 2: Route a Request* on the Routing Engine page.
+
+. Set *Task Type* to `classification`
+. Set *Token Estimate* to `500`
+. Set *Priority* to `normal`
+. Click *Route Request*
+
+Observe:
+
+* The request routes to the *Eco Lane* (Intel Xeon 6)
+* The decision trace shows each rubric check: endpoint health, capability
+  match, token limits, latency target
+* Cost estimate is shown for the selected hardware
+
+Now try changing the task to `long_summary` with 24,000 tokens at `high`
+priority. Watch it route to *Overdrive Lane* (Intel Gaudi).
+
+== Step 4: Test Failover
+
+Scroll to *Step 1: See Your Infrastructure*.
+
+Toggle the *Overdrive* lane switch to *Unhealthy*.
+
+Now route a request that would normally go to Gaudi (e.g., `incident_rca`,
+32,000 tokens, `critical` priority). Observe that it falls back to the
+*Performance Lane* (Xeon 6) with a `fallback_to_performance` reason code.
+
+Toggle Overdrive back to *Healthy* when done.

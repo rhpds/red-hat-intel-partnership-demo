@@ -91,3 +91,52 @@ jobs:
 
       - name: Run security scans
         run: make security-scan
+
+  ansible-lint:
+    name: "Ansible Collection Lint"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install ansible-lint
+        run: pip install ansible-lint
+
+      - name: Lint collection role
+        run: |
+          cd ansible/collections/rhpds/intel_inference
+          ansible-lint roles/
+
+  agnosticv-lint:
+    name: "AgnosticV Catalog Validation"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install yamllint
+        run: pip install yamllint
+
+      - name: Lint agnosticv YAML
+        run: yamllint -d relaxed agnosticv/
+
+      - name: Check required files
+        run: |
+          for dir in agnosticv/*/; do
+            name=$(basename "$dir")
+            echo "Checking $name..."
+            [ -f "$dir/common.yaml" ] || { echo "ERROR: Missing common.yaml in $name"; exit 1; }
+            [ -f "$dir/dev.yaml" ] || { echo "ERROR: Missing dev.yaml in $name"; exit 1; }
+            grep -q '__meta__' "$dir/common.yaml" || { echo "ERROR: Missing __meta__ in $name/common.yaml"; exit 1; }
+            grep -q 'asset_uuid' "$dir/common.yaml" || { echo "ERROR: Missing asset_uuid in $name/common.yaml"; exit 1; }
+            echo "  OK: common.yaml, dev.yaml, __meta__, asset_uuid"
+          done
+          echo "All catalog items validated."

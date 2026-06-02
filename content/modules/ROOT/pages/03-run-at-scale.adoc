@@ -1,0 +1,51 @@
+= Run at Scale
+
+In this section you'll simulate enterprise workloads at scale and see
+how intelligent routing distributes requests across Intel hardware.
+
+== Step 1: Run a Workload Profile
+
+Click *Run at Scale* in the sidebar under *Core Demo*.
+
+Select the *Incident Storm* profile — this simulates a production AI
+platform under pressure with mixed alert triage, knowledge base lookups,
+and root cause analysis.
+
+Set the power mode to *Drive* (25 requests) and click *Run*.
+
+Watch the results:
+
+* *Xeon 6 requests* — triage, embeddings, reranking (fast, cheap)
+* *Gaudi requests* — root cause analysis, long summaries (throughput)
+* *Cost breakdown* — see the per-request cost on each hardware tier
+* *Latency distribution* — p50, p95, p99 across both paths
+
+== Step 2: Compare at Higher Scale
+
+Try the same profile at *Boost* (250 requests) or *Overdrive* (1,000).
+
+As scale increases, the cost advantage of intelligent routing becomes
+more visible — tasks that don't need GPU memory bandwidth stay on
+Xeon 6 at a fraction of the cost.
+
+== Step 3: Try Different Profiles
+
+Each profile demonstrates a different enterprise pattern:
+
+* *RAG Barrage* — knowledge base queries at scale (mostly Xeon 6)
+* *Token Cannon* — heavy generation stress test (mostly Gaudi)
+* *Model Race* — same tasks across all hardware to show why routing matters
+
+== What You've Seen
+
+This demo proves that intelligent routing across Intel Xeon 6 and Gaudi,
+deployed on Red Hat OpenShift AI:
+
+* *Cuts costs* — 60-80% savings on mixed workloads by keeping small tasks
+  on CPUs
+* *Maintains performance* — large model generation still runs on Gaudi at
+  100+ tokens/sec
+* *Provides transparency* — every routing decision is logged with full
+  evidence
+* *Scales with the enterprise* — the same routing policy works at 25 or
+  1,000 requests
