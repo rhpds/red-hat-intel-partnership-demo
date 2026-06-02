@@ -55,6 +55,12 @@ routing_matrix:
     lane: performance
 
   - task_type: long_summary
+    token_max: 16000
+    priority: any
+    latency_target_max: 8000
+    lane: performance
+
+  - task_type: long_summary
     token_min: 16000
     priority: [high, critical]
     latency_target_max: 5000

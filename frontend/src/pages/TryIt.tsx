@@ -101,6 +101,9 @@ export default function TryIt() {
             best suited for it — Xeon 6 for fast, cheap tasks and Gaudi for heavy generation.
             You'll see actual latency, cost, and the routing engine's reasoning.
           </Content>
+          <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)', display: 'block', marginTop: '0.5rem' }}>
+            Running on Red Hat OpenShift AI &bull; Models served via KServe on MAAS &bull; Multi-tenant isolation via OpenShift namespaces
+          </Content>
         </Content>
       </PageSection>
 

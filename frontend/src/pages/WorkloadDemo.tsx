@@ -245,6 +245,9 @@ export default function WorkloadDemo() {
             Each profile simulates a pattern you'd see in production — incident response,
             RAG pipelines, heavy generation, or cross-hardware comparison.
           </Content>
+          <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)', display: 'block', marginTop: '0.5rem' }}>
+            Orchestrated by Red Hat OpenShift AI &bull; Models served via KServe &bull; Tenant-isolated workloads on OpenShift Container Platform
+          </Content>
         </Content>
       </PageSection>
 

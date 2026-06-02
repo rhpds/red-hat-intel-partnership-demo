@@ -56,8 +56,8 @@ export default function Overview() {
           <GalleryItem>
             <Card isFullHeight>
               <CardTitle>
-                <Label color="blue" style={{ marginRight: '0.5rem' }}>Xeon 6</Label>
-                Scale
+                <Label color="blue" style={{ marginRight: '0.5rem' }}>Intel Xeon 6</Label>
+                Efficient Inference
               </CardTitle>
               <CardBody>
                 <Content>
@@ -77,8 +77,8 @@ export default function Overview() {
           <GalleryItem>
             <Card isFullHeight>
               <CardTitle>
-                <Label color="orange" style={{ marginRight: '0.5rem' }}>Gaudi</Label>
-                Power
+                <Label color="orange" style={{ marginRight: '0.5rem' }}>Intel Gaudi</Label>
+                Large Model Generation
               </CardTitle>
               <CardBody>
                 <Content>
@@ -98,18 +98,19 @@ export default function Overview() {
           <GalleryItem>
             <Card isFullHeight>
               <CardTitle>
-                <Label color="red" style={{ marginRight: '0.5rem' }}>OpenShift AI</Label>
-                Operations
+                <Label color="red" style={{ marginRight: '0.5rem' }}>Red Hat OpenShift AI</Label>
+                Enterprise Platform
               </CardTitle>
               <CardBody>
                 <Content>
                   <Content component={"p"}>
-                    One API, smart decisions. The gateway evaluates task type, model size, and
-                    priority to route each request. Every decision is logged with full evidence —
-                    cost, latency, and reasoning.
+                    Red Hat OpenShift provides the enterprise foundation: KServe for model serving,
+                    Keycloak for SSO, ArgoCD for GitOps delivery, Prometheus for observability, and
+                    namespace isolation for multi-tenant access — all managed by operators on
+                    OpenShift Container Platform.
                   </Content>
                   <Content component={"small"} style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>
-                    {health.data?.routes || '—'} routing rules &bull; Policy enforcement &bull; Every decision logged
+                    KServe model serving &bull; Multi-tenant isolation &bull; Operator-managed lifecycle
                   </Content>
                 </Content>
               </CardBody>
@@ -120,20 +121,29 @@ export default function Overview() {
 
       <PageSection variant="secondary">
         <Content>
-          <Content component={"h2"}>The Demo Story</Content>
+          <Content component={"h2"}>Why We Built This</Content>
           <Content component={"p"} style={{ maxWidth: '720px' }}>
-            Enterprise AI isn't one model on one GPU. It's a pipeline — embeddings, search,
-            reranking, generation, governance — where each step has different hardware needs. This
-            platform routes each step to the right Intel hardware, proves the cost savings, and
-            provides full decision transparency. That's what makes Intel + Red Hat credible.
+            GPU-only inference is expensive. CPU-only inference is too slow for large models.
+            Enterprises need both — but manually deciding which hardware runs which task doesn't
+            scale. We built a routing engine that solves this: it evaluates every request
+            (task type, model size, token count, priority) and routes it to the optimal Intel
+            hardware automatically.
+          </Content>
+          <Content component={"p"} style={{ maxWidth: '720px' }}>
+            Red Hat OpenShift AI provides the platform that makes this possible at enterprise
+            scale — KServe for model serving, operators for lifecycle management, namespace
+            isolation for multi-tenant access, and a full observability stack. Intel provides
+            the hardware diversity: Xeon 6 for cost-efficient inference, Gaudi for
+            high-throughput generation. The routing engine is the bridge between them.
           </Content>
         </Content>
-        <Gallery hasGutter minWidths={{ default: '250px' }} style={{ marginTop: '1rem' }}>
+        <Content component={"h3"} style={{ marginTop: '1.5rem', marginBottom: '0.25rem' }}>The Demo in 4 Steps</Content>
+        <Gallery hasGutter minWidths={{ default: '250px' }} style={{ marginTop: '0.5rem' }}>
           {[
-            { num: '1', title: 'See the Architecture', desc: 'Understand the routing logic and Intel hardware tiers.', path: '/architecture' },
-            { num: '2', title: 'Explore the Routing Engine', desc: 'Learn the 3 lanes. Route a request. See exactly why Xeon 6 or Gaudi was chosen.', path: '/overdrive' },
-            { num: '3', title: 'Try It Live', desc: 'Watch RAG, AIOps, and Agent workflows use intelligent routing in real time.', path: '/try-it' },
-            { num: '4', title: 'Run at Scale', desc: 'Simulate 25 to 1,000 enterprise requests and see hardware distribution.', path: '/workload' },
+            { num: '1', title: 'Architecture', desc: 'See the platform stack — Intel hardware, Red Hat OpenShift AI, and the routing engine that bridges them.', path: '/architecture' },
+            { num: '2', title: 'Routing Engine', desc: 'Route a request. See the rubric evaluation, lane selection, and why Xeon 6 or Gaudi was chosen.', path: '/overdrive' },
+            { num: '3', title: 'Try It Live', desc: 'Run RAG, AIOps, and Agent workflows. Watch each step route to the right hardware in real time.', path: '/try-it' },
+            { num: '4', title: 'Run at Scale', desc: 'Simulate 25–1,000 requests. See cost savings from intelligent routing vs. GPU-only.', path: '/workload' },
           ].map((step) => (
             <GalleryItem key={step.num}>
               <Card isClickable isSelectable onClick={() => navigate(step.path)}>

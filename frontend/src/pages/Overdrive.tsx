@@ -323,12 +323,58 @@ export default function Overdrive() {
             Route AI workloads to the right Intel hardware automatically. Small tasks run on
             cost-efficient <strong>Xeon 6</strong> CPUs. Heavy workloads accelerate on{' '}
             <strong>Gaudi</strong>. The routing engine evaluates every request against a rubric
-            and provides full decision evidence.
+            and provides full decision evidence — deployed on <strong>Red Hat OpenShift AI</strong> with
+            models served via KServe.
+          </Content>
+        </Content>
+      </PageSection>
+
+      {/* ======== WHAT IS THIS ======== */}
+      <PageSection variant="secondary">
+        <Content>
+          <Content component="h2">What Is the Routing Engine?</Content>
+          <Content component="p" style={{ maxWidth: '720px' }}>
+            The routing engine is a FastAPI gateway built for this partnership demo. It sits
+            between the application and the inference backends, and its job is simple: decide
+            which Intel hardware should handle each AI request, then prove the decision was right.
+          </Content>
+          <Content component="h3" style={{ marginTop: '1rem' }}>Why it exists</Content>
+          <Content component="p" style={{ maxWidth: '720px' }}>
+            Enterprise AI pipelines have steps with very different compute needs. Embedding a
+            search query takes milliseconds on a CPU. Generating a 2,000-word incident report
+            requires GPU memory bandwidth. Without routing, you either run everything on GPUs
+            (expensive) or everything on CPUs (slow for large models). This engine evaluates
+            each request — task type, token count, priority, latency target — and routes it to
+            the cheapest hardware that can meet the requirement. On mixed workloads, this
+            cuts inference costs by 60-80% compared to GPU-only.
+          </Content>
+          <Content component="h3" style={{ marginTop: '1rem' }}>How it was built</Content>
+          <Content component="p" style={{ maxWidth: '720px' }}>
+            The engine is a Python service (FastAPI) running as a containerized deployment on
+            Red Hat OpenShift. It loads a YAML routing policy that maps task types to hardware
+            backends, with conditional rules for model size and token thresholds. The backends
+            connect to Intel Xeon 6 and Gaudi hardware via Red Hat's Model-as-a-Service (MAAS)
+            LiteLLM proxy, which provides a unified OpenAI-compatible API across all models.
+            KServe on OpenShift AI handles model serving and lifecycle. Every routing decision
+            is logged to PostgreSQL with full evidence — which hardware, why, latency, and cost —
+            so the system is auditable from day one.
+          </Content>
+        </Content>
+      </PageSection>
+
+      {/* ======== THREE LANES ======== */}
+      <PageSection>
+        <Content>
+          <Content component="h2">Three Inference Lanes</Content>
+          <Content component="p" style={{ maxWidth: '720px', marginBottom: '1rem' }}>
+            The routing policy defines three lanes, each backed by a specific Intel hardware tier
+            and model. The engine evaluates every request against these lanes and selects the
+            best match.
           </Content>
         </Content>
 
         {/* Inline architecture diagram */}
-        <div style={{ marginTop: '1.5rem' }}>
+        <div style={{ marginTop: '0.5rem' }}>
           <div style={{ textAlign: 'center', marginBottom: '1rem' }}>
             <div style={{
               display: 'inline-block', padding: '10px 20px',

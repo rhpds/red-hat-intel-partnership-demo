@@ -1,4 +1,4 @@
-import { NavLink, Outlet } from 'react-router-dom';
+import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import {
   Brand,
   Masthead,
@@ -7,6 +7,7 @@ import {
   MastheadMain,
   MastheadToggle,
   Nav,
+  NavExpandable,
   NavItem,
   NavList,
   Page,
@@ -24,21 +25,33 @@ import { BarsIcon } from '@patternfly/react-icons';
 import { useHealth } from '../api/hooks';
 import { useTenant } from '../context/TenantContext';
 
-const navSections = [
+interface NavSection {
+  title: string;
+  items: { path: string; label: string }[];
+  expandable?: boolean;
+}
+
+const navSections: NavSection[] = [
   {
-    title: 'Understand',
+    title: 'The Story',
     items: [
       { path: '/', label: 'Overview' },
       { path: '/architecture', label: 'Architecture' },
     ],
   },
   {
-    title: 'Experience',
+    title: 'Core Demo',
     items: [
       { path: '/overdrive', label: 'Routing Engine' },
+      { path: '/try-it', label: 'Try It Live' },
+      { path: '/workload', label: 'Run at Scale' },
+    ],
+  },
+  {
+    title: 'Deep Dives',
+    expandable: true,
+    items: [
       { path: '/tokenizer', label: 'Tokenizer & Cost' },
-      { path: '/try-it', label: 'Try It' },
-      { path: '/workload', label: 'Workload Simulation' },
       { path: '/agent', label: 'Research Agent' },
       { path: '/swarm', label: 'Agent Swarm' },
       { path: '/training', label: 'Train + Serve' },
@@ -49,6 +62,7 @@ const navSections = [
   },
   {
     title: 'Observe',
+    expandable: true,
     items: [
       { path: '/cockpit', label: 'Cockpit' },
       { path: '/capacity', label: 'Capacity & Allocation' },
@@ -58,7 +72,8 @@ const navSections = [
     ],
   },
   {
-    title: 'Discover',
+    title: 'More',
+    expandable: true,
     items: [
       { path: '/gallery', label: 'Publishing House' },
     ],
@@ -74,6 +89,7 @@ const navSections = [
 export default function AppLayout() {
   const { data: health } = useHealth();
   const { tenant, isAdmin } = useTenant();
+  const location = useLocation();
 
   const visibleSections = navSections.filter(s => {
     if (s.title === 'Admin' && !isAdmin) return false;
@@ -133,26 +149,49 @@ export default function AppLayout() {
     <PageSidebar>
       <PageSidebarBody>
         <Nav aria-label="Main navigation">
-          {visibleSections.map((section) => (
-            <div key={section.title}>
-              <div style={{
-                padding: '12px 16px 4px', fontSize: '0.7rem', fontWeight: 700,
-                textTransform: 'uppercase', letterSpacing: '0.05em',
-                color: 'var(--pf-t--global--text--color--subtle)',
-              }}>
-                {section.title}
+          {visibleSections.map((section) => {
+            const sectionActive = section.items.some(i => i.path === location.pathname);
+
+            if (section.expandable) {
+              return (
+                <NavExpandable
+                  key={section.title}
+                  title={section.title}
+                  isActive={sectionActive}
+                  isExpanded={sectionActive}
+                >
+                  {section.items.map(({ path, label }) => (
+                    <NavItem key={path} isActive={location.pathname === path}>
+                      <NavLink to={path} className={({ isActive }) => isActive ? 'pf-m-current' : ''}>
+                        {label}
+                      </NavLink>
+                    </NavItem>
+                  ))}
+                </NavExpandable>
+              );
+            }
+
+            return (
+              <div key={section.title}>
+                <div style={{
+                  padding: '12px 16px 4px', fontSize: '0.7rem', fontWeight: 700,
+                  textTransform: 'uppercase', letterSpacing: '0.05em',
+                  color: 'var(--pf-t--global--text--color--subtle)',
+                }}>
+                  {section.title}
+                </div>
+                <NavList>
+                  {section.items.map(({ path, label }) => (
+                    <NavItem key={path}>
+                      <NavLink to={path} className={({ isActive }) => isActive ? 'pf-m-current' : ''}>
+                        {label}
+                      </NavLink>
+                    </NavItem>
+                  ))}
+                </NavList>
               </div>
-              <NavList>
-                {section.items.map(({ path, label }) => (
-                  <NavItem key={path}>
-                    <NavLink to={path} className={({ isActive }) => isActive ? 'pf-m-current' : ''}>
-                      {label}
-                    </NavLink>
-                  </NavItem>
-                ))}
-              </NavList>
-            </div>
-          ))}
+            );
+          })}
         </Nav>
       </PageSidebarBody>
     </PageSidebar>
