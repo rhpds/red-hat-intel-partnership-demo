@@ -1,0 +1,78 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+  namespace: "{{ intel_rh_inference_namespace }}"
+  labels:
+    app.kubernetes.io/name: frontend
+spec:
+  replicas: {{ intel_rh_inference_frontend_replicas }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: frontend
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: frontend
+    spec:
+      containers:
+        - name: frontend
+          image: "{{ intel_rh_inference_frontend_image }}"
+          ports:
+            - name: http
+              containerPort: 8080
+          resources:
+            requests:
+              cpu: "{{ intel_rh_inference_frontend_cpu_request }}"
+              memory: "{{ intel_rh_inference_frontend_memory_request }}"
+            limits:
+              cpu: "{{ intel_rh_inference_frontend_cpu_limit }}"
+              memory: "{{ intel_rh_inference_frontend_memory_limit }}"
+          securityContext:
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 3
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 15
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend
+  namespace: "{{ intel_rh_inference_namespace }}"
+spec:
+  selector:
+    app.kubernetes.io/name: frontend
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http
+  type: ClusterIP
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: "{{ intel_rh_inference_namespace }}"
+  namespace: "{{ intel_rh_inference_namespace }}"
+spec:
+  to:
+    kind: Service
+    name: frontend
+    weight: 100
+  port:
+    targetPort: http
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect

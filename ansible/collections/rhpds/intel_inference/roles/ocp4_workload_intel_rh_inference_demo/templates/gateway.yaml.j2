@@ -1,0 +1,107 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gateway
+  namespace: "{{ intel_rh_inference_namespace }}"
+  labels:
+    app.kubernetes.io/name: inference-gateway
+spec:
+  replicas: {{ intel_rh_inference_gateway_replicas }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: inference-gateway
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: inference-gateway
+    spec:
+      containers:
+        - name: gateway
+          image: "{{ intel_rh_inference_gateway_image }}"
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            - name: PORT
+              value: "8080"
+            - name: CONFIG_PATH
+              value: "/config/config.local.yaml"
+            - name: CORS_ORIGINS
+              value: "{{ intel_rh_inference_cors_origins }}"
+            - name: RATE_LIMIT_RPM
+              value: "{{ intel_rh_inference_rate_limit_rpm }}"
+            - name: LOCAL_FALLBACK_ENABLED
+              value: "{{ intel_rh_inference_local_fallback | string | lower }}"
+          envFrom:
+            - secretRef:
+                name: postgres-credentials
+                optional: true
+            - secretRef:
+                name: gateway-config
+          resources:
+            requests:
+              cpu: "{{ intel_rh_inference_gateway_cpu_request }}"
+              memory: "{{ intel_rh_inference_gateway_memory_request }}"
+            limits:
+              cpu: "{{ intel_rh_inference_gateway_cpu_limit }}"
+              memory: "{{ intel_rh_inference_gateway_memory_limit }}"
+          securityContext:
+            runAsNonRoot: true
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 15
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 3
+            periodSeconds: 10
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            - name: routing-config
+              mountPath: /config
+      volumes:
+        - name: tmp
+          emptyDir: {}
+        - name: routing-config
+          configMap:
+            name: gateway-routing-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: gateway
+  namespace: "{{ intel_rh_inference_namespace }}"
+spec:
+  selector:
+    app.kubernetes.io/name: inference-gateway
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http
+  type: ClusterIP
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: inference-gateway
+  namespace: "{{ intel_rh_inference_namespace }}"
+spec:
+  to:
+    kind: Service
+    name: gateway
+    weight: 100
+  port:
+    targetPort: http
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect

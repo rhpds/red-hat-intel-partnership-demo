@@ -1,0 +1,14 @@
+---
+namespace: rhpds
+name: intel_inference
+version: 0.1.0
+description: Intel-Red Hat AI Inference Platform workload for RHDP AI Quickstarts
+authors:
+  - Jonathan Kershaw <jkershaw@redhat.com>
+  - Tony Kay <ankay@redhat.com>
+license:
+  - Apache-2.0
+repository: https://github.com/rhpds/red-hat-intel-partnership-demo
+dependencies: {}
+build_ignore:
+  - '*.tar.gz'

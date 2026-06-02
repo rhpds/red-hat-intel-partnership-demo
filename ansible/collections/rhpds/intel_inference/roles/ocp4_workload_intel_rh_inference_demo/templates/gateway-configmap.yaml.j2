@@ -1,0 +1,64 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gateway-routing-config
+  namespace: "{{ intel_rh_inference_namespace }}"
+data:
+  config.local.yaml: |
+    backends:
+      - name: litellm-cpu
+        url: ${LITELLM_API_BASE}
+        api_key: ${LITELLM_API_KEY}
+        accelerator: xeon6
+        capabilities: [completion, embeddings, classification, reranking, search, governance, policy]
+        cost_per_1k_tokens: 0.0004
+        max_concurrent: 10
+      - name: litellm-gpu
+        url: ${LITELLM_API_BASE}
+        api_key: ${LITELLM_API_KEY}
+        accelerator: gaudi
+        capabilities: [completion, batch_generation, governance, policy]
+        cost_per_1k_tokens: 0.001
+        max_concurrent: 10
+    routes:
+      - task: embeddings
+        backend: litellm-cpu
+        reason: "nomic-embed-text-v1-5 on Xeon 6 — 768-dim embeddings"
+        fallback: local
+      - task: classification
+        backend: litellm-cpu
+        reason: "granite-2b-cpu on Xeon 6 OpenVINO — fast classification"
+        fallback: local
+      - task: search
+        backend: litellm-cpu
+        reason: "Semantic search via embeddings on Xeon 6"
+      - task: reranking
+        backend: litellm-cpu
+        reason: "phi3-mini-cpu on Xeon 6 OpenVINO — cross-encoder reranking"
+        fallback: local
+      - task: completion
+        conditions:
+          - model_size_b: 4
+            operator: "<="
+            backend: litellm-cpu
+            reason: "Small model (<=4B) on Xeon 6 OpenVINO"
+          - model_size_b: 4
+            operator: ">"
+            backend: litellm-gpu
+            reason: "Large model (>4B) on Gaudi 3"
+        default_backend: litellm-gpu
+        reason: "Route by model size — small to CPU, large to GPU"
+        fallback: local
+      - task: batch_generation
+        backend: litellm-gpu
+        reason: "Batch workloads on Gaudi 3"
+        fallback: local
+      - task: governance
+        backend: litellm-cpu
+        reason: "granite-2b-cpu on Xeon 6 OpenVINO — governance"
+        fallback: local
+      - task: policy
+        backend: litellm-cpu
+        reason: "granite-2b-cpu on Xeon 6 OpenVINO — policy"
+        fallback: local

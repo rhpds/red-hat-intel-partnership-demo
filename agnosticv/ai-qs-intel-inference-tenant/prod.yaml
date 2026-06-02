@@ -1,0 +1,14 @@
+---
+intel_rh_inference_gateway_image: "quay.io/intel-redhat/inference-gateway:v1.0.0"
+intel_rh_inference_frontend_image: "quay.io/intel-redhat/inference-frontend:v1.0.0"
+
+__meta__:
+  deployer:
+    scm_ref: main
+
+  sandboxes:
+    - kind: OcpSandbox
+      cloud_selector:
+        purpose: prod
+        cloud: cnv-dedicated-shared
+        lab: ai-qs-intel-inference

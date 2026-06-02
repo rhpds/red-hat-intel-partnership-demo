@@ -1,0 +1,54 @@
+= ocp4-workload-intel-rh-inference-demo
+
+== Overview
+
+Deploys the Intel-Red Hat AI Inference Platform on an existing OpenShift cluster. The platform provides dual-path inference routing across Intel Xeon 6 (CPU/OpenVINO) and Gaudi 3 (GPU) backends via the MAAS LiteLLM proxy.
+
+Components deployed:
+
+* *Gateway* — FastAPI inference router with hardware-aware routing engine
+* *Frontend* — React/PatternFly dashboard with cockpit and workload demos
+* *PostgreSQL* — Persistence for request logging, tenant management, and audit trail
+
+== Prerequisites
+
+* OpenShift 4.14+
+* Access to MAAS LiteLLM endpoint (`litellm-prod.apps.maas.redhatworkshops.io`)
+* Container images pre-built and pushed to registry
+
+== Required Variables
+
+[cols="2,1,3"]
+|===
+| Variable | Required | Description
+
+| `intel_rh_inference_litellm_api_key` | Yes | API key for MAAS LiteLLM proxy
+| `intel_rh_inference_postgres_password` | Yes | PostgreSQL password
+| `guid` | Yes | Unique deployment identifier
+|===
+
+== Deploy
+
+[source,bash]
+----
+ansible-playbook ocp-workload.yml \
+  -e ocp_workload=ocp4-workload-intel-rh-inference-demo \
+  -e ACTION=create \
+  -e guid=demo01 \
+  -e intel_rh_inference_litellm_api_key=your-key \
+  -e intel_rh_inference_postgres_password=your-password
+----
+
+== Remove
+
+[source,bash]
+----
+ansible-playbook ocp-workload.yml \
+  -e ocp_workload=ocp4-workload-intel-rh-inference-demo \
+  -e ACTION=remove \
+  -e guid=demo01
+----
+
+== Repository
+
+https://github.com/rhpds/red-hat-intel-partnership-demo
