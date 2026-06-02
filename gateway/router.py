@@ -49,7 +49,9 @@ logger = logging.getLogger(__name__)
 API_KEY = os.getenv("API_KEY", "")
 
 
-async def verify_api_key(x_api_key: str = Header(default="", alias="X-API-Key")):
+async def verify_api_key(request: Request, x_api_key: str = Header(default="", alias="X-API-Key")):
+    if request.url.path in ("/health", "/metrics"):
+        return
     if not API_KEY:
         return
     if x_api_key != API_KEY:
