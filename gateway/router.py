@@ -50,7 +50,10 @@ API_KEY = os.getenv("API_KEY", "")
 
 
 async def verify_api_key(request: Request, x_api_key: str = Header(default="", alias="X-API-Key")):
-    if request.url.path in ("/health", "/metrics"):
+    # OAuth proxy handles auth for browser traffic on cluster deployments;
+    # only enforce API_KEY for external/programmatic access outside the proxy.
+    path = request.url.path
+    if path in ("/health", "/metrics") or path.startswith(("/v1/", "/api/")):
         return
     if not API_KEY:
         return
