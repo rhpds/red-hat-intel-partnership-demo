@@ -1,23 +1,50 @@
 #!/bin/bash
 # Pre-commit hook: block commits containing secrets, tokens, or internal URLs
+#
+# Bypass for genuine false positives:  git commit --no-verify
+
+set -euo pipefail
 
 RED='\033[0;31m'
+YELLOW='\033[0;33m'
 NC='\033[0m'
 
-# Get staged file contents directly (not diffs)
 FILES=$(git diff --cached --name-only --diff-filter=ACM)
-
-if [ -z "$FILES" ]; then
-    exit 0
-fi
+[ -z "$FILES" ] && exit 0
 
 FAILED=0
+
+# Exclude this hook from content scanning (patterns match themselves)
+FILES=$(echo "$FILES" | grep -v '^\.githooks/pre-commit$' || true)
+[ -z "$FILES" ] && exit 0
+
+# ── 1. Block forbidden file types ──────────────────────────────────────────────
+
+for f in $FILES; do
+    case "$f" in
+        .env|.env.local|.env.*.local)
+            echo -e "${RED}BLOCKED [env file] $f${NC}"
+            echo "  .env files must never be committed. Use .env.example for defaults."
+            FAILED=1
+            ;;
+        *.pem|*.key|*.p12|*.pfx|*.jks)
+            echo -e "${RED}BLOCKED [key/cert file] $f${NC}"
+            FAILED=1
+            ;;
+        *id_rsa*|*id_ed25519*|*id_ecdsa*|*id_dsa*)
+            echo -e "${RED}BLOCKED [SSH key] $f${NC}"
+            FAILED=1
+            ;;
+    esac
+done
+
+# ── 2. Pattern checks on staged file contents ─────────────────────────────────
 
 check_pattern() {
     local label="$1"
     local pattern="$2"
     for f in $FILES; do
-        matches=$(git show ":$f" 2>/dev/null | grep -n "$pattern" || true)
+        matches=$(git show ":$f" 2>/dev/null | grep -nE -- "$pattern" || true)
         if [ -n "$matches" ]; then
             echo -e "${RED}BLOCKED [$label] in $f:${NC}"
             echo "$matches" | head -3
@@ -27,19 +54,54 @@ check_pattern() {
     done
 }
 
-check_pattern "OCP Token"      "sha256~"
-check_pattern "API Key"        "sk-[A-Za-z]"
-check_pattern "JWT Token"      "eyJhbGciOi"
-check_pattern "infra01 URL"    "ocpv-infra0"
-check_pattern "rac-maas URL"   "ocp-rac-maas"
-check_pattern "dal12 domain"   "dal12\.infra\.demo"
-check_pattern "dfw3 domain"    "rs-dfw3\.infra\.demo"
-check_pattern "MAAS domain"    "maas\.redhatworkshops"
-check_pattern "Private Key"    "PRIVATE KEY"
-check_pattern "AWS Key"        "AKIA[A-Z]"
+# Tokens and keys
+check_pattern "OCP Token"         'sha256~[A-Za-z0-9_-]{10,}'
+check_pattern "API Key (sk-)"     'sk-[A-Za-z0-9_-]{10,}'
+check_pattern "JWT Token"         'eyJhbGciOi[A-Za-z0-9_-]{20,}'
+check_pattern "HuggingFace Token" 'hf_[A-Za-z0-9]{10,}'
+check_pattern "GitHub Token"      'gh[ps]_[A-Za-z0-9]{10,}'
+check_pattern "AWS Access Key"    'AKIA[A-Z0-9]{16}'
+check_pattern "Private Key"       '-----BEGIN .* PRIVATE KEY-----|-----BEGIN PRIVATE KEY-----'
+check_pattern "Generic Secret"    'PRIVATE[_ ]*KEY.*[:=]'
+
+# Internal infrastructure URLs (not the public MAAS demo domain)
+check_pattern "infra01 URL"       'ocpv-infra0'
+check_pattern "rac-maas URL"      'ocp-rac-maas'
+check_pattern "dal12 domain"      'dal12\.infra\.demo'
+check_pattern "dfw3 domain"       'rs-dfw3\.infra\.demo'
+
+# ── 3. Check for secrets assigned inline (KEY=value, not KEY= or KEY=${...}) ──
+
+for f in $FILES; do
+    case "$f" in
+        *.env.example|*.j2|*/templates/*) continue ;;
+    esac
+    matches=$(git show ":$f" 2>/dev/null | grep -nE \
+        '(API_KEY|SECRET|TOKEN|PASSWORD|PRIVATE_KEY)\s*=\s*[A-Za-z0-9_./-]{8,}' \
+        || true)
+    if [ -n "$matches" ]; then
+        echo -e "${RED}BLOCKED [inline secret] in $f:${NC}"
+        echo "$matches" | head -3
+        echo ""
+        FAILED=1
+    fi
+done
+
+# ── 4. Warn on large binary files (>1MB) ──────────────────────────────────────
+
+for f in $FILES; do
+    size=$(git cat-file -s ":$f" 2>/dev/null || echo 0)
+    if [ "$size" -gt 1048576 ]; then
+        echo -e "${YELLOW}WARNING [large file] $f ($(( size / 1024 ))KB)${NC}"
+        echo "  Consider using .gitignore or Git LFS for large binaries."
+    fi
+done
+
+# ── Result ─────────────────────────────────────────────────────────────────────
 
 if [ $FAILED -eq 1 ]; then
+    echo ""
     echo -e "${RED}Commit rejected — remove secrets/tokens/internal URLs.${NC}"
-    echo "False positive? Use: git commit --no-verify"
+    echo "  False positive? Use: git commit --no-verify"
     exit 1
 fi
