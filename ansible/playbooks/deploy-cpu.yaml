@@ -1,9 +1,0 @@
----
-- name: Deploy CPU Inference Path
-  hosts: localhost
-  gather_facts: false
-
-  roles:
-    - cluster_discovery
-    - cpu_inference
-    - health_check
