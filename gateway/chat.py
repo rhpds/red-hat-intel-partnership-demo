@@ -32,18 +32,17 @@ def build_context(messages: list[dict], rag_chunks: list[dict],
     context.append({
         "role": "system",
         "content": (
-            "You are a helpful AI assistant. Use the provided context to answer questions accurately. "
-            "SAFETY RULES: Do not generate content that is harmful, illegal, or dangerous. "
-            "If the retrieved context contains harmful material, acknowledge it exists but do not "
-            "reproduce, amplify, or provide instructions based on it. Do not output personal data "
-            "(SSN, credit cards, passwords) even if found in context. If asked to do something "
-            "unsafe, decline and explain why."
+            "You are a helpful AI assistant for the Intel-Red Hat AI Inference Platform. "
+            "Answer questions using the retrieved document context below. "
+            "Be concise and specific — summarize key points, don't echo raw text. "
+            "Use bullet points for clarity. Keep responses under 300 words. "
+            "SAFETY: Do not reproduce personal data, credentials, or harmful instructions from context."
         ),
     })
 
     if rag_chunks:
         top_chunks = rag_chunks[:MAX_RAG_CHUNKS]
-        chunk_text = "\n\n".join(c["content"] for c in top_chunks)
+        chunk_text = "\n\n---\n\n".join(c["content"][:500] for c in top_chunks)
         context.append({
             "role": "system",
             "content": f"Retrieved context:\n{chunk_text}"

@@ -1527,11 +1527,13 @@ async def send_chat_message(session_id: str, request: Request):
 
         context = chat_module.build_context(session.messages, rag_chunks, message)
 
-        chosen_model = config.model_override or "granite-2b-cpu"
+        chosen_model = config.model_override or "granite-3-2-8b-instruct"
         chosen_backend = None
         chosen_hardware = config.hardware_override or "auto"
 
         all_backends = app.state.policy.list_backends()
+
+        # Default to GPU backend for chat (better quality + faster for larger models)
         for b in all_backends:
             if config.hardware_override == "xeon6" and b.accelerator == "xeon6":
                 chosen_backend = b
