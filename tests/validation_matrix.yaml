@@ -1141,4 +1141,136 @@ integration_tests:
       points: 5
       required: true
 
+# =============================================================================
+# Stage 13: RAG Document Pipeline
+# =============================================================================
+stage_13_rag_pipeline:
+  document_upload:
+    accepts_pdf:
+      description: "Upload PDF, extract text, return chunk count"
+      points: 10
+      required: true
+    accepts_txt_md:
+      description: "Upload TXT and MD files"
+      points: 5
+      required: true
+    accepts_code:
+      description: "Upload .py/.yaml/.json as code modality"
+      points: 5
+      required: true
+    rejects_executables:
+      description: "Reject .exe, .sh (as upload), .zip, .tar"
+      points: 10
+      required: true
+    enforces_size_limit:
+      description: "Reject files > 10MB"
+      points: 5
+      required: true
+    sanitizes_content:
+      description: "Strip prompt injection patterns from chunks"
+      points: 10
+      required: true
+  chunking:
+    chunks_at_512_tokens:
+      description: "Text chunked at 512 tokens with 50 overlap"
+      points: 5
+      required: true
+    preserves_code_structure:
+      description: "Code chunks preserve function/block boundaries"
+      points: 5
+      required: false
+  embedding:
+    embeds_text:
+      description: "Chunks produce 768-dim embedding vectors"
+      points: 10
+      required: true
+    stores_in_pgvector:
+      description: "Embeddings stored in pgvector table"
+      points: 10
+      required: true
+  search:
+    similarity_search:
+      description: "Query returns relevant chunks by cosine similarity"
+      points: 15
+      required: true
+    filters_by_tenant:
+      description: "Search scoped to tenant_id"
+      points: 10
+      required: true
+    filters_by_category:
+      description: "Optional category filter narrows results"
+      points: 5
+      required: true
+  auto_categorization:
+    classifies_documents:
+      description: "Documents auto-categorized on upload"
+      points: 10
+      required: true
+  security:
+    documents_expire:
+      description: "Documents have 24-hour expiration"
+      points: 5
+      required: true
+    per_tenant_isolation:
+      description: "Documents only visible to owning tenant"
+      points: 10
+      required: true
+
+# =============================================================================
+# Stage 14: Chat & Streaming
+# =============================================================================
+stage_14_chat_streaming:
+  sessions:
+    create_session:
+      description: "Create chat session returns session_id"
+      points: 10
+      required: true
+    send_message:
+      description: "Send message returns SSE stream"
+      points: 15
+      required: true
+    get_history:
+      description: "Get history returns messages with routing metadata"
+      points: 10
+      required: true
+    delete_session:
+      description: "Delete session cleans up messages and documents"
+      points: 5
+      required: true
+  streaming:
+    sse_step_events:
+      description: "SSE emits step events for each RAG stage"
+      points: 10
+      required: true
+    sse_token_events:
+      description: "SSE emits per-token events during generation"
+      points: 10
+      required: true
+    sse_routing_events:
+      description: "SSE emits routing decision with reasoning"
+      points: 10
+      required: true
+  context:
+    conversation_history:
+      description: "Previous messages included in generation context"
+      points: 10
+      required: true
+    rag_context:
+      description: "Top-4 document chunks included alongside conversation"
+      points: 10
+      required: true
+  model_switching:
+    override_model:
+      description: "User can override model selection per message"
+      points: 10
+      required: true
+    override_hardware:
+      description: "User can force Xeon 6 or Gaudi"
+      points: 10
+      required: true
+    rerun_on_different:
+      description: "Re-run same query on different hardware"
+      points: 10
+      required: true
+
 # All stages passing threshold: 90% of total points
