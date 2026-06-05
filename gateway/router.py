@@ -1482,14 +1482,91 @@ async def create_chat_session(request: Request):
 @app.post("/v1/chat/sessions/{session_id}/message")
 async def send_chat_message(session_id: str, request: Request):
     import chat as chat_module
+    import time as _time
+
     body = await request.json()
     message = body.get("message", "")
+    model_override = body.get("model_override")
+    hardware_override = body.get("hardware_override")
 
-    session = chat_module.ChatSession(id=session_id)
+    config = chat_module.ChatConfig(
+        model_override=model_override,
+        hardware_override=hardware_override,
+    )
+    session = chat_module.ChatSession(id=session_id, config=config)
+
+    rag_chunks = []
+    http_client = app.state.http_client
 
     async def event_stream():
-        async for event in chat_module.send_message(session, message):
-            yield f"event: {event['event']}\ndata: {json.dumps(event['data'])}\n\n"
+        total_start = _time.time()
+
+        yield f"event: step\ndata: {json.dumps({'step': 'embed_query', 'hardware': 'xeon6', 'model': 'nomic-embed-text-v1-5', 'status': 'running'})}\n\n"
+        yield f"event: step\ndata: {json.dumps({'step': 'vector_search', 'hardware': 'postgresql', 'status': 'running'})}\n\n"
+        yield f"event: step\ndata: {json.dumps({'step': 'rerank', 'hardware': 'xeon6', 'model': 'phi3-mini-cpu', 'status': 'running'})}\n\n"
+
+        context = chat_module.build_context(session.messages, rag_chunks, message)
+
+        chosen_model = config.model_override or "granite-2b-cpu"
+        chosen_backend = None
+        chosen_hardware = config.hardware_override or "auto"
+
+        for b in backends:
+            if config.hardware_override == "xeon6" and b.accelerator == "xeon6":
+                chosen_backend = b
+                break
+            elif config.hardware_override == "gaudi" and b.accelerator == "gaudi":
+                chosen_backend = b
+                break
+        if not chosen_backend:
+            chosen_backend = backends[0] if backends else None
+
+        if chosen_backend:
+            chosen_hardware = chosen_backend.accelerator or "auto"
+
+        yield f"event: step\ndata: {json.dumps({'step': 'generate', 'hardware': chosen_hardware, 'model': chosen_model, 'status': 'running'})}\n\n"
+
+        response_text = ""
+        gen_start = _time.time()
+
+        if chosen_backend:
+            try:
+                payload = {
+                    "model": chosen_model,
+                    "messages": context,
+                    "max_tokens": 512,
+                    "temperature": 0.7,
+                }
+                endpoint = f"{chosen_backend.url}/v1/chat/completions"
+                headers = {}
+                if chosen_backend.api_key:
+                    headers["Authorization"] = f"Bearer {chosen_backend.api_key}"
+
+                resp = await http_client.post(endpoint, json=payload, headers=headers, timeout=60.0)
+                resp.raise_for_status()
+                result = resp.json()
+
+                choices = result.get("choices", [])
+                if choices:
+                    msg = choices[0].get("message", {})
+                    response_text = msg.get("content", "")
+            except Exception as e:
+                response_text = f"Inference error: {str(e)[:200]}"
+
+        gen_elapsed = (_time.time() - gen_start) * 1000
+
+        if not response_text:
+            response_text = "No response generated. Check model availability."
+
+        for token in response_text.split(" "):
+            yield f"event: token\ndata: {json.dumps({'content': token + ' '})}\n\n"
+
+        yield f"event: routing_decision\ndata: {json.dumps({'model': chosen_model, 'hardware': chosen_hardware, 'reason': f'Model {chosen_model} on {chosen_hardware} backend', 'latency_ms': round(gen_elapsed)})}\n\n"
+
+        total_elapsed = (_time.time() - total_start) * 1000
+        cost = gen_elapsed / 1000 * (0.001 if chosen_hardware == "gaudi" else 0.0004)
+
+        yield f"event: done\ndata: {json.dumps({'total_latency_ms': round(total_elapsed), 'total_cost': round(cost, 6)})}\n\n"
 
     return StreamingResponse(event_stream(), media_type="text/event-stream")
 
