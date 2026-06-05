@@ -1,0 +1,65 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: inference-frontend
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: inference-frontend
+spec:
+  replicas: {{ .Values.frontend.replicas }}
+  selector:
+    matchLabels:
+      app: inference-frontend
+  template:
+    metadata:
+      labels:
+        app: inference-frontend
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: frontend
+          image: {{ .Values.frontend.image }}
+          ports:
+            - containerPort: 8080
+              name: http
+          resources:
+            {{- toYaml .Values.frontend.resources | nindent 12 }}
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            periodSeconds: 15
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: inference-frontend
+  namespace: {{ .Values.namespace }}
+spec:
+  selector:
+    app: inference-frontend
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: inference-frontend
+  namespace: {{ .Values.namespace }}
+spec:
+  to:
+    kind: Service
+    name: inference-frontend
+  port:
+    targetPort: http
+  tls:
+    termination: edge

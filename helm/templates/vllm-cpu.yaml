@@ -1,0 +1,88 @@
+{{- if .Values.localCpuInference.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: vllm-cpu-model-cache
+  namespace: {{ .Values.namespace }}
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: {{ .Values.localCpuInference.modelCacheSize }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vllm-cpu
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: vllm-cpu
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: vllm-cpu
+  template:
+    metadata:
+      labels:
+        app: vllm-cpu
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: vllm-cpu
+          image: {{ .Values.localCpuInference.image }}
+          ports:
+            - containerPort: {{ .Values.localCpuInference.port }}
+              name: http
+          env:
+            - name: MODEL_ID
+              value: {{ .Values.localCpuInference.model | quote }}
+            - name: PORT
+              value: {{ .Values.localCpuInference.port | quote }}
+            {{- if .Values.localCpuInference.useBf16 }}
+            - name: DTYPE
+              value: bfloat16
+            {{- end }}
+            - name: HF_HOME
+              value: /model-cache
+          resources:
+            {{- toYaml .Values.localCpuInference.resources | nindent 12 }}
+          volumeMounts:
+            - name: model-cache
+              mountPath: /model-cache
+          startupProbe:
+            httpGet:
+              path: /health
+              port: http
+            failureThreshold: 60
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 15
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+      volumes:
+        - name: model-cache
+          persistentVolumeClaim:
+            claimName: vllm-cpu-model-cache
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vllm-cpu
+  namespace: {{ .Values.namespace }}
+spec:
+  selector:
+    app: vllm-cpu
+  ports:
+    - name: http
+      port: {{ .Values.localCpuInference.port }}
+      targetPort: http
+{{- end }}

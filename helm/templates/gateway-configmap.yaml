@@ -1,0 +1,71 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gateway-routing-config
+  namespace: {{ .Values.namespace }}
+data:
+  config.local.yaml: |
+    backends:
+{{- if .Values.localCpuInference.enabled }}
+      - name: local-cpu
+        url: "http://vllm-cpu.{{ .Values.namespace }}.svc:{{ .Values.localCpuInference.port }}"
+        api_key: ""
+        accelerator: xeon6-local
+        capabilities: [completion]
+        cost_per_1k_tokens: 0
+        max_concurrent: 5
+{{- end }}
+      - name: litellm-cpu
+        url: ${LITELLM_API_BASE}
+        api_key: ${LITELLM_API_KEY}
+        accelerator: xeon6
+        capabilities: [completion, embeddings, classification, reranking, search, governance, policy]
+        cost_per_1k_tokens: 0.0004
+        max_concurrent: 10
+      - name: litellm-gpu
+        url: ${LITELLM_API_BASE}
+        api_key: ${LITELLM_API_KEY}
+        accelerator: gaudi
+        capabilities: [completion, batch_generation, governance, policy]
+        cost_per_1k_tokens: 0.001
+        max_concurrent: 10
+    routes:
+      - task: embeddings
+        backend: litellm-cpu
+        reason: "nomic-embed-text-v1-5 on Xeon 6"
+        fallback: local
+      - task: classification
+        backend: litellm-cpu
+        reason: "granite-2b-cpu on Xeon 6 OpenVINO"
+        fallback: local
+      - task: completion
+        conditions:
+{{- if .Values.localCpuInference.enabled }}
+          - model_size_b: 2
+            operator: "<="
+            backend: local-cpu
+            reason: "Small model on local Xeon 6"
+          - model_size_b: 4
+            operator: "<="
+            backend: litellm-cpu
+            reason: "Medium model on MAAS Xeon 6"
+{{- else }}
+          - model_size_b: 4
+            operator: "<="
+            backend: litellm-cpu
+            reason: "Small model on Xeon 6 OpenVINO"
+{{- end }}
+          - model_size_b: 4
+            operator: ">"
+            backend: litellm-gpu
+            reason: "Large model on Gaudi 3"
+        default_backend: litellm-gpu
+{{- if .Values.localCpuInference.enabled }}
+        fallback: local-cpu
+{{- else }}
+        fallback: local
+{{- end }}
+      - task: batch_generation
+        backend: litellm-gpu
+        reason: "Batch workloads on Gaudi 3"
+        fallback: local

@@ -1,0 +1,58 @@
+namespace: intel-rh-demo
+
+gateway:
+  image: quay.io/intel-redhat/inference-gateway:latest
+  replicas: 2
+  resources:
+    requests:
+      cpu: 500m
+      memory: 256Mi
+    limits:
+      cpu: "1"
+      memory: 512Mi
+  corsOrigins: ""
+  rateLimitRpm: 85
+  localFallback: false
+
+frontend:
+  image: quay.io/intel-redhat/inference-frontend:latest
+  replicas: 1
+  resources:
+    requests:
+      cpu: 100m
+      memory: 64Mi
+    limits:
+      cpu: 500m
+      memory: 128Mi
+
+postgres:
+  enabled: true
+  image: registry.redhat.io/rhel9/postgresql-15:latest
+  user: gateway
+  storage: 10Gi
+  resources:
+    requests:
+      cpu: 250m
+      memory: 256Mi
+    limits:
+      cpu: "1"
+      memory: 512Mi
+
+litellm:
+  apiBase: ""
+  apiKey: ""
+
+localCpuInference:
+  enabled: false
+  image: quay.io/intel-redhat/vllm-cpu:latest
+  model: TinyLlama/TinyLlama-1.1B-Chat-v1.0
+  port: 8000
+  useBf16: true
+  modelCacheSize: 20Gi
+  resources:
+    requests:
+      cpu: "4"
+      memory: 8Gi
+    limits:
+      cpu: "8"
+      memory: 16Gi
