@@ -2,7 +2,7 @@
 
 import uuid
 from dataclasses import dataclass, field
-from typing import Optional, List, Dict
+from typing import AsyncGenerator, Optional, List, Dict
 
 SSE_EVENT_TYPES = {"step", "token", "routing_decision", "done", "error"}
 
@@ -54,7 +54,7 @@ async def create_session(tenant_id: str = None, config: ChatConfig = None) -> Ch
     return ChatSession(tenant_id=tenant_id, config=config or ChatConfig())
 
 
-async def send_message(session: ChatSession, message: str, rag_chunks: list[dict] = None):
+async def send_message(session: ChatSession, message: str, rag_chunks: list[dict] = None) -> AsyncGenerator[dict, None]:
     context = build_context(session.messages, rag_chunks or [], message)
 
     session.messages.append({"role": "user", "content": message})

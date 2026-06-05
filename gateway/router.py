@@ -1459,6 +1459,75 @@ async def gallery_pocs(category: str = None):
     return {"items": items, "total": len(items)}
 
 
+# ─── Chat & RAG Endpoints ───
+
+from fastapi import UploadFile, File
+from fastapi.responses import StreamingResponse
+import json
+
+
+@app.post("/v1/chat/sessions")
+async def create_chat_session(request: Request):
+    from . import chat as chat_module
+    body = await request.json() if request.headers.get("content-type") == "application/json" else {}
+    config = chat_module.ChatConfig(
+        model_override=body.get("model_override"),
+        hardware_override=body.get("hardware_override"),
+        governance_mode=body.get("governance_mode", "supervised"),
+    )
+    session = await chat_module.create_session(config=config)
+    return {"session_id": session.id, "config": {"model_override": config.model_override, "hardware_override": config.hardware_override, "governance_mode": config.governance_mode}}
+
+
+@app.post("/v1/chat/sessions/{session_id}/message")
+async def send_chat_message(session_id: str, request: Request):
+    from . import chat as chat_module
+    body = await request.json()
+    message = body.get("message", "")
+
+    session = chat_module.ChatSession(id=session_id)
+
+    async def event_stream():
+        async for event in chat_module.send_message(session, message):
+            yield f"event: {event['event']}\ndata: {json.dumps(event['data'])}\n\n"
+
+    return StreamingResponse(event_stream(), media_type="text/event-stream")
+
+
+@app.get("/v1/chat/sessions/{session_id}/history")
+async def get_chat_history(session_id: str):
+    return {"session_id": session_id, "messages": []}
+
+
+@app.delete("/v1/chat/sessions/{session_id}")
+async def delete_chat_session(session_id: str):
+    return {"status": "deleted", "session_id": session_id}
+
+
+@app.post("/v1/documents/upload")
+async def upload_document(file: UploadFile = File(...)):
+    from . import rag
+    if not rag.is_allowed_file(file.filename):
+        raise HTTPException(status_code=400, detail=f"File type not allowed: {file.filename}")
+
+    content = await file.read()
+    if len(content) > rag.MAX_FILE_SIZE_MB * 1024 * 1024:
+        raise HTTPException(status_code=400, detail=f"File too large (max {rag.MAX_FILE_SIZE_MB}MB)")
+
+    result = await rag.upload_document(file.filename, content)
+    return result
+
+
+@app.get("/v1/documents")
+async def list_documents():
+    return {"documents": []}
+
+
+@app.delete("/v1/documents/{doc_id}")
+async def delete_document(doc_id: str):
+    return {"status": "deleted", "document_id": doc_id}
+
+
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
     import uvicorn

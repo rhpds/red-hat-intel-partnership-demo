@@ -1,0 +1,29 @@
+= Deployment Guide
+
+== Local Development
+
+```bash
+cp .env.example .env
+# Add your LITELLM_API_KEY
+podman-compose up --build -d
+```
+
+== Helm Chart (Standard RHDP Pattern)
+
+```bash
+cd helm/
+make install NAMESPACE=my-demo \
+  EXTRA_HELM_ARGS="--set litellm.apiKey=sk-... --set litellm.apiBase=https://..."
+```
+
+== RHDP Provisioning
+
+The platform supports three provisioning tiers via LiftOff:
+
+[cols="1,2,1", options="header"]
+|===
+| Tier | Deployed | Resources
+| Pilot | LiteLLM API key only | 2 CPU, 4Gi
+| Partner | Gateway + Frontend + DB | 20 CPU, 32Gi
+| Dedicated | Partner + local vLLM CPU | 40 CPU, 64Gi
+|===

@@ -1,0 +1,29 @@
+= Security Model
+
+== Authentication
+
+* JWT tokens for service-to-service auth
+* API keys (SHA256 hashed) for external clients
+* Anonymous fallback: read-only access
+
+== Document Upload Security
+
+* Allowed types: PDF, TXT, MD, code files, images, audio
+* Max file size: 10MB
+* Prompt injection defense: sanitize all chunks before embedding
+* PII detection: logged but not blocked (demo context)
+* Auto-expiration: documents deleted after 24 hours
+
+== Tenant Isolation
+
+* Namespace-scoped deployments
+* Network policies restrict cross-tenant traffic
+* Database row-level security via tenant_id filtering
+* Separate LiteLLM virtual keys per tenant (7-day TTL)
+
+== Container Hardening
+
+* Non-root execution (runAsNonRoot: true)
+* Dropped capabilities (ALL)
+* Seccomp RuntimeDefault profile
+* Read-only root filesystem (non-DB containers)

@@ -2,3 +2,10 @@
 * xref:01-explore-gateway.adoc[Explore the Gateway]
 * xref:02-dual-path-routing.adoc[Dual-Path Routing]
 * xref:03-run-at-scale.adoc[Run at Scale]
+
+.Reference Architecture
+* xref:architecture.adoc[Architecture Overview]
+* xref:rag-pipeline.adoc[RAG Pipeline]
+* xref:security.adoc[Security Model]
+* xref:cost-optimization.adoc[Cost Optimization]
+* xref:deployment-guide.adoc[Deployment Guide]

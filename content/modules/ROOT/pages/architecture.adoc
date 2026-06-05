@@ -1,0 +1,27 @@
+= Architecture Overview
+
+The Intel-Red Hat AI Inference Platform routes AI workloads across Intel hardware — Xeon 6 CPUs for fast, cost-efficient tasks and Gaudi GPUs for large-model generation.
+
+== Dual-Path Routing
+
+[cols="1,2,2", options="header"]
+|===
+| Path | Hardware | Use Cases
+| CPU Path | Intel Xeon 6 + OpenVINO | Embeddings, classification, reranking, small models (≤4B params)
+| GPU Path | Intel Gaudi 3 | Large model completion, batch generation (>4B params)
+|===
+
+== Request Flow
+
+1. Client sends request to Gateway
+2. Routing engine evaluates task type and model size
+3. Request forwarded to optimal hardware via MAAS/LiteLLM
+4. Response returned with routing metadata (hardware, latency, cost)
+5. Decision logged for audit trail
+
+== Key Components
+
+Gateway:: FastAPI service with hardware-aware routing, governance, multi-tenant auth
+Frontend:: React/PatternFly 6 dashboard with interactive demos
+Database:: PostgreSQL with pgvector for document embeddings and audit trail
+MAAS:: LiteLLM proxy providing access to Intel-optimized models

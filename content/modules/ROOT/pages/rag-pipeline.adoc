@@ -1,0 +1,29 @@
+= RAG Pipeline
+
+Retrieval-Augmented Generation with multimodal document support and hardware-aware routing at every step.
+
+== Pipeline Steps
+
+[cols="1,1,1,1", options="header"]
+|===
+| Step | Action | Hardware | Model
+| 1. Embed | Convert query to vector | Xeon 6 | nomic-embed-text-v1-5
+| 2. Search | pgvector similarity search | PostgreSQL | —
+| 3. Rerank | Cross-encoder relevance | Xeon 6 | phi3-mini-cpu
+| 4. Generate | Answer from context | Gaudi or Xeon 6 | Auto-routed by model size
+| 5. Govern | Safety check | Xeon 6 | granite-2b-cpu
+|===
+
+== Supported Modalities
+
+* **Text** — PDF, TXT, Markdown, DOCX
+* **Code** — Python, YAML, JSON, Terraform
+* **Images** — PNG, JPEG (described via multimodal model)
+* **Audio** — MP3, WAV (transcribed via Whisper on Xeon 6)
+
+== Document Security
+
+* File type validation (reject executables, archives)
+* Content sanitization (strip prompt injection patterns)
+* 24-hour auto-expiration
+* Per-tenant isolation via database row filtering
