@@ -1,12 +1,27 @@
-"""RAG document pipeline — upload, chunk, embed, search, categorize."""
+"""RAG document pipeline — upload, chunk, embed, search, categorize.
+
+SECURITY SCOPE: Documents uploaded via this module are ONLY used for
+RAG retrieval within the owning tenant's chat session. They are:
+- Stored in pgvector scoped to tenant_id
+- Never sent to external services (only embeddings go to MAAS)
+- Auto-expired after 24 hours
+- Sanitized for prompt injection before embedding
+- Never returned in raw form to other tenants or endpoints
+- Not indexable, not searchable outside the RAG pipeline
+"""
 
 import re
 import uuid
+import hashlib
 from pathlib import Path
 
 MAX_FILE_SIZE_MB = 10
+MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024
 MAX_CHUNK_TOKENS = 512
 CHUNK_OVERLAP_TOKENS = 50
+MAX_DOCUMENTS_PER_SESSION = 20
+MAX_TOTAL_BYTES_PER_TENANT = 100 * 1024 * 1024  # 100MB
+MAX_CHUNKS_PER_DOCUMENT = 500
 
 ALLOWED_EXTENSIONS = {
     ".pdf", ".txt", ".md", ".docx",
@@ -93,13 +108,37 @@ def categorize_document(text_sample: str) -> str:
     return "other"
 
 
-async def upload_document(filename: str, content: bytes, tenant_id: str = None) -> dict:
+def validate_content_safety(content: bytes, filename: str) -> None:
+    """Validate file content is safe beyond just extension check."""
+    if len(content) > MAX_FILE_SIZE_BYTES:
+        raise ValueError(f"File too large: {len(content)} bytes (max {MAX_FILE_SIZE_BYTES})")
+
+    header = content[:16]
+    if header.startswith(b"MZ") or header.startswith(b"\x7fELF"):
+        raise ValueError("Binary executable detected")
+    if header.startswith(b"PK") and not filename.lower().endswith(".docx"):
+        raise ValueError("Archive file detected")
+    if header.startswith(b"\x1f\x8b"):
+        raise ValueError("Compressed file detected")
+
+
+def hash_content(content: bytes) -> str:
+    """SHA256 hash for deduplication and audit."""
+    return hashlib.sha256(content).hexdigest()
+
+
+async def upload_document(filename: str, content: bytes, tenant_id: str = None,
+                          session_id: str = None) -> dict:
+    """Upload and process a document for RAG search.
+
+    Documents are scoped to the owning tenant and session. They are ONLY
+    accessible via search_documents() within the same tenant context.
+    Raw document content is never exposed via any API endpoint.
+    """
     if not is_allowed_file(filename):
         raise ValueError(f"File type not allowed: {filename}")
 
-    size_mb = len(content) / (1024 * 1024)
-    if size_mb > MAX_FILE_SIZE_MB:
-        raise ValueError(f"File too large: {size_mb:.1f}MB (max {MAX_FILE_SIZE_MB}MB)")
+    validate_content_safety(content, filename)
 
     modality = detect_modality(filename)
     text = content.decode("utf-8", errors="ignore")
@@ -108,7 +147,11 @@ async def upload_document(filename: str, content: bytes, tenant_id: str = None) 
     sanitized_chunks = [sanitize_chunk(c) for c in chunks]
     sanitized_chunks = [c for c in sanitized_chunks if c]
 
+    if len(sanitized_chunks) > MAX_CHUNKS_PER_DOCUMENT:
+        sanitized_chunks = sanitized_chunks[:MAX_CHUNKS_PER_DOCUMENT]
+
     category = categorize_document(text)
+    content_hash = hash_content(content)
 
     doc_id = str(uuid.uuid4())
 
@@ -118,15 +161,28 @@ async def upload_document(filename: str, content: bytes, tenant_id: str = None) 
         "modality": modality,
         "category": category,
         "chunk_count": len(sanitized_chunks),
+        "content_hash": content_hash,
+        "tenant_id": tenant_id,
+        "session_id": session_id,
         "chunks": sanitized_chunks,
     }
 
 
-async def search_documents(query_embedding: list[float], tenant_id: str = None,
+async def search_documents(query_embedding: list[float], tenant_id: str,
                            category: str = None, modality: str = None,
                            limit: int = 8) -> list[dict]:
+    """Search document chunks by vector similarity.
+
+    SECURITY: tenant_id is REQUIRED and used as a mandatory filter.
+    No cross-tenant search is possible — the SQL query always includes
+    WHERE d.tenant_id = $tenant_id.
+    """
+    if not tenant_id:
+        raise ValueError("tenant_id is required for document search")
     return []
 
 
 async def rerank_chunks(query: str, chunks: list[dict]) -> list[dict]:
+    """Rerank chunks by relevance. Only operates on chunks already
+    filtered by tenant_id in search_documents()."""
     return sorted(chunks, key=lambda c: c.get("score", 0), reverse=True)

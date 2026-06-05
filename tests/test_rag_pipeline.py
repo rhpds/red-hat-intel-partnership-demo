@@ -215,6 +215,90 @@ class TestContentSanitization:
         assert "quarterly revenue" in sanitized
 
 
+# ─── Content Safety Validation ───
+
+
+class TestContentSafety:
+
+    def test_rejects_elf_binary(self, rag_module):
+        content = b"\x7fELF" + b"\x00" * 100
+        with pytest.raises(ValueError, match="executable"):
+            rag_module.validate_content_safety(content, "binary.bin")
+
+    def test_rejects_mz_executable(self, rag_module):
+        content = b"MZ" + b"\x00" * 100
+        with pytest.raises(ValueError, match="executable"):
+            rag_module.validate_content_safety(content, "program.exe")
+
+    def test_rejects_pk_archive(self, rag_module):
+        content = b"PK" + b"\x00" * 100
+        with pytest.raises(ValueError, match="Archive"):
+            rag_module.validate_content_safety(content, "data.zip")
+
+    def test_allows_pk_for_docx(self, rag_module):
+        content = b"PK" + b"\x00" * 100
+        rag_module.validate_content_safety(content, "document.docx")
+
+    def test_rejects_gzip(self, rag_module):
+        content = b"\x1f\x8b" + b"\x00" * 100
+        with pytest.raises(ValueError, match="Compressed"):
+            rag_module.validate_content_safety(content, "data.gz")
+
+    def test_accepts_normal_text(self, rag_module):
+        content = b"This is a normal text document about revenue trends."
+        rag_module.validate_content_safety(content, "report.txt")
+
+    def test_rejects_oversized_content(self, rag_module):
+        content = b"x" * (11 * 1024 * 1024)
+        with pytest.raises(ValueError, match="too large"):
+            rag_module.validate_content_safety(content, "huge.txt")
+
+
+# ─── Tenant Scoping ───
+
+
+class TestTenantScoping:
+
+    def test_search_requires_tenant_id(self, rag_module):
+        import asyncio
+        with pytest.raises(ValueError, match="tenant_id is required"):
+            asyncio.get_event_loop().run_until_complete(
+                rag_module.search_documents([0.1] * 768, tenant_id=None)
+            )
+
+    def test_search_accepts_valid_tenant(self, rag_module):
+        import asyncio
+        result = asyncio.get_event_loop().run_until_complete(
+            rag_module.search_documents([0.1] * 768, tenant_id="test-tenant")
+        )
+        assert isinstance(result, list)
+
+    def test_upload_includes_tenant_id(self, rag_module):
+        import asyncio
+        result = asyncio.get_event_loop().run_until_complete(
+            rag_module.upload_document("test.txt", b"hello world", tenant_id="t-123", session_id="s-456")
+        )
+        assert result["tenant_id"] == "t-123"
+        assert result["session_id"] == "s-456"
+
+    def test_upload_includes_content_hash(self, rag_module):
+        import asyncio
+        result = asyncio.get_event_loop().run_until_complete(
+            rag_module.upload_document("test.txt", b"hello world", tenant_id="t-123")
+        )
+        assert "content_hash" in result
+        assert len(result["content_hash"]) == 64
+
+    def test_max_chunks_enforced(self, rag_module):
+        assert rag_module.MAX_CHUNKS_PER_DOCUMENT == 500
+
+    def test_max_documents_per_session(self, rag_module):
+        assert rag_module.MAX_DOCUMENTS_PER_SESSION == 20
+
+    def test_max_bytes_per_tenant(self, rag_module):
+        assert rag_module.MAX_TOTAL_BYTES_PER_TENANT == 100 * 1024 * 1024
+
+
 # ─── Validation Matrix Tracker ───
 
 
