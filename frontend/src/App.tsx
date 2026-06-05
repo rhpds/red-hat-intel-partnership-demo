@@ -21,6 +21,7 @@ import CockpitDashboard from './pages/CockpitDashboard';
 import TenantAdmin from './pages/TenantAdmin';
 import CapacityDashboard from './pages/CapacityDashboard';
 import PublishingHouse from './pages/PublishingHouse';
+import Chat from './pages/Chat';
 import { TenantProvider } from './context/TenantContext';
 
 const queryClient = new QueryClient({
@@ -38,6 +39,7 @@ export default function App() {
         <Routes>
           <Route element={<AppLayout />}>
             <Route index element={<Overview />} />
+            <Route path="/chat" element={<Chat />} />
             <Route path="/architecture" element={<Architecture />} />
             <Route path="/try-it" element={<TryIt />} />
             <Route path="/operations" element={<Operations />} />

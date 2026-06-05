@@ -42,6 +42,7 @@ const navSections: NavSection[] = [
   {
     title: 'Core Demo',
     items: [
+      { path: '/chat', label: 'Interactive Chat' },
       { path: '/overdrive', label: 'Routing Engine' },
       { path: '/try-it', label: 'Try It Live' },
       { path: '/workload', label: 'Run at Scale' },

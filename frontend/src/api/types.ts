@@ -121,3 +121,47 @@ export interface Route {
 
 export type Accelerator = 'xeon6' | 'gaudi' | 'local';
 export type TaskType = 'embeddings' | 'classification' | 'reranking' | 'completion' | 'batch_generation';
+
+// ─── Chat & RAG Types ───
+
+export interface ChatMessage {
+  id: string;
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+  trace?: TraceStep[];
+  cost?: CostInfo;
+  created_at?: string;
+}
+
+export interface TraceStep {
+  step: string;
+  hardware: string;
+  model?: string;
+  latency_ms?: number;
+  results?: number;
+  reason?: string;
+  status?: 'pending' | 'running' | 'done';
+}
+
+export interface UploadedDoc {
+  id: string;
+  filename: string;
+  modality: 'text' | 'code' | 'image' | 'audio';
+  category: string;
+  chunk_count: number;
+  content_warnings?: string[];
+}
+
+export interface CostInfo {
+  total_latency_ms: number;
+  total_cost: number;
+  total_tokens?: number;
+  xeon_ms?: number;
+  gaudi_ms?: number;
+}
+
+export interface ChatSessionConfig {
+  model_override?: string;
+  hardware_override?: string;
+  governance_mode?: string;
+}

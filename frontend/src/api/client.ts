@@ -167,4 +167,38 @@ export const api = {
     const qs = category ? `?category=${category}` : '';
     return request<Record<string, unknown>>(`/v1/gallery/pocs${qs}`);
   },
+
+  // Chat sessions
+  chatCreateSession: (config?: import('./types').ChatSessionConfig) =>
+    request<{ session_id: string }>('/v1/chat/sessions', {
+      method: 'POST',
+      body: JSON.stringify(config || {}),
+    }),
+
+  chatHistory: (sessionId: string) =>
+    request<{ session_id: string; messages: import('./types').ChatMessage[] }>(`/v1/chat/sessions/${sessionId}/history`),
+
+  chatDelete: (sessionId: string) =>
+    request<{ status: string }>(`/v1/chat/sessions/${sessionId}`, { method: 'DELETE' }),
+
+  // Document upload
+  documentUpload: async (file: File) => {
+    const form = new FormData();
+    form.append('file', file);
+    const headers: Record<string, string> = {};
+    if (AUTH_TOKEN) headers['X-API-Key'] = AUTH_TOKEN;
+    const resp = await fetch(`${API_BASE}/v1/documents/upload`, {
+      method: 'POST',
+      body: form,
+      headers,
+    });
+    if (!resp.ok) throw new Error(await resp.text());
+    return resp.json() as Promise<import('./types').UploadedDoc>;
+  },
+
+  documentList: () =>
+    request<{ documents: import('./types').UploadedDoc[] }>('/v1/documents'),
+
+  documentDelete: (id: string) =>
+    request<{ status: string }>(`/v1/documents/${id}`, { method: 'DELETE' }),
 };
