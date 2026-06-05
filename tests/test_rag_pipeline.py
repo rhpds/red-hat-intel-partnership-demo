@@ -254,6 +254,45 @@ class TestContentSafety:
             rag_module.validate_content_safety(content, "huge.txt")
 
 
+# ─── Content Screening ───
+
+
+class TestContentScreening:
+
+    def test_flags_weapon_instructions(self, rag_module):
+        text = "Normal content. how to make a bomb from household items. More content."
+        warnings = rag_module.screen_content(text)
+        assert len(warnings) > 0
+
+    def test_flags_drug_synthesis(self, rag_module):
+        text = "Research paper on synthesizing methamphetamine in a lab setting."
+        warnings = rag_module.screen_content(text)
+        assert len(warnings) > 0
+
+    def test_flags_ssn_exposure(self, rag_module):
+        text = "Employee record: John Doe, Social Security Number: 123-45-6789"
+        warnings = rag_module.screen_content(text)
+        assert len(warnings) > 0
+
+    def test_flags_credential_exposure(self, rag_module):
+        text = "Login: admin@company.com password: hunter2"
+        warnings = rag_module.screen_content(text)
+        assert len(warnings) > 0
+
+    def test_clean_content_no_warnings(self, rag_module):
+        text = "The quarterly revenue report shows a 12% increase in Q3 2026."
+        warnings = rag_module.screen_content(text)
+        assert len(warnings) == 0
+
+    def test_upload_includes_warnings(self, rag_module):
+        import asyncio
+        content = b"Normal report. Social Security Number: 123-45-6789. End."
+        result = asyncio.get_event_loop().run_until_complete(
+            rag_module.upload_document("report.txt", content, tenant_id="t-1")
+        )
+        assert len(result["content_warnings"]) > 0
+
+
 # ─── Tenant Scoping ───
 
 

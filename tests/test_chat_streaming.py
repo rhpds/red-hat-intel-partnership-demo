@@ -121,6 +121,27 @@ class TestContextBuilding:
         assert "Chunk 9" not in context_text
 
 
+# ─── Safety System Prompt ───
+
+
+class TestSafetyPrompt:
+
+    def test_context_has_safety_rules(self, chat_module):
+        context = chat_module.build_context([], [], "hello")
+        system_msg = [m for m in context if m["role"] == "system"][0]
+        assert "SAFETY RULES" in system_msg["content"]
+
+    def test_context_blocks_pii_reproduction(self, chat_module):
+        context = chat_module.build_context([], [], "hello")
+        system_msg = [m for m in context if m["role"] == "system"][0]
+        assert "personal data" in system_msg["content"].lower() or "SSN" in system_msg["content"]
+
+    def test_context_blocks_harmful_content(self, chat_module):
+        context = chat_module.build_context([], [], "hello")
+        system_msg = [m for m in context if m["role"] == "system"][0]
+        assert "harmful" in system_msg["content"].lower()
+
+
 # ─── Model Override ───
 
 

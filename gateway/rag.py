@@ -53,6 +53,14 @@ INJECTION_PATTERNS = [
     re.compile(r"(?:forget|ignore|disregard)\s+(?:all\s+)?(?:previous|prior|above)\s+(?:instructions|context)", re.IGNORECASE),
 ]
 
+HARMFUL_CONTENT_PATTERNS = [
+    re.compile(r"\b(?:how\s+to\s+(?:make|build|create)\s+(?:a\s+)?(?:bomb|weapon|explosive))", re.IGNORECASE),
+    re.compile(r"\b(?:synthesiz(?:e|ing)\s+(?:drugs|narcotics|methamphetamine|fentanyl))", re.IGNORECASE),
+    re.compile(r"\b(?:social\s+security\s+number|SSN)\s*[:=]\s*\d{3}", re.IGNORECASE),
+    re.compile(r"\b(?:credit\s+card)\s*[:=]?\s*\d{4}[\s-]?\d{4}", re.IGNORECASE),
+    re.compile(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b.*(?:password|passwd)\s*[:=]", re.IGNORECASE),
+]
+
 
 def is_allowed_file(filename: str) -> bool:
     ext = Path(filename).suffix.lower()
@@ -79,6 +87,17 @@ def chunk_text(text: str, max_tokens: int = MAX_CHUNK_TOKENS, overlap: int = CHU
         chunks.append(chunk)
         start += max_tokens - overlap
     return chunks
+
+
+def screen_content(text: str) -> list[str]:
+    """Screen document text for harmful content. Returns list of warnings.
+    Does NOT block upload — flags for audit trail and governance review."""
+    warnings = []
+    for pattern in HARMFUL_CONTENT_PATTERNS:
+        matches = pattern.findall(text)
+        if matches:
+            warnings.append(f"Potentially sensitive content detected: {pattern.pattern[:50]}...")
+    return warnings
 
 
 def sanitize_chunk(text: str) -> str:
@@ -152,6 +171,7 @@ async def upload_document(filename: str, content: bytes, tenant_id: str = None,
 
     category = categorize_document(text)
     content_hash = hash_content(content)
+    content_warnings = screen_content(text)
 
     doc_id = str(uuid.uuid4())
 
@@ -162,6 +182,7 @@ async def upload_document(filename: str, content: bytes, tenant_id: str = None,
         "category": category,
         "chunk_count": len(sanitized_chunks),
         "content_hash": content_hash,
+        "content_warnings": content_warnings,
         "tenant_id": tenant_id,
         "session_id": session_id,
         "chunks": sanitized_chunks,

@@ -31,7 +31,14 @@ def build_context(messages: list[dict], rag_chunks: list[dict],
 
     context.append({
         "role": "system",
-        "content": "You are a helpful AI assistant. Use the provided context to answer questions accurately."
+        "content": (
+            "You are a helpful AI assistant. Use the provided context to answer questions accurately. "
+            "SAFETY RULES: Do not generate content that is harmful, illegal, or dangerous. "
+            "If the retrieved context contains harmful material, acknowledge it exists but do not "
+            "reproduce, amplify, or provide instructions based on it. Do not output personal data "
+            "(SSN, credit cards, passwords) even if found in context. If asked to do something "
+            "unsafe, decline and explain why."
+        ),
     })
 
     if rag_chunks:
