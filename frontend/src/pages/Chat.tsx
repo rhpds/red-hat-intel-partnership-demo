@@ -235,7 +235,7 @@ export default function Chat() {
         <DocumentUploader documents={documents} onUpload={handleUpload} onDelete={handleDeleteDoc} />
 
         <Card style={{ flex: 1, overflow: 'hidden' }}>
-          <CardBody style={{ overflowY: 'auto', maxHeight: '50vh', padding: '1rem' }}>
+          <CardBody style={{ overflowY: 'auto', maxHeight: 'calc(100vh - 420px)', minHeight: '300px', padding: '1.5rem' }}>
             {messages.length === 0 && !streaming && (
               <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--pf-t--global--text--color--subtle)' }}>
                 Upload documents and start asking questions. Watch the routing trace to see which Intel hardware handles each step.

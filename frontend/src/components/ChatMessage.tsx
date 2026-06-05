@@ -31,7 +31,7 @@ interface Props {
 }
 
 export default function ChatMessage({ role, content, trace, cost, streaming, onSwitchHardware }: Props) {
-  const [traceOpen, setTraceOpen] = useState(false);
+  const [traceOpen, setTraceOpen] = useState(true);
   const isUser = role === 'user';
 
   return (
@@ -43,23 +43,34 @@ export default function ChatMessage({ role, content, trace, cost, streaming, onS
       paddingRight: isUser ? 0 : '4rem',
     }}>
       <Card isCompact style={{
-        maxWidth: '80%',
+        width: isUser ? 'auto' : '100%',
+        maxWidth: isUser ? '70%' : '100%',
         background: isUser
           ? 'var(--pf-t--global--background--color--primary--default)'
           : 'var(--pf-t--global--background--color--secondary--default)',
         border: isUser ? '1px solid var(--pf-t--global--border--color--default)' : 'none',
+        boxShadow: isUser ? 'none' : '0 1px 4px rgba(0,0,0,0.06)',
       }}>
-        <CardBody>
-          <Split hasGutter style={{ marginBottom: '0.5rem' }}>
+        <CardBody style={{ padding: '1rem 1.25rem' }}>
+          <Split hasGutter style={{ marginBottom: '0.75rem' }}>
             <SplitItem>
-              {isUser ? <UserIcon /> : <RobotIcon />}
+              {isUser
+                ? <UserIcon style={{ color: 'var(--pf-t--global--icon--color--brand--default)' }} />
+                : <RobotIcon style={{ color: 'var(--pf-t--global--icon--color--status--success--default)' }} />}
             </SplitItem>
             <SplitItem isFilled>
-              <strong>{isUser ? 'You' : 'Assistant'}</strong>
+              <strong style={{ fontSize: '0.9rem' }}>{isUser ? 'You' : 'Assistant'}</strong>
             </SplitItem>
           </Split>
 
-          <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>
+          <div style={{
+            whiteSpace: 'pre-wrap',
+            wordBreak: 'break-word',
+            lineHeight: 1.7,
+            fontSize: '0.95rem',
+            maxHeight: streaming ? 'none' : '600px',
+            overflowY: streaming ? 'visible' : 'auto',
+          }}>
             {content}
             {streaming && <span style={{ animation: 'blink 1s infinite' }}>▌</span>}
           </div>
