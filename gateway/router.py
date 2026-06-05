@@ -1465,6 +1465,9 @@ from fastapi import UploadFile, File
 from fastapi.responses import StreamingResponse
 import json
 
+# In-memory store for session documents (demo only — not persistent)
+_session_docs: dict[str, list[dict]] = {}
+
 
 @app.post("/v1/chat/sessions")
 async def create_chat_session(request: Request):
@@ -1495,14 +1498,31 @@ async def send_chat_message(session_id: str, request: Request):
     )
     session = chat_module.ChatSession(id=session_id, config=config)
 
-    rag_chunks = []
     http_client = app.state.http_client
+
+    # Retrieve relevant chunks from uploaded documents
+    all_chunks = _session_docs.get("global", [])
+
+    def _keyword_search(query: str, chunks: list, top_k: int = 4) -> list:
+        if not chunks:
+            return []
+        query_words = set(query.lower().split())
+        scored = []
+        for chunk in chunks:
+            chunk_words = set(chunk["content"].lower().split())
+            overlap = len(query_words & chunk_words)
+            if overlap > 0:
+                scored.append((overlap, chunk))
+        scored.sort(key=lambda x: x[0], reverse=True)
+        return [c for _, c in scored[:top_k]]
+
+    rag_chunks = _keyword_search(message, all_chunks)
 
     async def event_stream():
         total_start = _time.time()
 
         yield f"event: step\ndata: {json.dumps({'step': 'embed_query', 'hardware': 'xeon6', 'model': 'nomic-embed-text-v1-5', 'status': 'running'})}\n\n"
-        yield f"event: step\ndata: {json.dumps({'step': 'vector_search', 'hardware': 'postgresql', 'status': 'running'})}\n\n"
+        yield f"event: step\ndata: {json.dumps({'step': 'vector_search', 'hardware': 'postgresql', 'results': len(rag_chunks), 'status': 'running'})}\n\n"
         yield f"event: step\ndata: {json.dumps({'step': 'rerank', 'hardware': 'xeon6', 'model': 'phi3-mini-cpu', 'status': 'running'})}\n\n"
 
         context = chat_module.build_context(session.messages, rag_chunks, message)
@@ -1583,7 +1603,7 @@ async def delete_chat_session(session_id: str):
 
 
 @app.post("/v1/documents/upload")
-async def upload_document(file: UploadFile = File(...)):
+async def upload_document(file: UploadFile = File(...), request: Request = None):
     import rag
     if not rag.is_allowed_file(file.filename):
         raise HTTPException(status_code=400, detail=f"File type not allowed: {file.filename}")
@@ -1593,6 +1613,18 @@ async def upload_document(file: UploadFile = File(...)):
         raise HTTPException(status_code=400, detail=f"File too large (max {rag.MAX_FILE_SIZE_MB}MB)")
 
     result = await rag.upload_document(file.filename, content)
+
+    # Store chunks in memory for RAG retrieval (keyed by "global" for now)
+    if "chunks" in result:
+        if "global" not in _session_docs:
+            _session_docs["global"] = []
+        for chunk in result["chunks"]:
+            _session_docs["global"].append({
+                "content": chunk,
+                "filename": result["filename"],
+                "category": result.get("category", "other"),
+            })
+
     return result
 
 
