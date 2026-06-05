@@ -1511,7 +1511,8 @@ async def send_chat_message(session_id: str, request: Request):
         chosen_backend = None
         chosen_hardware = config.hardware_override or "auto"
 
-        for b in backends:
+        all_backends = app.state.policy.list_backends()
+        for b in all_backends:
             if config.hardware_override == "xeon6" and b.accelerator == "xeon6":
                 chosen_backend = b
                 break
@@ -1519,7 +1520,7 @@ async def send_chat_message(session_id: str, request: Request):
                 chosen_backend = b
                 break
         if not chosen_backend:
-            chosen_backend = backends[0] if backends else None
+            chosen_backend = all_backends[0] if all_backends else None
 
         if chosen_backend:
             chosen_hardware = chosen_backend.accelerator or "auto"
