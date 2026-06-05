@@ -18,6 +18,8 @@ COPY tenant_api.py .
 COPY content_validator.py .
 COPY db.py .
 COPY local_inference.py .
+COPY chat.py .
+COPY rag.py .
 COPY __init__.py .
 COPY config.yaml .
 COPY migrations/ ./migrations/

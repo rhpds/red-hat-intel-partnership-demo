@@ -1468,7 +1468,7 @@ import json
 
 @app.post("/v1/chat/sessions")
 async def create_chat_session(request: Request):
-    from . import chat as chat_module
+    import chat as chat_module
     body = await request.json() if request.headers.get("content-type") == "application/json" else {}
     config = chat_module.ChatConfig(
         model_override=body.get("model_override"),
@@ -1481,7 +1481,7 @@ async def create_chat_session(request: Request):
 
 @app.post("/v1/chat/sessions/{session_id}/message")
 async def send_chat_message(session_id: str, request: Request):
-    from . import chat as chat_module
+    import chat as chat_module
     body = await request.json()
     message = body.get("message", "")
 
@@ -1506,7 +1506,7 @@ async def delete_chat_session(session_id: str):
 
 @app.post("/v1/documents/upload")
 async def upload_document(file: UploadFile = File(...)):
-    from . import rag
+    import rag
     if not rag.is_allowed_file(file.filename):
         raise HTTPException(status_code=400, detail=f"File type not allowed: {file.filename}")
 
