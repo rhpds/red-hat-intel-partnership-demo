@@ -125,7 +125,11 @@ export default function Chat() {
       const response = await fetch(`${BASE_URL}/v1/chat/sessions/${sessionId}/message`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: userMessage }),
+        body: JSON.stringify({
+          message: userMessage,
+          model_override: modelOverride === 'auto' ? undefined : modelOverride,
+          hardware_override: hardwareOverride === 'auto' ? undefined : hardwareOverride,
+        }),
       });
 
       if (!response.ok) {
