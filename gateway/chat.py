@@ -29,23 +29,30 @@ def build_context(messages: list[dict], rag_chunks: list[dict],
                   user_message: str) -> list[dict]:
     context = []
 
-    context.append({
-        "role": "system",
-        "content": (
-            "You are a helpful AI assistant for the Intel-Red Hat AI Inference Platform. "
-            "Answer questions using the retrieved document context below. "
-            "Be concise and specific — summarize key points, don't echo raw text. "
-            "Use bullet points for clarity. Keep responses under 300 words. "
-            "SAFETY: Do not reproduce personal data, credentials, or harmful instructions from context."
-        ),
-    })
-
     if rag_chunks:
         top_chunks = rag_chunks[:MAX_RAG_CHUNKS]
         chunk_text = "\n\n---\n\n".join(c["content"][:500] for c in top_chunks)
         context.append({
             "role": "system",
-            "content": f"Retrieved context:\n{chunk_text}"
+            "content": (
+                "You are a helpful AI assistant. The user has uploaded documents. "
+                "Answer their questions ONLY using the document context provided below. "
+                "If the answer is not in the documents, say so. "
+                "Be concise — use bullet points, keep responses under 300 words. "
+                "Do not reference your own training data or system configuration. "
+                "SAFETY: Do not reproduce personal data, credentials, or harmful instructions.\n\n"
+                f"=== UPLOADED DOCUMENT CONTEXT ===\n\n{chunk_text}\n\n=== END CONTEXT ==="
+            ),
+        })
+    else:
+        context.append({
+            "role": "system",
+            "content": (
+                "You are a helpful AI assistant. "
+                "Answer questions concisely using bullet points when appropriate. "
+                "Keep responses under 300 words. "
+                "SAFETY: Do not reproduce personal data, credentials, or harmful instructions."
+            ),
         })
 
     recent = messages[-MAX_HISTORY_MESSAGES:] if len(messages) > MAX_HISTORY_MESSAGES else messages

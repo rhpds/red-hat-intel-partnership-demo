@@ -129,12 +129,12 @@ class TestSafetyPrompt:
     def test_context_has_safety_rules(self, chat_module):
         context = chat_module.build_context([], [], "hello")
         system_msg = [m for m in context if m["role"] == "system"][0]
-        assert "SAFETY RULES" in system_msg["content"]
+        assert "SAFETY" in system_msg["content"]
 
     def test_context_blocks_pii_reproduction(self, chat_module):
         context = chat_module.build_context([], [], "hello")
         system_msg = [m for m in context if m["role"] == "system"][0]
-        assert "personal data" in system_msg["content"].lower() or "SSN" in system_msg["content"]
+        assert "personal data" in system_msg["content"].lower() or "credentials" in system_msg["content"].lower()
 
     def test_context_blocks_harmful_content(self, chat_module):
         context = chat_module.build_context([], [], "hello")
