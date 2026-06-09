@@ -23,9 +23,9 @@ departments:
     label: "Legal & Compliance"
     keywords: ["contract", "compliance", "regulation", "liability", "agreement", "patent", "trademark", "lawsuit", "audit", "gdpr", "hipaa"]
     description: "Legal documents, contracts, regulatory compliance"
-    model: "llama-scout-17b"
+    model: "deepseek-r1-distill-qwen-14b"
     cost_per_m_input: 0.15
-    reasoning: "Legal language needs strong comprehension"
+    reasoning: "Legal precision requires deep reasoning (DeepSeek R1 on Gaudi)"
 
   finance:
     label: "Finance"
@@ -33,15 +33,23 @@ departments:
     description: "Financial analysis, budgeting, forecasting"
     model: "qwen3-14b"
     cost_per_m_input: 0.15
-    reasoning: "Financial analysis needs reasoning but not premium"
+    reasoning: "Financial analysis needs reasoning on Gaudi GPU"
 
   security:
     label: "Security"
     keywords: ["vulnerability", "cve", "patch", "firewall", "encryption", "authentication", "breach", "pentest", "compliance", "soc2"]
     description: "Cybersecurity, vulnerability management, compliance"
-    model: "granite-3-2-8b-instruct"
-    cost_per_m_input: 0.0
-    reasoning: "Security queries need accuracy with structured knowledge"
+    model: "llama-scout-17b"
+    cost_per_m_input: 0.15
+    reasoning: "Security analysis needs multimodal capability (Llama Scout on Gaudi)"
+
+  executive:
+    label: "Executive / Strategy"
+    keywords: ["strategy", "roadmap", "vision", "board", "stakeholder", "merger", "acquisition", "competitive", "market", "leadership"]
+    description: "Executive strategy, M&A, board-level decisions"
+    model: "llama-31-70b-cpu"
+    cost_per_m_input: 0.15
+    reasoning: "Complex strategic reasoning requires largest available model (70B)"
 
   general:
     label: "General"
@@ -49,7 +57,7 @@ departments:
     description: "General queries not matching a specific department"
     model: "granite-3-2-8b-instruct"
     cost_per_m_input: 0.0
-    reasoning: "Default balanced model for unclassified queries"
+    reasoning: "Default balanced model on Xeon 6 CPU"
 
 # Opus baseline for cost comparison
 opus_baseline:
