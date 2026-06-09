@@ -10,6 +10,7 @@ RAG retrieval within the owning tenant's chat session. They are:
 - Not indexable, not searchable outside the RAG pipeline
 """
 
+import io
 import re
 import uuid
 import hashlib
@@ -141,6 +142,70 @@ def validate_content_safety(content: bytes, filename: str) -> None:
         raise ValueError("Compressed file detected")
 
 
+def extract_text(filename: str, content: bytes) -> str:
+    """Extract text from a file based on its type."""
+    ext = Path(filename).suffix.lower()
+
+    if ext == ".pdf":
+        return _extract_pdf(content)
+    elif ext == ".docx":
+        return _extract_docx(content)
+    else:
+        return content.decode("utf-8", errors="ignore")
+
+
+def _extract_pdf(content: bytes) -> str:
+    """Extract text from PDF using pdfplumber (preferred) or PyPDF2 fallback."""
+    try:
+        import pdfplumber
+        with pdfplumber.open(io.BytesIO(content)) as pdf:
+            pages = []
+            for page in pdf.pages[:50]:  # Max 50 pages
+                text = page.extract_text()
+                if text:
+                    pages.append(text)
+            return "\n\n".join(pages)
+    except ImportError:
+        pass
+
+    try:
+        import PyPDF2
+        reader = PyPDF2.PdfReader(io.BytesIO(content))
+        pages = []
+        for page in reader.pages[:50]:
+            text = page.extract_text()
+            if text:
+                pages.append(text)
+        return "\n\n".join(pages)
+    except ImportError:
+        pass
+
+    # Last resort — raw decode (will be garbage for PDFs)
+    return content.decode("utf-8", errors="ignore")
+
+
+def _extract_docx(content: bytes) -> str:
+    """Extract text from DOCX (ZIP of XML)."""
+    import zipfile
+    import xml.etree.ElementTree as ET
+
+    try:
+        with zipfile.ZipFile(io.BytesIO(content)) as z:
+            with z.open("word/document.xml") as f:
+                tree = ET.parse(f)
+                ns = {"w": "http://schemas.openxmlformats.org/wordprocessingml/2006/main"}
+                paragraphs = tree.findall(".//w:p", ns)
+                texts = []
+                for p in paragraphs:
+                    runs = p.findall(".//w:t", ns)
+                    line = "".join(r.text or "" for r in runs)
+                    if line.strip():
+                        texts.append(line)
+                return "\n".join(texts)
+    except Exception:
+        return content.decode("utf-8", errors="ignore")
+
+
 def hash_content(content: bytes) -> str:
     """SHA256 hash for deduplication and audit."""
     return hashlib.sha256(content).hexdigest()
@@ -160,7 +225,7 @@ async def upload_document(filename: str, content: bytes, tenant_id: str = None,
     validate_content_safety(content, filename)
 
     modality = detect_modality(filename)
-    text = content.decode("utf-8", errors="ignore")
+    text = extract_text(filename, content)
 
     chunks = chunk_text(text)
     sanitized_chunks = [sanitize_chunk(c) for c in chunks]
