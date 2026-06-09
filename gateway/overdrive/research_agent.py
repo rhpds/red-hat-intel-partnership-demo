@@ -62,7 +62,7 @@ def _keyword_search(query: str, top_k: int = 5) -> list[dict]:
 def step_decompose(question: str, live: bool = False) -> dict:
     if live:
         result = _call_gateway(
-            "completion", model="llama-scout-17b", model_size_b=17,
+            "completion", model="deepseek-r1-distill-qwen-14b", model_size_b=14,
             prompt=f"Break this question into 2-4 focused sub-questions for research. Return only the numbered sub-questions, nothing else.\n\nQuestion: {question}",
             max_tokens=200, temperature=0.3,
         )
@@ -135,7 +135,7 @@ def step_search(query: str, live: bool = False) -> dict:
 def step_rerank(query: str, documents: list[dict], live: bool = False) -> dict:
     if live and documents:
         texts = [d.get("content", d.get("title", ""))[:200] for d in documents]
-        result = _call_gateway("reranking", text=query, texts=texts, model="codellama-7b-instruct", model_size_b=7)
+        result = _call_gateway("reranking", text=query, texts=texts, model="phi3-mini-cpu", model_size_b=7)
         rerank_results = (result.get("result") or {}).get("results", [])
         if rerank_results:
             for i, rr in enumerate(rerank_results):
@@ -168,7 +168,7 @@ def step_synthesize(question: str, sub_queries: list[str], documents: list[dict]
         context = "\n\n".join(f"[{d.get('title', 'Doc')}]: {d.get('content', '')[:300]}" for d in documents[:4])
         prompt = f"Answer this question using only the provided context. Include specific details and cite source titles.\n\nQuestion: {question}\n\nContext:\n{context}\n\nAnswer:"
         result = _call_gateway(
-            "completion", model="llama-scout-17b", model_size_b=17,
+            "completion", model="deepseek-r1-distill-qwen-14b", model_size_b=14,
             prompt=prompt, max_tokens=300, temperature=0.3,
         )
         text = ""
@@ -202,7 +202,7 @@ def step_synthesize(question: str, sub_queries: list[str], documents: list[dict]
 def step_governance(answer: str, live: bool = False) -> dict:
     if live:
         result = _call_gateway(
-            "governance", model="granite-4-0-h-tiny", model_size_b=1,
+            "governance", model="granite-2b-cpu", model_size_b=1,
             prompt=answer[:500], max_tokens=60, temperature=0.1,
         )
         gov_result = result.get("result", {})

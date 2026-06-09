@@ -17,9 +17,9 @@ import {
 import { api } from '../api/client';
 
 const MODELS = [
-  { key: 'granite-4-0-h-tiny', label: 'Granite Tiny', lane: 'Eco', hw: 'Xeon 6', color: 'var(--rh-color--success)', bg: 'var(--rh-color--success-bg)', labelColor: 'green' as const },
-  { key: 'codellama-7b-instruct', label: 'CodeLlama 7B', lane: 'Performance', hw: 'Xeon 6', color: 'var(--rh-color--xeon6)', bg: 'var(--rh-color--xeon6-bg)', labelColor: 'blue' as const },
-  { key: 'llama-scout-17b', label: 'Llama Scout 17B', lane: 'Overdrive', hw: 'Gaudi', color: 'var(--rh-color--gaudi)', bg: 'var(--rh-color--gaudi-bg)', labelColor: 'orange' as const },
+  { key: 'granite-2b-cpu', label: 'Granite 2B', lane: 'Eco', hw: 'Xeon 6', color: 'var(--rh-color--success)', bg: 'var(--rh-color--success-bg)', labelColor: 'green' as const },
+  { key: 'phi3-mini-cpu', label: 'Phi-3 Mini', lane: 'Performance', hw: 'Xeon 6', color: 'var(--rh-color--xeon6)', bg: 'var(--rh-color--xeon6-bg)', labelColor: 'blue' as const },
+  { key: 'deepseek-r1-distill-qwen-14b', label: 'DeepSeek R1 14B', lane: 'Overdrive', hw: 'Gaudi', color: 'var(--rh-color--gaudi)', bg: 'var(--rh-color--gaudi-bg)', labelColor: 'orange' as const },
 ];
 
 const THRESHOLDS = [
@@ -307,8 +307,8 @@ export default function Tokenizer() {
             </div>
 
             {(() => {
-              const xeonCost = results['granite-4-0-h-tiny']?.cost_estimate ?? 0;
-              const gaudiCost = results['llama-scout-17b']?.cost_estimate ?? 0;
+              const xeonCost = results['granite-2b-cpu']?.cost_estimate ?? 0;
+              const gaudiCost = results['deepseek-r1-distill-qwen-14b']?.cost_estimate ?? 0;
               const savings = gaudiCost > 0 ? ((gaudiCost - xeonCost) / gaudiCost * 100).toFixed(0) : '0';
               return (
                 <Alert variant="info" isInline title="Cost insight">
@@ -336,9 +336,9 @@ export default function Tokenizer() {
                 { label: '100K requests', count: 100_000 },
                 { label: '1M requests', count: 1_000_000 },
               ];
-              const eco = results['granite-4-0-h-tiny'];
-              const perf = results['codellama-7b-instruct'];
-              const gaudi = results['llama-scout-17b'];
+              const eco = results['granite-2b-cpu'];
+              const perf = results['phi3-mini-cpu'];
+              const gaudi = results['deepseek-r1-distill-qwen-14b'];
               if (!eco || !perf || !gaudi) return null;
 
               const fmt = (v: number) => v < 1 ? `$${v.toFixed(2)}` : v < 1000 ? `$${v.toFixed(0)}` : `$${(v / 1000).toFixed(1)}K`;

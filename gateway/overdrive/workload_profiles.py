@@ -8,7 +8,7 @@ SCENARIO_PROMPTS = {
             "Alert: SSL certificate for model-serving route expires in 18 hours.",
             "Alert: Unauthorized API access attempt from 198.51.100.55 — 403 on /v1/route 12 times in 60s.",
             "Alert: Memory utilization on gateway pod exceeded 85%. Current: 3.4Gi of 4Gi limit.",
-            "Alert: LiteLLM proxy returned 5 consecutive 502 errors for codellama-7b-instruct model.",
+            "Alert: LiteLLM proxy returned 5 consecutive 502 errors for phi3-mini-cpu model.",
             "Alert: Prometheus scrape target down — ServiceMonitor intel-rh-demo/gateway unreachable.",
         ],
         "embedding": [

@@ -403,13 +403,13 @@ export default function LiveWorkflow({ title, subtitle, steps, prompt, runTrigge
       }
 
       const modelForTask: Record<string, string> = {
-        completion: step.model_size_b && step.model_size_b > 8 ? 'llama-scout-17b' : 'codellama-7b-instruct',
+        completion: step.model_size_b && step.model_size_b > 8 ? 'deepseek-r1-distill-qwen-14b' : 'phi3-mini-cpu',
         embeddings: 'nomic-embed-text-v1-5',
         search: 'nomic-embed-text-v1-5',
-        reranking: 'codellama-7b-instruct',
-        classification: 'granite-4-0-h-tiny',
-        governance: 'granite-4-0-h-tiny',
-        policy: 'granite-4-0-h-tiny',
+        reranking: 'phi3-mini-cpu',
+        classification: 'granite-2b-cpu',
+        governance: 'granite-2b-cpu',
+        policy: 'granite-2b-cpu',
         batch_generation: 'deepseek-r1-distill-qwen-14b',
       };
 

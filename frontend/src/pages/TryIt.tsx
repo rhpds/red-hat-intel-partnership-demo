@@ -40,7 +40,7 @@ const scenarios: WorkflowScenario[] = [
       { label: 'Embed Query', hw: 'xeon6', task: 'embeddings' },
       { label: 'Vector Search', hw: 'xeon6', task: 'search' },
       { label: 'Rerank Candidates', hw: 'xeon6', task: 'reranking' },
-      { label: 'Generate Answer', hw: 'gaudi', task: 'completion', model_size_b: 17 },
+      { label: 'Generate Answer', hw: 'gaudi', task: 'completion', model_size_b: 14 },
     ],
     prompts: [
       { label: 'Technical question', text: 'How does Intel Xeon 6 accelerate AI inference with AMX?', description: 'Multi-step RAG pipeline' },
@@ -56,7 +56,7 @@ const scenarios: WorkflowScenario[] = [
     steps: [
       { label: 'Classify Severity', hw: 'xeon6', task: 'classification' },
       { label: 'Find Similar Incidents', hw: 'xeon6', task: 'embeddings' },
-      { label: 'Generate RCA', hw: 'gaudi', task: 'completion', model_size_b: 17 },
+      { label: 'Generate RCA', hw: 'gaudi', task: 'completion', model_size_b: 14 },
       { label: 'Governance Gate', hw: 'xeon6', task: 'governance' },
     ],
     prompts: [
@@ -73,7 +73,7 @@ const scenarios: WorkflowScenario[] = [
     steps: [
       { label: 'Classify Intent', hw: 'xeon6', task: 'classification' },
       { label: 'Score Risk', hw: 'xeon6', task: 'classification' },
-      { label: 'Generate Plan', hw: 'gaudi', task: 'completion', model_size_b: 17 },
+      { label: 'Generate Plan', hw: 'gaudi', task: 'completion', model_size_b: 14 },
       { label: 'Policy Check', hw: 'xeon6', task: 'policy' },
     ],
     prompts: [

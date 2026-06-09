@@ -17,17 +17,16 @@ const TASKS = [
 ];
 
 const SIZE_MARKS = [
-  { value: 1, label: 'Tiny', model: 'granite-4-0-h-tiny' },
-  { value: 7, label: '7B', model: 'codellama-7b-instruct' },
+  { value: 2, label: '2B', model: 'granite-2b-cpu' },
+  { value: 4, label: '3.8B', model: 'phi3-mini-cpu' },
   { value: 8, label: '8B', model: 'granite-3-2-8b-instruct' },
   { value: 14, label: '14B', model: 'deepseek-r1-distill-qwen-14b' },
-  { value: 17, label: '17B', model: 'llama-scout-17b' },
 ];
 
 const MODEL_FOR_TASK: Record<string, string> = {
   embeddings: 'nomic-embed-text-v1-5',
-  classification: 'granite-4-0-h-tiny',
-  reranking: 'codellama-7b-instruct',
+  classification: 'granite-2b-cpu',
+  reranking: 'phi3-mini-cpu',
 };
 
 const MAX_PROMPT_LENGTH = 500;
@@ -35,8 +34,8 @@ const COOLDOWN_MS = 3000;
 
 function predictRoute(task: string, modelSize: number): { backend: string; hw: string; reason: string } {
   if (task === 'embeddings') return { backend: 'litellm-cpu', hw: 'xeon6', reason: 'nomic-embed-text-v1-5 on Xeon 6 — 768-dim embeddings' };
-  if (task === 'classification') return { backend: 'litellm-cpu', hw: 'xeon6', reason: 'granite-4-0-h-tiny on Xeon 6 — fast classification' };
-  if (task === 'reranking') return { backend: 'litellm-cpu', hw: 'xeon6', reason: 'codellama-7b on Xeon 6 — cross-encoder reranking' };
+  if (task === 'classification') return { backend: 'litellm-cpu', hw: 'xeon6', reason: 'granite-2b-cpu on Xeon 6 — fast classification' };
+  if (task === 'reranking') return { backend: 'litellm-cpu', hw: 'xeon6', reason: 'phi3-mini on Xeon 6 — cross-encoder reranking' };
   if (task === 'completion' && modelSize <= 8) return { backend: 'litellm-cpu', hw: 'xeon6', reason: `${modelSize}B model on Xeon 6 — CPU-efficient with AMX` };
   return { backend: 'litellm-gpu', hw: 'gaudi', reason: `${modelSize}B model on Gaudi — needs HBM and tensor cores` };
 }
@@ -78,8 +77,8 @@ export default function BuildYourOwn() {
     setTimeout(() => setCooldown(false), COOLDOWN_MS);
 
     const selectedModel = task === 'completion'
-      ? SIZE_MARKS.find(m => m.value === modelSize)?.model || 'codellama-7b-instruct'
-      : MODEL_FOR_TASK[task] || 'granite-4-0-h-tiny';
+      ? SIZE_MARKS.find(m => m.value === modelSize)?.model || 'phi3-mini-cpu'
+      : MODEL_FOR_TASK[task] || 'granite-2b-cpu';
 
     const sanitized = prompt
       .slice(0, MAX_PROMPT_LENGTH)

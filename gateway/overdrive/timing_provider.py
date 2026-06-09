@@ -67,29 +67,29 @@ class MockTimingProvider:
 
 
 TASK_TO_LITELLM_MODEL = {
-    "classification": "granite-4-0-h-tiny",
+    "classification": "granite-2b-cpu",
     "embedding": "nomic-embed-text-v1-5",
-    "rerank": "codellama-7b-instruct",
-    "short_summary": "codellama-7b-instruct",
-    "long_summary": "llama-scout-17b",
-    "incident_rca": "llama-scout-17b",
-    "batch_summary": "llama-scout-17b",
-    "rag_question": "llama-scout-17b",
-    "document_summary": "llama-scout-17b",
-    "code_summary": "llama-scout-17b",
-    "image_classification": "granite-4-0-h-tiny",
-    "screenshot_classification": "granite-4-0-h-tiny",
+    "rerank": "phi3-mini-cpu",
+    "short_summary": "phi3-mini-cpu",
+    "long_summary": "deepseek-r1-distill-qwen-14b",
+    "incident_rca": "deepseek-r1-distill-qwen-14b",
+    "batch_summary": "deepseek-r1-distill-qwen-14b",
+    "rag_question": "deepseek-r1-distill-qwen-14b",
+    "document_summary": "deepseek-r1-distill-qwen-14b",
+    "code_summary": "deepseek-r1-distill-qwen-14b",
+    "image_classification": "granite-2b-cpu",
+    "screenshot_classification": "granite-2b-cpu",
     "image_text_embedding": "nomic-embed-text-v1-5",
     "visual_similarity": "nomic-embed-text-v1-5",
-    "ocr_layout_extract": "codellama-7b-instruct",
-    "screenshot_summary": "llama-scout-17b",
-    "chart_interpretation": "llama-scout-17b",
-    "diagram_explanation": "llama-scout-17b",
-    "document_visual_summary": "llama-scout-17b",
-    "visual_rag_question": "llama-scout-17b",
-    "multimodal_incident_summary": "llama-scout-17b",
-    "multimodal_rca": "llama-scout-17b",
-    "image_to_manual": "llama-scout-17b",
+    "ocr_layout_extract": "phi3-mini-cpu",
+    "screenshot_summary": "deepseek-r1-distill-qwen-14b",
+    "chart_interpretation": "deepseek-r1-distill-qwen-14b",
+    "diagram_explanation": "deepseek-r1-distill-qwen-14b",
+    "document_visual_summary": "deepseek-r1-distill-qwen-14b",
+    "visual_rag_question": "deepseek-r1-distill-qwen-14b",
+    "multimodal_incident_summary": "deepseek-r1-distill-qwen-14b",
+    "multimodal_rca": "deepseek-r1-distill-qwen-14b",
+    "image_to_manual": "deepseek-r1-distill-qwen-14b",
 }
 
 
@@ -124,7 +124,7 @@ class RealTimingProvider:
 
         self._throttle()
 
-        model = TASK_TO_LITELLM_MODEL.get(task_type, "granite-4-0-h-tiny")
+        model = TASK_TO_LITELLM_MODEL.get(task_type, "granite-2b-cpu")
         task = task_type if task_type in ("classification", "embedding", "rerank") else "completion"
 
         payload = {

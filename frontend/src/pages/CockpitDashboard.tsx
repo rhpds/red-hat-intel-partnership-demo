@@ -26,7 +26,7 @@ const SCALES = [
   { id: 'standard', label: 'Standard', mode: 'drive', count: 25, time: '~20s', locked: false },
   { id: 'extended', label: 'Extended', mode: 'boost', count: 250, time: '~3 min', locked: true },
 ];
-const MODEL_COLORS: Record<string, string> = { 'granite-4-0-h-tiny': '#3e8635', 'codellama-7b-instruct': '#0068b5', 'llama-scout-17b': '#e67e22' };
+const MODEL_COLORS: Record<string, string> = { 'granite-2b-cpu': '#3e8635', 'phi3-mini-cpu': '#0068b5', 'deepseek-r1-distill-qwen-14b': '#e67e22' };
 
 /* ─── State Machine ─── */
 interface Snapshot { t: number; completed: number; eco: number; perf: number; gaudi: number; }
@@ -370,7 +370,7 @@ export default function CockpitDashboard() {
             {[
               { name: 'INTEL XEON ECO', hw: 'Granite · Xeon 6', count: eco, color: '#3e8635' },
               { name: 'INTEL XEON PERF', hw: 'CodeLlama · Xeon 6 + AMX', count: perf, color: '#0068b5' },
-              { name: 'INTEL GAUDI', hw: 'Llama Scout 17B', count: gaudi, color: '#e67e22' },
+              { name: 'INTEL GAUDI', hw: 'DeepSeek R1 14B', count: gaudi, color: '#e67e22' },
             ].map(l => (
               <div key={l.name} style={{ background: '#161616', border: `1px solid ${l.count > 0 ? l.color : '#333'}`, borderRadius: '6px', padding: '10px', borderLeft: `3px solid ${l.color}`, transition: 'border-color 0.3s' }}>
                 <div style={{ fontWeight: 700, fontSize: '0.72rem', letterSpacing: '0.04em' }}>{l.name}</div>
@@ -387,9 +387,9 @@ export default function CockpitDashboard() {
             <div style={{ fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.06em', color: '#888', marginBottom: '6px' }}>MODEL ACTIVITY</div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
               {[
-                { key: 'granite-4-0-h-tiny', name: 'Granite', hw: 'Xeon 6 Eco' },
-                { key: 'codellama-7b-instruct', name: 'CodeLlama 7B', hw: 'Xeon 6 + AMX' },
-                { key: 'llama-scout-17b', name: 'Llama Scout 17B', hw: 'Gaudi' },
+                { key: 'granite-2b-cpu', name: 'Granite', hw: 'Xeon 6 Eco' },
+                { key: 'phi3-mini-cpu', name: 'Phi-3 Mini', hw: 'Xeon 6 + AMX' },
+                { key: 'deepseek-r1-distill-qwen-14b', name: 'DeepSeek R1 14B', hw: 'Gaudi' },
               ].map(m => {
                 const s = models[m.key];
                 const count = s ? s.count as number : 0;

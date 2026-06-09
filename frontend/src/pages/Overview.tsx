@@ -67,7 +67,7 @@ export default function Overview() {
                     AI inference 5-10x faster than standard CPUs, at a fraction of GPU cost.
                   </Content>
                   <Content component={"small"} style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>
-                    $0.001–0.002 per 1K tokens &bull; &lt;10ms latency &bull; Models up to 8B parameters
+                    $0.0004 per 1K tokens &bull; &lt;10ms latency &bull; Models up to 8B parameters
                   </Content>
                 </Content>
               </CardBody>

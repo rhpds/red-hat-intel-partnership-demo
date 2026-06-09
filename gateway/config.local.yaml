@@ -6,8 +6,8 @@
 #   phi3-mini-cpu           — 3.8B, reranking/completion, 30 t/s
 #   qwen25-3b-cpu           — 3B, structured output, 24 t/s
 #   nomic-embed-text-v1-5   — embeddings (768-dim)
-#   granite-4-0-h-tiny      — 2B, fast classification, 19 t/s (vLLM)
-#   codellama-7b-instruct   — 7B, code completion, 45 t/s (vLLM)
+#   granite-2b-cpu      — 2B, fast classification, 19 t/s (vLLM)
+#   phi3-mini-cpu   — 7B, code completion, 45 t/s (vLLM)
 #
 # GPU path (Gaudi 3):
 #   llama-scout-17b                — 17B, complex reasoning, 60 t/s
