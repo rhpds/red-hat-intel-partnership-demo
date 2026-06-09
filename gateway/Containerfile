@@ -20,6 +20,8 @@ COPY db.py .
 COPY local_inference.py .
 COPY chat.py .
 COPY rag.py .
+COPY semantic_router.py .
+COPY departments.yaml .
 COPY __init__.py .
 COPY config.yaml .
 COPY migrations/ ./migrations/

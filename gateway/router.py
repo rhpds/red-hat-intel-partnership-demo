@@ -1640,6 +1640,88 @@ async def delete_document(doc_id: str):
     return {"status": "deleted", "document_id": doc_id}
 
 
+# ─── Semantic Routing Endpoints ───
+
+
+@app.post("/v1/semantic/classify")
+async def semantic_classify(request: Request):
+    """Classify a question using all 3 routing strategies."""
+    import semantic_router
+    body = await request.json()
+    text = body.get("text", body.get("message", ""))
+    if not text:
+        raise HTTPException(status_code=400, detail="text or message required")
+
+    http_client = app.state.http_client
+    backends = app.state.policy.list_backends()
+    backend = backends[0] if backends else None
+
+    result = await semantic_router.classify_all(text, http_client, backend)
+    return result
+
+
+@app.post("/v1/semantic/compare")
+async def semantic_compare(request: Request):
+    """Classify + route + generate on all 3 strategies simultaneously."""
+    import semantic_router
+    import time as _time
+
+    body = await request.json()
+    text = body.get("text", body.get("message", ""))
+    if not text:
+        raise HTTPException(status_code=400, detail="text or message required")
+
+    http_client = app.state.http_client
+    backends = app.state.policy.list_backends()
+    backend = backends[0] if backends else None
+
+    classification = await semantic_router.classify_all(text, http_client, backend)
+
+    # Generate responses for each strategy's chosen model
+    import asyncio
+
+    async def generate_for_strategy(strategy: dict) -> dict:
+        model = strategy["model"]
+        start = _time.time()
+        try:
+            payload = {
+                "model": model,
+                "messages": [{"role": "user", "content": text}],
+                "max_tokens": 256,
+                "temperature": 0.7,
+            }
+            headers = {}
+            if backend and backend.api_key:
+                headers["Authorization"] = f"Bearer {backend.api_key}"
+            resp = await http_client.post(
+                f"{backend.url}/v1/chat/completions", json=payload, headers=headers, timeout=30.0
+            )
+            resp.raise_for_status()
+            result = resp.json()
+            choices = result.get("choices", [])
+            response_text = choices[0].get("message", {}).get("content", "") if choices else ""
+        except Exception as e:
+            response_text = f"Error: {str(e)[:100]}"
+
+        inference_ms = (_time.time() - start) * 1000
+        return {
+            **strategy,
+            "response": response_text[:500],
+            "inference_ms": round(inference_ms),
+            "total_ms": round(strategy["routing_ms"] + inference_ms),
+        }
+
+    tasks = [generate_for_strategy(s) for s in classification["strategies"]]
+    results = await asyncio.gather(*tasks)
+
+    return {
+        "query": text[:200],
+        "strategies": results,
+        "agreement": classification["agreement"],
+        "all_agree": classification["all_agree"],
+    }
+
+
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
     import uvicorn

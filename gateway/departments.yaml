@@ -1,0 +1,58 @@
+---
+# Department taxonomy for semantic routing
+# Each department maps to a model optimized for that use case
+
+departments:
+  hr:
+    label: "Human Resources"
+    keywords: ["pto", "vacation", "salary", "benefits", "hiring", "onboarding", "payroll", "leave", "promotion", "performance review"]
+    description: "Employee policies, benefits, HR processes"
+    model: "granite-2b-cpu"
+    cost_per_m_input: 0.0
+    reasoning: "Simple policy lookups — cheapest model sufficient"
+
+  engineering:
+    label: "Engineering"
+    keywords: ["code", "debug", "deploy", "kubernetes", "api", "bug", "error", "pipeline", "git", "docker", "container", "microservice", "latency"]
+    description: "Software development, debugging, DevOps, infrastructure"
+    model: "qwen3-14b"
+    cost_per_m_input: 0.15
+    reasoning: "Technical analysis needs reasoning capability"
+
+  legal:
+    label: "Legal & Compliance"
+    keywords: ["contract", "compliance", "regulation", "liability", "agreement", "patent", "trademark", "lawsuit", "audit", "gdpr", "hipaa"]
+    description: "Legal documents, contracts, regulatory compliance"
+    model: "llama-scout-17b"
+    cost_per_m_input: 0.15
+    reasoning: "Legal language needs strong comprehension"
+
+  finance:
+    label: "Finance"
+    keywords: ["budget", "revenue", "forecast", "expense", "quarterly", "profit", "margin", "roi", "invoice", "accounting"]
+    description: "Financial analysis, budgeting, forecasting"
+    model: "qwen3-14b"
+    cost_per_m_input: 0.15
+    reasoning: "Financial analysis needs reasoning but not premium"
+
+  security:
+    label: "Security"
+    keywords: ["vulnerability", "cve", "patch", "firewall", "encryption", "authentication", "breach", "pentest", "compliance", "soc2"]
+    description: "Cybersecurity, vulnerability management, compliance"
+    model: "granite-3-2-8b-instruct"
+    cost_per_m_input: 0.0
+    reasoning: "Security queries need accuracy with structured knowledge"
+
+  general:
+    label: "General"
+    keywords: []
+    description: "General queries not matching a specific department"
+    model: "granite-3-2-8b-instruct"
+    cost_per_m_input: 0.0
+    reasoning: "Default balanced model for unclassified queries"
+
+# Opus baseline for cost comparison
+opus_baseline:
+  model: "claude-opus-4-6"
+  cost_per_m_input: 15.00
+  cost_per_m_output: 75.00
