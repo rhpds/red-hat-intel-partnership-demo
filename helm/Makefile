@@ -7,6 +7,7 @@ install:
 	helm upgrade --install $(RELEASE) . \
 		--namespace $(NAMESPACE) \
 		--create-namespace \
+		--set namespace=$(NAMESPACE) \
 		$(EXTRA_HELM_ARGS)
 
 uninstall:
@@ -15,4 +16,5 @@ uninstall:
 template:
 	helm template $(RELEASE) . \
 		--namespace $(NAMESPACE) \
+		--set namespace=$(NAMESPACE) \
 		$(EXTRA_HELM_ARGS)

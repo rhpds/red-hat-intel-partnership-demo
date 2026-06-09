@@ -1,6 +1,7 @@
 namespace: intel-rh-demo
 
 gateway:
+  # TODO: Update registry once quay.io org access is confirmed
   image: quay.io/intel-redhat/inference-gateway:latest
   replicas: 2
   resources:
@@ -15,6 +16,7 @@ gateway:
   localFallback: false
 
 frontend:
+  # TODO: Update registry once quay.io org access is confirmed
   image: quay.io/intel-redhat/inference-frontend:latest
   replicas: 1
   resources:
