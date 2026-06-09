@@ -84,7 +84,7 @@ const LANE_META: Record<string, {
     model: 'llama-scout-17b',
     accelerator: 'Gaudi',
     capabilities: ['long_summary', 'incident_rca', 'batch_summary'],
-    hwStory: 'Large models (17B+) on Intel Gaudi with 96GB HBM. 100+ tokens/sec generation for long summaries, RCA, and batch reports. Use when throughput matters more than cost.',
+    hwStory: 'Large models (17B+) on Intel Gaudi with 128GB HBM. 100+ tokens/sec generation for long summaries, RCA, and batch reports. Use when throughput matters more than cost.',
   },
 };
 

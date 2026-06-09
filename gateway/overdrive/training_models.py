@@ -119,8 +119,8 @@ HARDWARE_TRAINING_BENCHMARKS = {
         "advantage": "No GPU required — train lightweight classifiers and utility models on the same hardware that serves them",
     },
     "gaudi": {
-        "name": "Intel Gaudi 2",
-        "memory": "96GB HBM2E",
+        "name": "Intel Gaudi 3",
+        "memory": "128GB HBM2E",
         "lora_7b_time": "~20 minutes",
         "sft_7b_time": "~2 hours",
         "best_for": "All serious training — LoRA, SFT, QLoRA for 7B-70B models",

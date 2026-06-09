@@ -2,6 +2,7 @@
 * xref:01-explore-gateway.adoc[Explore the Gateway]
 * xref:02-dual-path-routing.adoc[Dual-Path Routing]
 * xref:03-run-at-scale.adoc[Run at Scale]
+* xref:04-interactive-chat.adoc[Interactive Chat]
 
 .Reference Architecture
 * xref:architecture.adoc[Architecture Overview]

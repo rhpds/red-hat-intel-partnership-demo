@@ -43,7 +43,7 @@ A multi-tenant inference gateway that routes AI workloads across Intel hardware 
 - [x] Secrets created from variables at deploy time, not from checked-in YAML
 
 ### MAAS/CNV Alignment
-- [x] Default gateway routing goes through MAAS proxy (`litellm-prod.apps.maas.redhatworkshops.io`)
+- [x] Default gateway routing goes through MAAS proxy (`maas-rhdp.apps.maas.redhatworkshops.io`)
 - [x] CPU inference moved to optional `local-inference` profile in podman-compose
 - [x] All dev ports bound to `127.0.0.1`
 - [x] Added coordination notices to GPU deploy READMEs (Ashok approval required)
@@ -84,7 +84,7 @@ A multi-tenant inference gateway that routes AI workloads across Intel hardware 
 
 3. **Image registry** — Confirm `quay.io/intel-redhat/` or provide the correct org. GitHub Actions workflow for builds is ready at `.github/workflows/build-images.yaml`.
 
-4. **MAAS LiteLLM access** — Will the shared cluster have network access to `litellm-prod.apps.maas.redhatworkshops.io`? Our demo depends on it for all inference.
+4. **MAAS LiteLLM access** — Will the shared cluster have network access to `maas-rhdp.apps.maas.redhatworkshops.io`? Our demo depends on it for all inference.
 
 5. **Showroom lab guide** — If following the quickstart pattern, we need a Showroom guide (like `rhpds/showroom-ai-quickstart-ai-product-recommender`). Should we create one?
 

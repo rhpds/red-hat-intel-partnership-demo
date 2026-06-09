@@ -19,9 +19,32 @@ The Intel-Red Hat AI Inference Platform routes AI workloads across Intel hardwar
 4. Response returned with routing metadata (hardware, latency, cost)
 5. Decision logged for audit trail
 
+== Semantic Department Routing
+
+The platform classifies incoming queries by department and routes to the optimal model:
+
+[cols="1,2,1", options="header"]
+|===
+| Department | Description | Model
+| HR | Employee policies, benefits | granite-2b-cpu (Xeon 6)
+| Engineering | Code, debugging, DevOps | qwen3-14b (Gaudi 3)
+| Legal | Contracts, compliance | deepseek-r1-distill-qwen-14b (Gaudi 3)
+| Finance | Budgeting, forecasting | qwen3-14b (Gaudi 3)
+| Security | Vulnerability management | llama-scout-17b (Gaudi 3)
+| Executive | Strategy, M&A | llama-31-70b (Xeon 6)
+|===
+
+Four classification strategies run in parallel for comparison:
+
+1. **Rule-Based** — keyword matching (0ms overhead)
+2. **Embedding** — cosine similarity to department templates (~50ms)
+3. **LLM Classifier** — small model classifies intent (~500ms)
+4. **vLLM Semantic Router** — production-grade signal-driven routing with OpenVINO on Xeon 6
+
 == Key Components
 
-Gateway:: FastAPI service with hardware-aware routing, governance, multi-tenant auth
-Frontend:: React/PatternFly 6 dashboard with interactive demos
-Database:: PostgreSQL with pgvector for document embeddings and audit trail
-MAAS:: LiteLLM proxy providing access to Intel-optimized models
+Gateway:: FastAPI service with hardware-aware routing, semantic department classification, RAG chat, governance, multi-tenant auth
+Frontend:: React/PatternFly 6 dashboard with interactive demos and routing comparison panel
+Database:: PostgreSQL with pgvector for document embeddings, chat sessions, and audit trail
+MAAS:: LiteLLM proxy at maas-rhdp.apps.maas.redhatworkshops.io providing access to 17 Intel-optimized models
+vLLM Semantic Router:: Optional production router with OpenVINO bindings for Intel Xeon 6

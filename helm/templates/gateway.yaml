@@ -37,6 +37,10 @@ spec:
               value: {{ .Values.gateway.rateLimitRpm | quote }}
             - name: LOCAL_FALLBACK_ENABLED
               value: {{ .Values.gateway.localFallback | quote }}
+          {{- if .Values.semanticRouter.enabled }}
+            - name: VLLM_SR_URL
+              value: "http://semantic-router:8899"
+          {{- end }}
           {{- if .Values.postgres.enabled }}
             - name: DATABASE_URL
               valueFrom:

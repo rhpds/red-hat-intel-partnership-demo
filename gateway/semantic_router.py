@@ -8,6 +8,7 @@ Three classification strategies:
 
 from __future__ import annotations
 
+import os
 import time
 import math
 import yaml
@@ -177,20 +178,86 @@ async def classify_llm(text: str, http_client, backend) -> dict:
     }
 
 
+VLLM_SR_URL = os.environ.get("VLLM_SR_URL", "http://semantic-router:8899")
+
+# Map vLLM SR model IDs back to department IDs
+_MODEL_TO_DEPT = {}
+for _dept_id, _dept in DEPARTMENTS.items():
+    _model = _dept.get("model", "")
+    if _model and _dept_id != "general":
+        _MODEL_TO_DEPT[_model] = _dept_id
+_MODEL_TO_DEPT["granite-3-2-8b-instruct"] = "general"
+
+
+async def classify_vllm_sr(text: str, http_client) -> dict:
+    """Strategy 4: vLLM Semantic Router — production-grade signal-driven routing with OpenVINO."""
+    start = time.time()
+
+    try:
+        payload = {
+            "model": "auto",
+            "messages": [{"role": "user", "content": text[:500]}],
+            "max_tokens": 1,
+        }
+        resp = await http_client.post(
+            f"{VLLM_SR_URL}/v1/chat/completions",
+            json=payload,
+            timeout=30.0,
+        )
+        resp.raise_for_status()
+        result = resp.json()
+
+        routed_model = result.get("model", "")
+        route_name = ""
+        for header_name in ["x-vsr-route", "x-semantic-route", "x-routed-model"]:
+            route_name = resp.headers.get(header_name, "")
+            if route_name:
+                break
+
+        best_dept = _MODEL_TO_DEPT.get(routed_model, "general")
+        if not best_dept or best_dept == "general":
+            for dept_id, dept in DEPARTMENTS.items():
+                if dept.get("model") == routed_model:
+                    best_dept = dept_id
+                    break
+
+        confidence = 0.90
+
+    except Exception:
+        best_dept = "general"
+        routed_model = "granite-3-2-8b-instruct"
+        confidence = 0.0
+
+    elapsed_ms = (time.time() - start) * 1000
+    dept = DEPARTMENTS.get(best_dept, DEPARTMENTS.get("general", {}))
+
+    return {
+        "strategy": "vllm-sr",
+        "department": best_dept,
+        "department_label": dept.get("label", best_dept),
+        "model": routed_model or dept.get("model", "granite-3-2-8b-instruct"),
+        "confidence": round(confidence, 2),
+        "reasoning": "vLLM Semantic Router — signal-driven routing with OpenVINO on Intel Xeon 6",
+        "routing_ms": round(elapsed_ms, 1),
+    }
+
+
 async def classify_all(text: str, http_client, backend) -> dict:
-    """Run all 3 strategies in parallel and return comparison."""
+    """Run all 4 strategies in parallel and return comparison."""
     import asyncio
 
     rules_result = classify_rules(text)
 
     embedding_task = classify_embedding(text, http_client, backend)
     llm_task = classify_llm(text, http_client, backend)
+    vllm_sr_task = classify_vllm_sr(text, http_client)
 
-    embedding_result, llm_result = await asyncio.gather(embedding_task, llm_task)
+    embedding_result, llm_result, vllm_sr_result = await asyncio.gather(
+        embedding_task, llm_task, vllm_sr_task
+    )
 
-    strategies = [rules_result, embedding_result, llm_result]
+    strategies = [rules_result, embedding_result, llm_result, vllm_sr_result]
 
-    # Calculate cost comparison vs Opus
     opus_input = OPUS_BASELINE.get("cost_per_m_input", 15.0)
     opus_output = OPUS_BASELINE.get("cost_per_m_output", 75.0)
     opus_cost = (2000 / 1_000_000 * opus_input) + (1000 / 1_000_000 * opus_output)
@@ -208,7 +275,7 @@ async def classify_all(text: str, http_client, backend) -> dict:
     return {
         "query": text[:200],
         "strategies": strategies,
-        "agreement": 3 - agreement + 1,
+        "agreement": 4 - agreement + 1,
         "all_agree": agreement == 1,
     }
 

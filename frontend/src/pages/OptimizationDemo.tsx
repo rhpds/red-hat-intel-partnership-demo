@@ -12,7 +12,7 @@ const METHODS = [
 const HW = [
   { name: 'Intel Xeon 6', color: '#0068b5', memory: '256 GB DDR5', lora: '~4 hours', sft: 'Not viable', best: 'Small models (≤3B), inference serving, evaluation',
     why: 'No GPU required. Train lightweight classifiers and utility models on the same hardware that serves them. AMX acceleration helps with INT8/BF16 operations.' },
-  { name: 'Intel Gaudi 2', color: '#e67e22', memory: '96 GB HBM2E', lora: '~20 minutes', sft: '~2 hours', best: 'All serious training — 7B to 70B models',
+  { name: 'Intel Gaudi 3', color: '#e67e22', memory: '128 GB HBM2E', lora: '~20 minutes', sft: '~2 hours', best: 'All serious training — 7B to 70B models',
     why: 'High-bandwidth memory enables large batch sizes. 24 tensor cores optimized for training throughput. 12x faster than CPU for LoRA on 7B models.' },
 ];
 
@@ -80,7 +80,7 @@ export default function OptimizationDemo() {
               );
             })}
             <div style={{ fontSize: '0.72rem', color: 'var(--rh-color--text-secondary)', marginTop: '6px' }}>
-              Intel Gaudi 2 has 96 GB HBM — all three methods fit comfortably.
+              Intel Gaudi 3 has 128 GB HBM — all three methods fit comfortably.
             </div>
           </CardBody>
         </Card>
@@ -118,7 +118,7 @@ export default function OptimizationDemo() {
             <div style={{ fontSize: '0.82rem', fontWeight: 600, marginBottom: '10px' }}>LoRA Training Speed — 7B Model</div>
             {[
               { name: 'Intel Xeon 6 (CPU)', time: 240, label: '~4 hours', color: '#0068b5' },
-              { name: 'Intel Gaudi 2 (GPU)', time: 20, label: '~20 minutes', color: '#e67e22' },
+              { name: 'Intel Gaudi 3 (GPU)', time: 20, label: '~20 minutes', color: '#e67e22' },
             ].map(h => (
               <div key={h.name} style={{ marginBottom: '8px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', marginBottom: '2px' }}>

@@ -15,7 +15,7 @@ MULTIMODAL_DEMO_ASSETS = {
         {"url": "/demo-assets/architecture-dual-path.svg", "title": "Dual-Path Routing Architecture", "description": "Three-lane routing diagram: Eco (Xeon 6), Performance (Xeon 6 + AMX), Overdrive (Gaudi)."},
     ],
     "image": [
-        {"url": "/demo-assets/gaudi-accelerator-card.svg", "title": "Intel Gaudi 2 Accelerator", "description": "Intel Gaudi 2 HL-225 PCIe card with 96GB HBM2E and 24 Tensor Cores."},
+        {"url": "/demo-assets/gaudi-accelerator-card.svg", "title": "Intel Gaudi 3 Accelerator", "description": "Intel Gaudi 3 HL-325 PCIe card with 128GB HBM2E and 24 Tensor Cores."},
         {"url": "/demo-assets/server-rack-xeon6.svg", "title": "2U Rack Server — Xeon 6 + Gaudi", "description": "Rack-mounted servers with CPU worker node and Gaudi worker node."},
     ],
     "document": [

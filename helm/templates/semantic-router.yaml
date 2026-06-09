@@ -1,0 +1,91 @@
+{{- if .Values.semanticRouter.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: vllm-sr-config
+  namespace: {{ .Values.namespace }}
+data:
+  config.yaml: |
+{{ .Files.Get "vllm-sr-config.yaml" | indent 4 }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: semantic-router
+  namespace: {{ .Values.namespace }}
+  labels:
+    app.kubernetes.io/name: semantic-router
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: semantic-router
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: semantic-router
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: semantic-router
+          image: {{ .Values.semanticRouter.image }}
+          ports:
+            - name: http
+              containerPort: 8899
+          env:
+            - name: LITELLM_API_BASE
+              valueFrom:
+                secretKeyRef:
+                  name: gateway-config
+                  key: LITELLM_API_BASE
+            - name: LITELLM_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: gateway-config
+                  key: LITELLM_API_KEY
+          resources:
+            requests:
+              cpu: {{ .Values.semanticRouter.resources.requests.cpu }}
+              memory: {{ .Values.semanticRouter.resources.requests.memory }}
+            limits:
+              cpu: {{ .Values.semanticRouter.resources.limits.cpu }}
+              memory: {{ .Values.semanticRouter.resources.limits.memory }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+          volumeMounts:
+            - name: config
+              mountPath: /config
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 15
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 30
+      volumes:
+        - name: config
+          configMap:
+            name: vllm-sr-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: semantic-router
+  namespace: {{ .Values.namespace }}
+spec:
+  selector:
+    app.kubernetes.io/name: semantic-router
+  ports:
+    - name: http
+      port: 8899
+      targetPort: http
+  type: ClusterIP
+{{- end }}

@@ -84,7 +84,7 @@ export default function Overview() {
                 <Content>
                   <Content component={"p"}>
                     Large language models (17B+ parameters) need GPU memory bandwidth. Intel Gaudi
-                    delivers 100+ tokens/sec generation with 96GB HBM — 10-20x faster than CPU for
+                    delivers 100+ tokens/sec generation with 128GB HBM — 10-20x faster than CPU for
                     tasks that demand sustained token generation.
                   </Content>
                   <Content component={"small"} style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>

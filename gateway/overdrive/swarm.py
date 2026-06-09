@@ -191,7 +191,7 @@ MOCK_AGENT_OUTPUTS = {
         "latency_ms": 200,
     },
     "procurement_planner": {
-        "output": "PROCUREMENT TIMELINE & ROI\n\nRecommended procurement (moderate growth scenario):\n\nPhase 1 (Month 1-2):\n- 2x Intel Gaudi 2 accelerator cards: $38,000\n- Installation + integration: 5 engineering days\n- ROI breakeven: Month 4 (avoids $12K/mo in SLA penalties)\n\nPhase 2 (Month 3-4):\n- 1x Intel Xeon 6 Performance node: $8,500\n- Rack space + networking: $1,200\n- ROI breakeven: Month 6\n\nTotal investment: $47,700\nProjected 12-month savings: $168,000 (SLA penalties avoided + optimization gains)\nNet ROI: 252%\n\nAlternative: Scale existing nodes with Intel AMX optimization — saves $15K in hardware but requires 10 engineering days.",
+        "output": "PROCUREMENT TIMELINE & ROI\n\nRecommended procurement (moderate growth scenario):\n\nPhase 1 (Month 1-2):\n- 2x Intel Gaudi 3 accelerator cards: $38,000\n- Installation + integration: 5 engineering days\n- ROI breakeven: Month 4 (avoids $12K/mo in SLA penalties)\n\nPhase 2 (Month 3-4):\n- 1x Intel Xeon 6 Performance node: $8,500\n- Rack space + networking: $1,200\n- ROI breakeven: Month 6\n\nTotal investment: $47,700\nProjected 12-month savings: $168,000 (SLA penalties avoided + optimization gains)\nNet ROI: 252%\n\nAlternative: Scale existing nodes with Intel AMX optimization — saves $15K in hardware but requires 10 engineering days.",
         "latency_ms": 2800,
     },
 }

@@ -1,0 +1,90 @@
+= Interactive Chat & Document Upload
+
+In this section you'll use the RAG-powered chat to upload documents and
+ask questions, then explore how semantic routing selects the optimal model
+for each department.
+
+== Step 1: Open the Chat Interface
+
+Click *Interactive Chat* in the sidebar under *Core Demo*.
+
+You'll see the chat interface with:
+
+* *Model selector* — choose which model to use (or leave on default)
+* *Document upload* — upload PDF, DOCX, or TXT files for RAG context
+* *Chat input* — type your question
+* *Routing trace* — see which hardware and model handled the request
+
+== Step 2: Upload a Document
+
+Click the document upload area and select a PDF, DOCX, or TXT file.
+
+The system will:
+
+. Extract text from the document
+. Chunk it into sections (512 tokens max)
+. Generate embeddings using `nomic-embed-text-v1-5` on Xeon 6
+. Store vectors in PostgreSQL with pgvector
+
+You can upload up to 20 documents per session, 10MB each.
+
+== Step 3: Ask Questions About Your Document
+
+Type a question about the uploaded document in the chat input.
+
+The RAG pipeline:
+
+. Embeds your question on *Xeon 6*
+. Searches for relevant chunks via vector similarity
+. Sends the top chunks + your question to the selected model
+. Streams the response via SSE
+
+Watch the *Routing Trace* panel to see which model and hardware
+handled your request.
+
+== Step 4: Try Different Models
+
+Use the model selector to switch between models:
+
+* *granite-2b-cpu* — fast responses on Xeon 6 (simple questions)
+* *qwen3-14b* — deeper reasoning on Gaudi 3 (complex analysis)
+* *deepseek-r1-distill-qwen-14b* — strong reasoning on Gaudi 3
+
+Notice how latency and response quality change with each model.
+
+== Step 5: Explore Semantic Department Routing
+
+The platform includes semantic routing that classifies questions by
+department and selects the optimal model automatically:
+
+[cols="1,2,1"]
+|===
+|Department |Example Question |Routed Model
+
+|HR
+|"What is our PTO policy?"
+|granite-2b-cpu (Xeon 6)
+
+|Engineering
+|"Debug the Kafka consumer error"
+|qwen3-14b (Gaudi 3)
+
+|Legal
+|"Review this NDA for liability issues"
+|deepseek-r1-distill-qwen-14b (Gaudi 3)
+
+|Finance
+|"Forecast Q3 revenue from this data"
+|qwen3-14b (Gaudi 3)
+
+|Security
+|"Assess this CVE for our infrastructure"
+|llama-scout-17b (Gaudi 3)
+
+|Executive
+|"Summarize our competitive positioning"
+|llama-31-70b (Xeon 6)
+|===
+
+Try asking questions from different departments and watch the routing
+trace show which model and hardware was selected.

@@ -1,0 +1,285 @@
+---
+# vLLM Semantic Router configuration for Intel-Red Hat AI Inference Platform
+# Maps 6 enterprise departments to optimal models on MAAS (Intel Gaudi/Xeon 6)
+
+listener:
+  address: 0.0.0.0
+  port: 8899
+  timeout: 300
+
+providers:
+  defaults:
+    default_model: granite-3-2-8b-instruct
+    api_format: openai
+
+  models:
+    - provider_model_id: granite-2b-cpu
+      api_format: openai
+      pricing:
+        prompt_per_m: 0.0
+        completion_per_m: 0.0
+      backend_refs:
+        - base_url: ${LITELLM_API_BASE}/v1
+          weight: 100
+          extra_headers:
+            Authorization: "Bearer ${LITELLM_API_KEY}"
+
+    - provider_model_id: qwen3-14b
+      api_format: openai
+      pricing:
+        prompt_per_m: 0.15
+        completion_per_m: 0.60
+      backend_refs:
+        - base_url: ${LITELLM_API_BASE}/v1
+          weight: 100
+          extra_headers:
+            Authorization: "Bearer ${LITELLM_API_KEY}"
+
+    - provider_model_id: deepseek-r1-distill-qwen-14b
+      api_format: openai
+      pricing:
+        prompt_per_m: 0.15
+        completion_per_m: 0.60
+      backend_refs:
+        - base_url: ${LITELLM_API_BASE}/v1
+          weight: 100
+          extra_headers:
+            Authorization: "Bearer ${LITELLM_API_KEY}"
+
+    - provider_model_id: llama-scout-17b
+      api_format: openai
+      pricing:
+        prompt_per_m: 0.15
+        completion_per_m: 0.60
+      backend_refs:
+        - base_url: ${LITELLM_API_BASE}/v1
+          weight: 100
+          extra_headers:
+            Authorization: "Bearer ${LITELLM_API_KEY}"
+
+    - provider_model_id: llama-31-70b-cpu
+      api_format: openai
+      pricing:
+        prompt_per_m: 0.15
+        completion_per_m: 0.60
+      backend_refs:
+        - base_url: ${LITELLM_API_BASE}/v1
+          weight: 100
+          extra_headers:
+            Authorization: "Bearer ${LITELLM_API_KEY}"
+
+    - provider_model_id: granite-3-2-8b-instruct
+      api_format: openai
+      pricing:
+        prompt_per_m: 0.0
+        completion_per_m: 0.0
+      backend_refs:
+        - base_url: ${LITELLM_API_BASE}/v1
+          weight: 100
+          extra_headers:
+            Authorization: "Bearer ${LITELLM_API_KEY}"
+
+routing:
+  modelCards:
+    - name: granite-2b-cpu
+    - name: qwen3-14b
+    - name: deepseek-r1-distill-qwen-14b
+    - name: llama-scout-17b
+    - name: llama-31-70b-cpu
+    - name: granite-3-2-8b-instruct
+
+  signals:
+    keywords:
+      - name: hr_keywords
+        match_type: bm25
+        candidates:
+          - pto
+          - vacation
+          - salary
+          - benefits
+          - hiring
+          - onboarding
+          - payroll
+          - leave
+          - promotion
+          - performance review
+
+      - name: engineering_keywords
+        match_type: bm25
+        candidates:
+          - code
+          - debug
+          - deploy
+          - kubernetes
+          - api
+          - bug
+          - error
+          - pipeline
+          - git
+          - docker
+          - container
+          - microservice
+          - latency
+
+      - name: legal_keywords
+        match_type: bm25
+        candidates:
+          - contract
+          - compliance
+          - regulation
+          - liability
+          - agreement
+          - patent
+          - trademark
+          - lawsuit
+          - audit
+          - gdpr
+          - hipaa
+
+      - name: finance_keywords
+        match_type: bm25
+        candidates:
+          - budget
+          - revenue
+          - forecast
+          - expense
+          - quarterly
+          - profit
+          - margin
+          - roi
+          - invoice
+          - accounting
+
+      - name: security_keywords
+        match_type: bm25
+        candidates:
+          - vulnerability
+          - cve
+          - patch
+          - firewall
+          - encryption
+          - authentication
+          - breach
+          - pentest
+          - soc2
+
+      - name: executive_keywords
+        match_type: bm25
+        candidates:
+          - strategy
+          - roadmap
+          - vision
+          - board
+          - stakeholder
+          - merger
+          - acquisition
+          - competitive
+          - market
+          - leadership
+
+    embeddings:
+      - name: hr_intent
+        candidates:
+          - "Employee policies, benefits, HR processes"
+        aggregation: max
+
+      - name: engineering_intent
+        candidates:
+          - "Software development, debugging, DevOps, infrastructure"
+        aggregation: max
+
+      - name: legal_intent
+        candidates:
+          - "Legal documents, contracts, regulatory compliance"
+        aggregation: max
+
+      - name: finance_intent
+        candidates:
+          - "Financial analysis, budgeting, forecasting"
+        aggregation: max
+
+      - name: security_intent
+        candidates:
+          - "Cybersecurity, vulnerability management, compliance"
+        aggregation: max
+
+      - name: executive_intent
+        candidates:
+          - "Executive strategy, M&A, board-level decisions"
+        aggregation: max
+
+  decisions:
+    - name: hr-route
+      priority: 100
+      rules:
+        or:
+          - signal: hr_keywords
+          - signal: hr_intent
+      modelRefs:
+        - name: granite-2b-cpu
+          weight: 100
+
+    - name: engineering-route
+      priority: 90
+      rules:
+        or:
+          - signal: engineering_keywords
+          - signal: engineering_intent
+      modelRefs:
+        - name: qwen3-14b
+          weight: 100
+
+    - name: legal-route
+      priority: 90
+      rules:
+        or:
+          - signal: legal_keywords
+          - signal: legal_intent
+      modelRefs:
+        - name: deepseek-r1-distill-qwen-14b
+          weight: 100
+
+    - name: finance-route
+      priority: 90
+      rules:
+        or:
+          - signal: finance_keywords
+          - signal: finance_intent
+      modelRefs:
+        - name: qwen3-14b
+          weight: 100
+
+    - name: security-route
+      priority: 90
+      rules:
+        or:
+          - signal: security_keywords
+          - signal: security_intent
+      modelRefs:
+        - name: llama-scout-17b
+          weight: 100
+
+    - name: executive-route
+      priority: 80
+      rules:
+        or:
+          - signal: executive_keywords
+          - signal: executive_intent
+      modelRefs:
+        - name: llama-31-70b-cpu
+          weight: 100
+
+    - name: general-fallback
+      priority: 0
+      rules:
+        not:
+          or:
+            - signal: hr_keywords
+            - signal: engineering_keywords
+            - signal: legal_keywords
+            - signal: finance_keywords
+            - signal: security_keywords
+            - signal: executive_keywords
+      modelRefs:
+        - name: granite-3-2-8b-instruct
+          weight: 100

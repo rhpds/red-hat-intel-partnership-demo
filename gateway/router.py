@@ -405,7 +405,7 @@ def _postprocess_result(task: str, result: dict, prompt: str = "") -> dict:
 
 SEARCH_KNOWLEDGE_BASE = [
     {"id": "xeon6-amx", "text": "Intel Xeon 6 processors include Advanced Matrix Extensions (AMX) that accelerate AI inference workloads with hardware-level INT8 and BF16 matrix operations, delivering up to 10x throughput improvement for transformer models."},
-    {"id": "gaudi2-arch", "text": "Intel Gaudi 2 accelerators are purpose-built for deep learning with 96GB HBM2e memory and 24 Tensor Processor Cores, providing 2x throughput improvement for large language model inference."},
+    {"id": "gaudi3-arch", "text": "Intel Gaudi 3 accelerators are purpose-built for deep learning with 128GB HBM2E memory and 24 Tensor Processor Cores, providing 2x throughput improvement for large language model inference."},
     {"id": "openshift-ai", "text": "Red Hat OpenShift AI integrates KServe for model serving, provides a model registry, supports distributed training, and includes built-in monitoring on heterogeneous Intel hardware."},
     {"id": "kserve", "text": "KServe is a Kubernetes-native model serving framework providing serverless inference with autoscaling, canary deployments, and multi-model serving via custom ServingRuntimes."},
     {"id": "vllm", "text": "vLLM is a high-throughput inference engine using PagedAttention for efficient memory management, supporting OpenAI-compatible APIs on both Intel CPUs and Gaudi accelerators."},

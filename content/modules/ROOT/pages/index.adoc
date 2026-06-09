@@ -28,8 +28,8 @@ to select optimal Intel hardware for each request
 |CPU inference with AMX (Advanced Matrix Extensions) for embeddings,
 classification, reranking — fast and cost-efficient
 
-|*Intel Gaudi*
-|GPU inference with 96GB HBM for large language model generation — 100+ tokens/sec
+|*Intel Gaudi 3*
+|GPU inference with 128GB HBM for large language model generation — 100+ tokens/sec
 for 17B+ parameter models
 
 |*Red Hat OpenShift AI*
@@ -40,6 +40,17 @@ Prometheus observability, and namespace isolation for multi-tenant access
 |Red Hat Model-as-a-Service proxy providing a unified OpenAI-compatible API across
 all models on both hardware tiers
 |===
+
+== Workshop Environment
+
+You will have access to:
+
+* *OpenShift Console*: {openshift_console_url}
+* *Username*: `{user}`
+* *Password*: `{password}`
+* *Namespace*: `{user}-intel-inference`
+
+NOTE: All environment details and credentials are available in the lab interface tabs above.
 
 == Getting Started
 

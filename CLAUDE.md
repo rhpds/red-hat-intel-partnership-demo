@@ -15,7 +15,7 @@ Frontend (React/PatternFly 6) → Gateway (FastAPI) → MAAS/LiteLLM → Intel H
 - **Gateway** (`gateway/`): FastAPI app, `router.py` is the main entry point. Runs as standalone script, NOT a package — use `import module` not `from . import module`.
 - **Frontend** (`frontend/`): React 19 + PatternFly 6 + Vite. Dev proxy to gateway at localhost:8080.
 - **Database**: PostgreSQL with pgvector extension for RAG embeddings.
-- **MAAS**: LiteLLM proxy at `litellm-prod.apps.maas.redhatworkshops.io`. API key in `.env`.
+- **MAAS**: LiteLLM proxy at `maas-rhdp.apps.maas.redhatworkshops.io`. API key in `.env`.
 
 ## Development
 
@@ -61,30 +61,36 @@ oc rollout restart deploy/gateway -n $NS
 
 ```
 gateway/
-  router.py          # Main FastAPI app (all endpoints)
-  chat.py            # Chat sessions, SSE streaming, context building
-  rag.py             # Document upload, chunking, embedding, search, security
-  db.py              # PostgreSQL async adapter
-  auth.py            # JWT + API key auth
-  routing_policy.py  # YAML-based routing rules
-  overdrive/         # Advanced routing engine
-  migrations/        # SQL migrations (001-004)
+  router.py            # Main FastAPI app (all endpoints)
+  chat.py              # Chat sessions, SSE streaming, context building
+  rag.py               # Document upload, chunking, embedding, search, security
+  semantic_router.py   # 4-strategy department classifier (rules, embedding, LLM, vLLM SR)
+  departments.yaml     # 6-department taxonomy with model mappings
+  vllm-sr-config.yaml  # vLLM Semantic Router config for production routing
+  content_validator.py  # Content screening + output safety for RAG
+  db.py                # PostgreSQL async adapter
+  auth.py              # JWT + API key auth
+  routing_policy.py    # YAML-based routing rules
+  config.yaml          # Backend configuration (MAAS endpoints)
+  overdrive/           # Advanced routing engine
+  migrations/          # SQL migrations (001-004)
 
 frontend/src/
-  pages/Chat.tsx     # Interactive RAG chat page
-  components/        # ChatMessage, RoutingTrace, DocumentUploader, ModelSelector
-  api/client.ts      # API endpoints
-  api/types.ts       # TypeScript interfaces
+  pages/Chat.tsx       # Interactive RAG chat page
+  components/          # ChatMessage, RoutingTrace, DocumentUploader, ModelSelector
+  api/client.ts        # API endpoints
+  api/types.ts         # TypeScript interfaces
 
-helm/                # Helm chart for RHDP quickstart_deploy_via_make pattern
-tests/               # 133+ pytest tests with validation matrix
-content/             # Antora docs site (ref arch, lab guide)
+helm/                  # Helm chart for RHDP quickstart_deploy_via_make pattern
+tests/                 # 133+ pytest tests with validation matrix
+content/               # Antora docs site (ref arch, lab guide)
 ```
 
 ## Related Repos
 
-- **NovaScan** (`~/Documents/checksum`, [rhpds/NovaScan](https://github.com/rhpds/NovaScan)): Capacity scanner — scans repos, recommends provisioning tiers
-- **LiftOff** (`~/Documents/liftoff`): Provisioning engine — AgnosticV configs, Ansible roles for RHDP
+- **NovaScan** (`~/Documents/novascan`, [rhpds/NovaScan](https://github.com/rhpds/NovaScan)): Capacity scanner — scans repos, recommends provisioning tiers
+- **LiftOff** (`~/Documents/liftoff`): Provisioning engine — AgnosticV configs for RHDP quickstart_deploy_via_make
+- **DarkScope** (`~/Documents/darkscope`): Security scanner — AST taint tracking, supply chain CVE, secret detection
 
 ## What NOT To Do
 
