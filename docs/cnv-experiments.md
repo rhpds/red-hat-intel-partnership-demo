@@ -4,7 +4,7 @@
 
 - **rac-maas** is the production cluster. Do not deploy inference models directly.
 - **GPU model deployments** require Ashok's approval before proceeding.
-- **Models** should be consumed through MAAS (`litellm-prod.apps.maas.redhatworkshops.io`).
+- **Models** should be consumed through MAAS (`maas-rhdp.apps.maas.redhatworkshops.io`).
 - **Experiments** must use CNV (OpenShift Virtualization) clusters with virtualized environments.
 
 ## Using MAAS for Model Access
@@ -13,7 +13,7 @@ The gateway is configured by default to route all inference requests through the
 
 ```bash
 # Test inference through MAAS
-curl -X POST https://litellm-prod.apps.maas.redhatworkshops.io/v1/completions \
+curl -X POST https://maas-rhdp.apps.maas.redhatworkshops.io/v1/completions \
   -H "Authorization: Bearer $LITELLM_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"model": "granite", "prompt": "Hello", "max_tokens": 50}'
