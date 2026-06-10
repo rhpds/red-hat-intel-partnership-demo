@@ -425,7 +425,7 @@ async def _handle_search_via_embeddings(http_client, backend, query: str, start)
         doc_texts = [d["text"] for d in SEARCH_KNOWLEDGE_BASE]
         resp = await http_client.post(
             f"{backend.url}/v1/embeddings",
-            json={"model": "nomic-embed-text-v1-5", "input": doc_texts},
+            json={"model": "nomic-embed-text-v1-5", "input": doc_texts, "encoding_format": "float"},
             headers=headers,
         )
         resp.raise_for_status()
@@ -435,7 +435,7 @@ async def _handle_search_via_embeddings(http_client, backend, query: str, start)
 
     q_resp = await http_client.post(
         f"{backend.url}/v1/embeddings",
-        json={"model": "nomic-embed-text-v1-5", "input": [query]},
+        json={"model": "nomic-embed-text-v1-5", "input": [query], "encoding_format": "float"},
         headers=headers,
     )
     q_resp.raise_for_status()
@@ -469,7 +469,7 @@ async def _handle_rerank_via_embeddings(http_client, backend, query: str, texts:
     all_inputs = [query] + list(texts)
     resp = await http_client.post(
         f"{backend.url}/v1/embeddings",
-        json={"model": "nomic-embed-text-v1-5", "input": all_inputs},
+        json={"model": "nomic-embed-text-v1-5", "input": all_inputs, "encoding_format": "float"},
         headers=headers,
     )
     resp.raise_for_status()
