@@ -1,0 +1,17 @@
+---
+# Production tier overrides
+# Higher replicas, hardened resource limits, larger storage.
+# For the RHDP marketplace catalog.
+
+gateway_replicas: 3
+frontend_replicas: 2
+gateway_cpu_request: "1"
+gateway_cpu_limit: "2"
+gateway_memory_request: "512Mi"
+gateway_memory_limit: "1Gi"
+postgres_storage: "50Gi"
+postgres_cpu_request: "500m"
+postgres_memory_request: "512Mi"
+postgres_memory_limit: "1Gi"
+rate_limit_rpm: 120
+local_fallback_enabled: false

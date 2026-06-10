@@ -1,0 +1,13 @@
+---
+# Integration / test tier overrides
+# Standard replicas and resource limits. Rate limiting on.
+# Validates the demo works as users will experience it.
+
+gateway_replicas: 2
+frontend_replicas: 1
+gateway_cpu_request: "500m"
+gateway_memory_request: "256Mi"
+gateway_memory_limit: "512Mi"
+postgres_storage: "10Gi"
+rate_limit_rpm: 85
+local_fallback_enabled: false

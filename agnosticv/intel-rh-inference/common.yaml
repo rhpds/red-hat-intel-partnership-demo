@@ -1,0 +1,48 @@
+---
+__meta__:
+  catalog:
+    display_name: "Intel-Red Hat AI Inference Platform"
+    description: >-
+      Multi-tenant inference gateway with dual-path routing across
+      Intel Xeon 6 (CPU/OpenVINO) and Gaudi 3 (GPU) via MAAS LiteLLM.
+      Includes interactive RAG chat, semantic department routing, and
+      real-time routing trace.
+    labels:
+      - intel
+      - ai-inference
+      - gaudi
+      - xeon
+      - openvino
+      - maas
+  asset_uuid: 242ab20a-23fa-5156-aca0-985ee906d424
+
+env_type: ocp4-cluster
+platform: RHPDS
+
+ocp_workloads:
+  - name: intel-rh-inference-demo
+    deploy_method: quickstart_deploy_via_make
+    helm_dir: helm
+    make_target: install
+
+# Container images (public on Quay, no pull secret needed)
+gateway_image: "quay.io/rh-ee-jkershaw/inference-gateway:latest"
+frontend_image: "quay.io/rh-ee-jkershaw/inference-frontend:latest"
+postgres_image: "registry.redhat.io/rhel9/postgresql-15:latest"
+
+# MAAS inference backend
+litellm_api_base: "https://maas-rhdp.apps.maas.redhatworkshops.io"
+
+# Deployment namespace
+ocp_project_name: "intel-rh-demo"
+
+# Database
+deploy_database: true
+postgres_user: "gateway"
+
+# Gateway defaults
+gateway_replicas: 2
+frontend_replicas: 1
+cors_origins: ""
+rate_limit_rpm: 85
+local_fallback_enabled: false

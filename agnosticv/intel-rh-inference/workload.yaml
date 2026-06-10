@@ -1,0 +1,170 @@
+---
+# Workload deployment playbook for RHDP quickstart_deploy_via_make pattern.
+#
+# Called by Babylon after the base cluster is provisioned.
+# Deploys the Intel-RH AI Inference Platform via Helm.
+#
+# Required variables (injected by Babylon):
+#   - openshift_api_url: cluster API URL
+#   - openshift_cluster_admin_token: cluster admin token
+#   - litellm_api_key: MAAS API key (from vault)
+#
+# Optional overrides (from agnosticv tier files):
+#   - gateway_replicas, frontend_replicas, etc.
+
+- name: Deploy Intel-Red Hat AI Inference Platform
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    ocp_project_name: "{{ ocp_project_name | default('intel-rh-demo') }}"
+    litellm_api_base: "{{ litellm_api_base | default('https://maas-rhdp.apps.maas.redhatworkshops.io') }}"
+    gateway_image: "{{ gateway_image | default('quay.io/rh-ee-jkershaw/inference-gateway:latest') }}"
+    frontend_image: "{{ frontend_image | default('quay.io/rh-ee-jkershaw/inference-frontend:latest') }}"
+    gateway_replicas: "{{ gateway_replicas | default(2) }}"
+    frontend_replicas: "{{ frontend_replicas | default(1) }}"
+    postgres_storage: "{{ postgres_storage | default('10Gi') }}"
+    postgres_user: "{{ postgres_user | default('gateway') }}"
+    rate_limit_rpm: "{{ rate_limit_rpm | default(85) }}"
+    cors_origins: "{{ cors_origins | default('') }}"
+    local_fallback_enabled: "{{ local_fallback_enabled | default(false) }}"
+    helm_dir: "{{ playbook_dir }}/../helm"
+    deploy_timeout: 180
+
+  pre_tasks:
+    - name: Validate required variables
+      ansible.builtin.assert:
+        that:
+          - openshift_api_url is defined
+          - openshift_cluster_admin_token is defined
+          - litellm_api_key is defined
+        fail_msg: "Required variables missing. Need: openshift_api_url, openshift_cluster_admin_token, litellm_api_key"
+
+    - name: Log into OpenShift cluster
+      ansible.builtin.command:
+        cmd: >
+          oc login {{ openshift_api_url }}
+          --token={{ openshift_cluster_admin_token }}
+          --insecure-skip-tls-verify=true
+      changed_when: true
+      no_log: true
+
+    - name: Verify cluster connectivity
+      ansible.builtin.command:
+        cmd: oc whoami
+      register: whoami_result
+      changed_when: false
+
+    - name: Display cluster identity
+      ansible.builtin.debug:
+        msg: "Logged in as: {{ whoami_result.stdout }}"
+
+    - name: Generate postgres password
+      ansible.builtin.set_fact:
+        postgres_password: "{{ lookup('password', '/dev/null length=32 chars=ascii_letters,digits') }}"
+
+  tasks:
+    - name: Deploy via Helm (quickstart_deploy_via_make)
+      ansible.builtin.command:
+        cmd: >
+          make -C {{ helm_dir }} install
+          NAMESPACE={{ ocp_project_name }}
+          EXTRA_HELM_ARGS="
+          --set litellm.apiKey={{ litellm_api_key }}
+          --set litellm.apiBase={{ litellm_api_base }}
+          --set postgres.password={{ postgres_password }}
+          --set gateway.image={{ gateway_image }}
+          --set gateway.replicas={{ gateway_replicas }}
+          --set gateway.rateLimitRpm={{ rate_limit_rpm }}
+          --set gateway.corsOrigins={{ cors_origins }}
+          --set gateway.localFallback={{ local_fallback_enabled }}
+          --set frontend.image={{ frontend_image }}
+          --set frontend.replicas={{ frontend_replicas }}
+          --set postgres.storage={{ postgres_storage }}
+          "
+      register: helm_result
+      changed_when: "'STATUS: deployed' in helm_result.stdout"
+      no_log: true
+
+    - name: Wait for PostgreSQL rollout
+      ansible.builtin.command:
+        cmd: >
+          oc rollout status deployment/postgres
+          -n {{ ocp_project_name }}
+          --timeout={{ deploy_timeout }}s
+      register: pg_rollout
+      changed_when: false
+
+    - name: Wait for Gateway rollout
+      ansible.builtin.command:
+        cmd: >
+          oc rollout status deployment/gateway
+          -n {{ ocp_project_name }}
+          --timeout={{ deploy_timeout }}s
+      register: gw_rollout
+      changed_when: false
+
+    - name: Wait for Frontend rollout
+      ansible.builtin.command:
+        cmd: >
+          oc rollout status deployment/frontend
+          -n {{ ocp_project_name }}
+          --timeout={{ deploy_timeout }}s
+      register: fe_rollout
+      changed_when: false
+
+  post_tasks:
+    - name: Get Gateway route
+      ansible.builtin.command:
+        cmd: >
+          oc get route gateway
+          -n {{ ocp_project_name }}
+          -o jsonpath='{.spec.host}'
+      register: gateway_route
+      changed_when: false
+
+    - name: Get Frontend route
+      ansible.builtin.command:
+        cmd: >
+          oc get route frontend
+          -n {{ ocp_project_name }}
+          -o jsonpath='{.spec.host}'
+      register: frontend_route
+      changed_when: false
+
+    - name: Health check Gateway
+      ansible.builtin.uri:
+        url: "https://{{ gateway_route.stdout }}/health"
+        method: GET
+        return_content: true
+        validate_certs: false
+        timeout: 10
+      register: gw_health
+      retries: 10
+      delay: 10
+      until: gw_health.status == 200
+
+    - name: Set provision data for RHDP
+      ansible.builtin.set_fact:
+        provision_data:
+          gateway_url: "https://{{ gateway_route.stdout }}"
+          frontend_url: "https://{{ frontend_route.stdout }}"
+          api_docs_url: "https://{{ gateway_route.stdout }}/docs"
+          gateway_health: "{{ gw_health.json }}"
+
+    - name: Display access information
+      ansible.builtin.debug:
+        msg: |
+          ============================================
+          Intel-Red Hat AI Inference Platform Deployed
+          ============================================
+
+          Frontend:    https://{{ frontend_route.stdout }}
+          Gateway API: https://{{ gateway_route.stdout }}
+          API Docs:    https://{{ gateway_route.stdout }}/docs
+          Health:      {{ gw_health.json.status }}
+          Backends:    {{ gw_health.json.backends }}
+          Routes:      {{ gw_health.json.routes }}
+
+          ============================================

@@ -1,0 +1,14 @@
+---
+# Development / devel tier overrides
+# Single replicas, relaxed limits, local fallback enabled.
+# Use for initial testing before promoting to integration.
+
+gateway_replicas: 1
+frontend_replicas: 1
+gateway_cpu_request: "250m"
+gateway_memory_request: "128Mi"
+gateway_memory_limit: "256Mi"
+postgres_storage: "1Gi"
+rate_limit_rpm: 0
+local_fallback_enabled: true
+cors_origins: "*"
