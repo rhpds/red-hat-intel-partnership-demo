@@ -89,6 +89,7 @@ async def classify_embedding(text: str, http_client, backend) -> dict:
             "model": "nomic-embed-text-v1-5",
             "input": [text] + [dept.get("description", dept.get("label", ""))
                                for dept in DEPARTMENTS.values()],
+            "encoding_format": "float",
         }
         headers = {}
         if backend and backend.api_key:

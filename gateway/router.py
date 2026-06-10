@@ -201,6 +201,7 @@ def _build_payload(request: RouteRequest, task: str, backend=None) -> tuple:
         return "/v1/embeddings", {
             "model": request.model or "nomic-embed-text-v1-5",
             "input": user_texts or [user_text],
+            "encoding_format": "float",
         }
     elif task == "classification":
         if use_chat:
