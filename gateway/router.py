@@ -1477,9 +1477,10 @@ async def create_chat_session(request: Request):
         model_override=body.get("model_override"),
         hardware_override=body.get("hardware_override"),
         governance_mode=body.get("governance_mode", "supervised"),
+        routing_strategy=body.get("routing_strategy", "standard"),
     )
     session = await chat_module.create_session(config=config)
-    return {"session_id": session.id, "config": {"model_override": config.model_override, "hardware_override": config.hardware_override, "governance_mode": config.governance_mode}}
+    return {"session_id": session.id, "config": {"model_override": config.model_override, "hardware_override": config.hardware_override, "governance_mode": config.governance_mode, "routing_strategy": config.routing_strategy}}
 
 
 @app.post("/v1/chat/sessions/{session_id}/message")
@@ -1491,10 +1492,12 @@ async def send_chat_message(session_id: str, request: Request):
     message = body.get("message", "")
     model_override = body.get("model_override")
     hardware_override = body.get("hardware_override")
+    routing_strategy = body.get("routing_strategy", "standard")
 
     config = chat_module.ChatConfig(
         model_override=model_override,
         hardware_override=hardware_override,
+        routing_strategy=routing_strategy,
     )
     session = chat_module.ChatSession(id=session_id, config=config)
 
@@ -1527,22 +1530,40 @@ async def send_chat_message(session_id: str, request: Request):
 
         context = chat_module.build_context(session.messages, rag_chunks, message)
 
-        chosen_model = config.model_override or "granite-3-2-8b-instruct"
+        routing_reason = ""
+        all_backends = app.state.policy.list_backends()
+        cpu_backend = next((b for b in all_backends if b.accelerator == "xeon6"), None)
+        gpu_backend = next((b for b in all_backends if b.accelerator == "gaudi"), None)
+
+        if config.model_override:
+            chosen_model = config.model_override
+            routing_reason = f"Manual override: {chosen_model}"
+        elif config.routing_strategy == "semantic":
+            import semantic_router
+            classification = semantic_router.classify_rules(message)
+            chosen_model = classification["model"]
+            routing_reason = f"Semantic: {classification['department_label']} department → {chosen_model} ({classification['reasoning']})"
+        elif config.routing_strategy == "vllm-sr":
+            import semantic_router
+            classification = await semantic_router.classify_vllm_sr(message, http_client)
+            chosen_model = classification["model"]
+            dept_label = classification.get("department_label", "General")
+            routing_reason = f"vLLM SR: {dept_label} → {chosen_model} (signal-driven routing with OpenVINO)"
+        else:
+            chosen_model = "granite-3-2-8b-instruct"
+            routing_reason = "Standard: default model (granite-3-2-8b-instruct)"
+
         chosen_backend = None
         chosen_hardware = config.hardware_override or "auto"
 
-        all_backends = app.state.policy.list_backends()
-
-        # Default to GPU backend for chat (better quality + faster for larger models)
-        for b in all_backends:
-            if config.hardware_override == "xeon6" and b.accelerator == "xeon6":
-                chosen_backend = b
-                break
-            elif config.hardware_override == "gaudi" and b.accelerator == "gaudi":
-                chosen_backend = b
-                break
-        if not chosen_backend:
-            chosen_backend = all_backends[0] if all_backends else None
+        if config.hardware_override == "xeon6" and cpu_backend:
+            chosen_backend = cpu_backend
+        elif config.hardware_override == "gaudi" and gpu_backend:
+            chosen_backend = gpu_backend
+        elif chosen_model in ("granite-2b-cpu", "phi3-mini-cpu", "qwen25-3b-cpu", "granite-3-2-8b-instruct", "llama-31-70b-cpu"):
+            chosen_backend = cpu_backend or (all_backends[0] if all_backends else None)
+        else:
+            chosen_backend = gpu_backend or (all_backends[0] if all_backends else None)
 
         if chosen_backend:
             chosen_hardware = chosen_backend.accelerator or "auto"
@@ -1584,7 +1605,7 @@ async def send_chat_message(session_id: str, request: Request):
         for token in response_text.split(" "):
             yield f"event: token\ndata: {json.dumps({'content': token + ' '})}\n\n"
 
-        yield f"event: routing_decision\ndata: {json.dumps({'model': chosen_model, 'hardware': chosen_hardware, 'reason': f'Model {chosen_model} on {chosen_hardware} backend', 'latency_ms': round(gen_elapsed)})}\n\n"
+        yield f"event: routing_decision\ndata: {json.dumps({'model': chosen_model, 'hardware': chosen_hardware, 'reason': routing_reason or f'Model {chosen_model} on {chosen_hardware}', 'strategy': config.routing_strategy, 'latency_ms': round(gen_elapsed)})}\n\n"
 
         total_elapsed = (_time.time() - total_start) * 1000
         cost = gen_elapsed / 1000 * (0.001 if chosen_hardware == "gaudi" else 0.0004)

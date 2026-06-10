@@ -64,6 +64,7 @@ export default function Chat() {
   const [modelOverride, setModelOverride] = useState('auto');
   const [hardwareOverride, setHardwareOverride] = useState('auto');
   const [governanceMode, setGovernanceMode] = useState('supervised');
+  const [routingStrategy, setRoutingStrategy] = useState('standard');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = useCallback(() => {
@@ -129,6 +130,7 @@ export default function Chat() {
           message: userMessage,
           model_override: modelOverride === 'auto' ? undefined : modelOverride,
           hardware_override: hardwareOverride === 'auto' ? undefined : hardwareOverride,
+          routing_strategy: routingStrategy,
         }),
       });
 
@@ -219,9 +221,18 @@ export default function Chat() {
       <PageSection style={{ background: 'var(--pf-t--global--background--color--primary--default)', paddingBottom: '1rem' }}>
         <Split hasGutter>
           <SplitItem isFilled>
-            <Content component="h1" style={{ fontSize: '1.5rem' }}>Interactive RAG Chat</Content>
-            <Content component="p" style={{ color: 'var(--pf-t--global--text--color--subtle)' }}>
-              Upload documents, ask questions, and watch the routing engine select hardware in real-time.
+            <Content component="h1" style={{ fontSize: '1.5rem' }}>Interactive Chat — Intelligent Model Routing</Content>
+            <Content component="p" style={{ color: 'var(--pf-t--global--text--color--subtle)', maxWidth: '720px' }}>
+              Upload documents and ask questions across departments. The routing engine automatically selects
+              the optimal Intel hardware and model for each query. Switch the <strong>Routing Strategy</strong> below
+              to compare approaches and see how routing decisions change.
+            </Content>
+            <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)', display: 'block', marginTop: '0.5rem', maxWidth: '720px', lineHeight: '1.5' }}>
+              <strong>Standard</strong> — routes by task type and model size. Embeddings and classification stay on
+              Xeon 6, large generation goes to Gaudi 3.{' '}
+              <strong>Semantic Department</strong> — classifies your question by department (HR, Engineering, Legal,
+              Finance, Security, Executive) and routes to the model optimized for that domain.{' '}
+              <strong>vLLM Semantic Router</strong> — production-grade signal-driven routing with OpenVINO on Intel Xeon 6.
             </Content>
           </SplitItem>
           <SplitItem style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -275,9 +286,11 @@ export default function Chat() {
           model={modelOverride}
           hardware={hardwareOverride}
           governance={governanceMode}
+          routingStrategy={routingStrategy}
           onModelChange={setModelOverride}
           onHardwareChange={setHardwareOverride}
           onGovernanceChange={setGovernanceMode}
+          onRoutingStrategyChange={setRoutingStrategy}
         />
 
         <Split hasGutter>

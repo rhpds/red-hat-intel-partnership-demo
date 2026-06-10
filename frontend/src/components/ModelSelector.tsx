@@ -5,14 +5,17 @@ interface Props {
   model: string;
   hardware: string;
   governance: string;
+  routingStrategy: string;
   onModelChange: (val: string) => void;
   onHardwareChange: (val: string) => void;
   onGovernanceChange: (val: string) => void;
+  onRoutingStrategyChange: (val: string) => void;
 }
 
 const MODELS = ['auto', 'granite-2b-cpu', 'phi3-mini-cpu', 'deepseek-r1-distill-qwen-14b', 'llama-scout-17b'];
 const HARDWARE = ['auto', 'xeon6', 'gaudi'];
 const GOVERNANCE = ['open', 'supervised', 'locked'];
+const STRATEGIES = ['standard', 'semantic', 'vllm-sr'];
 
 function ControlSelect({ label, value, options, onChange }: {
   label: string; value: string; options: string[]; onChange: (v: string) => void;
@@ -34,7 +37,13 @@ function ControlSelect({ label, value, options, onChange }: {
       >
         {options.map((opt) => (
           <SelectOption key={opt} value={opt}>
-            {opt === 'auto' ? 'Auto-route' : opt === 'xeon6' ? 'Xeon 6 Only' : opt === 'gaudi' ? 'Gaudi Only' : opt}
+            {opt === 'auto' ? 'Auto-route'
+              : opt === 'xeon6' ? 'Xeon 6 Only'
+              : opt === 'gaudi' ? 'Gaudi Only'
+              : opt === 'standard' ? 'Standard (task-type)'
+              : opt === 'semantic' ? 'Semantic Department'
+              : opt === 'vllm-sr' ? 'vLLM Semantic Router'
+              : opt}
           </SelectOption>
         ))}
       </Select>
@@ -42,9 +51,10 @@ function ControlSelect({ label, value, options, onChange }: {
   );
 }
 
-export default function ModelSelector({ model, hardware, governance, onModelChange, onHardwareChange, onGovernanceChange }: Props) {
+export default function ModelSelector({ model, hardware, governance, routingStrategy, onModelChange, onHardwareChange, onGovernanceChange, onRoutingStrategyChange }: Props) {
   return (
     <Split hasGutter style={{ padding: '0.5rem 0' }}>
+      <SplitItem><ControlSelect label="Routing Strategy" value={routingStrategy} options={STRATEGIES} onChange={onRoutingStrategyChange} /></SplitItem>
       <SplitItem><ControlSelect label="Model" value={model} options={MODELS} onChange={onModelChange} /></SplitItem>
       <SplitItem><ControlSelect label="Hardware" value={hardware} options={HARDWARE} onChange={onHardwareChange} /></SplitItem>
       <SplitItem><ControlSelect label="Governance" value={governance} options={GOVERNANCE} onChange={onGovernanceChange} /></SplitItem>

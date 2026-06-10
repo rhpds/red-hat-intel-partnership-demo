@@ -15,6 +15,7 @@ class ChatConfig:
     model_override: Optional[str] = None
     hardware_override: Optional[str] = None
     governance_mode: str = "supervised"
+    routing_strategy: str = "standard"
 
 
 @dataclass
