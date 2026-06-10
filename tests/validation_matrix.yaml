@@ -1273,4 +1273,130 @@ stage_14_chat_streaming:
       points: 10
       required: true
 
+# =============================================================================
+# Stage 15: Semantic Department Routing
+# =============================================================================
+stage_15_semantic_routing:
+  department_taxonomy:
+    departments_yaml_exists:
+      description: "departments.yaml defines 6+ departments with models and keywords"
+      points: 10
+      required: true
+    each_dept_has_model:
+      description: "Every department maps to a valid MAAS model"
+      points: 10
+      required: true
+    each_dept_has_keywords:
+      description: "Every non-general department has keyword list"
+      points: 5
+      required: true
+    models_available_on_maas:
+      description: "All referenced models exist on MAAS endpoint"
+      points: 10
+      required: true
+
+  classification_strategies:
+    rules_classifier:
+      description: "classify_rules() routes by keyword match, returns in <1ms"
+      points: 10
+      required: true
+    embedding_classifier:
+      description: "classify_embedding() routes by cosine similarity to dept templates"
+      points: 10
+      required: true
+    llm_classifier:
+      description: "classify_llm() asks granite-2b-cpu to classify department"
+      points: 10
+      required: true
+    vllm_sr_classifier:
+      description: "classify_vllm_sr() calls vLLM Semantic Router service"
+      points: 10
+      required: false
+    classify_all_parallel:
+      description: "classify_all() runs all strategies in parallel, returns comparison"
+      points: 10
+      required: true
+
+  routing_accuracy:
+    hr_routes_correctly:
+      description: "PTO/benefits queries route to HR → granite-2b-cpu"
+      points: 5
+      required: true
+    engineering_routes_correctly:
+      description: "Code/debug queries route to Engineering → qwen3-14b"
+      points: 5
+      required: true
+    legal_routes_correctly:
+      description: "Contract/compliance queries route to Legal → deepseek-r1-distill-qwen-14b"
+      points: 5
+      required: true
+    finance_routes_correctly:
+      description: "Budget/forecast queries route to Finance → qwen3-14b"
+      points: 5
+      required: true
+    security_routes_correctly:
+      description: "CVE/vulnerability queries route to Security → llama-scout-17b"
+      points: 5
+      required: true
+    executive_routes_correctly:
+      description: "Strategy/roadmap queries route to Executive → llama-31-70b-cpu"
+      points: 5
+      required: true
+    general_fallback:
+      description: "Unmatched queries fall back to General → granite-3-2-8b-instruct"
+      points: 5
+      required: true
+
+  cost_comparison:
+    cost_per_strategy:
+      description: "Each strategy result includes estimated_cost and opus_cost"
+      points: 5
+      required: true
+    savings_calculation:
+      description: "savings_vs_opus correctly computed (opus - chosen)"
+      points: 5
+      required: true
+    annual_savings:
+      description: "calculate_annual_savings() projects 250-day annual cost"
+      points: 5
+      required: false
+
+  api_endpoints:
+    classify_endpoint:
+      description: "POST /v1/semantic/classify returns all strategy results"
+      points: 10
+      required: true
+    compare_endpoint:
+      description: "POST /v1/semantic/compare returns classification + inference results"
+      points: 10
+      required: true
+
+  null_safety:
+    no_backend_fallback:
+      description: "classify_embedding/llm return fallback when backend is None"
+      points: 5
+      required: true
+    vllm_sr_unavailable:
+      description: "classify_vllm_sr returns general when service unreachable"
+      points: 5
+      required: true
+
+  model_alignment:
+    overdrive_config_matches:
+      description: "Eco=granite-2b-cpu, Performance=phi3-mini-cpu, Overdrive=deepseek-r1-distill-qwen-14b"
+      points: 10
+      required: true
+    router_model_map_matches:
+      description: "router.py model_map matches overdrive/config.yaml"
+      points: 10
+      required: true
+    timing_provider_matches:
+      description: "timing_provider TASK_TO_LITELLM_MODEL uses correct models"
+      points: 5
+      required: true
+    frontend_matches:
+      description: "Overdrive.tsx LANE_META uses correct model names"
+      points: 5
+      required: true
+
 # All stages passing threshold: 90% of total points
