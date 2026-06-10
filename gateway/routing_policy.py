@@ -90,9 +90,10 @@ class RoutingPolicy:
 
         matching = [r for r in self.routes if r['task'] == task]
         if not matching:
+            fallback = next(iter(self.backends), "litellm-cpu")
             return RoutingDecision(
-                backend="vllm-cpu",
-                reason=f"No route defined for task '{task}', defaulting to CPU",
+                backend=fallback,
+                reason=f"No route defined for task '{task}', defaulting to {fallback}",
                 task=task,
             )
 

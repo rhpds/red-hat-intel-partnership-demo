@@ -26,7 +26,7 @@ MAX_CHUNKS_PER_DOCUMENT = 500
 
 ALLOWED_EXTENSIONS = {
     ".pdf", ".txt", ".md", ".docx",
-    ".py", ".yaml", ".yml", ".json", ".sh", ".tf",
+    ".py", ".yaml", ".yml", ".json", ".tf",
     ".png", ".jpg", ".jpeg",
     ".mp3", ".wav", ".m4a",
 }

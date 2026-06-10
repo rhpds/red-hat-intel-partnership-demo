@@ -29,6 +29,19 @@ DEPARTMENTS = _CONFIG.get("departments", {})
 OPUS_BASELINE = _CONFIG.get("opus_baseline", {})
 
 
+def _fallback_result(strategy: str, elapsed_s: float) -> dict:
+    dept = DEPARTMENTS.get("general", {})
+    return {
+        "strategy": strategy,
+        "department": "general",
+        "department_label": dept.get("label", "General"),
+        "model": dept.get("model", "granite-3-2-8b-instruct"),
+        "confidence": 0.0,
+        "reasoning": "No backend available",
+        "routing_ms": round(elapsed_s * 1000, 1),
+    }
+
+
 def classify_rules(text: str) -> dict:
     """Strategy 1: Rule-based keyword matching. Instant, no API calls."""
     start = time.time()
@@ -67,6 +80,9 @@ def classify_rules(text: str) -> dict:
 async def classify_embedding(text: str, http_client, backend) -> dict:
     """Strategy 2: Embedding similarity. Embed query + cosine match to dept templates."""
     start = time.time()
+
+    if not backend:
+        return _fallback_result("embedding", time.time() - start)
 
     try:
         embed_payload = {
@@ -121,6 +137,9 @@ async def classify_embedding(text: str, http_client, backend) -> dict:
 async def classify_llm(text: str, http_client, backend) -> dict:
     """Strategy 3: LLM classifier. Ask a small model to classify the department."""
     start = time.time()
+
+    if not backend:
+        return _fallback_result("llm", time.time() - start)
 
     dept_list = ", ".join(f"{k} ({v.get('label', k)})" for k, v in DEPARTMENTS.items())
 
@@ -265,18 +284,19 @@ async def classify_all(text: str, http_client, backend) -> dict:
     for s in strategies:
         dept = DEPARTMENTS.get(s["department"], {})
         model_input = dept.get("cost_per_m_input", 0)
-        model_cost = (2000 / 1_000_000 * model_input) + (1000 / 1_000_000 * model_input * 4)
+        model_output = dept.get("cost_per_m_output", model_input * 4)
+        model_cost = (2000 / 1_000_000 * model_input) + (1000 / 1_000_000 * model_output)
         s["estimated_cost"] = round(model_cost, 6)
         s["opus_cost"] = round(opus_cost, 4)
         s["savings_vs_opus"] = round(opus_cost - model_cost, 4) if opus_cost > model_cost else 0
 
-    agreement = len(set(s["department"] for s in strategies))
+    unique_depts = len(set(s["department"] for s in strategies))
 
     return {
         "query": text[:200],
         "strategies": strategies,
-        "agreement": 4 - agreement + 1,
-        "all_agree": agreement == 1,
+        "agreement": len(strategies) - unique_depts + 1,
+        "all_agree": unique_depts == 1,
     }
 
 

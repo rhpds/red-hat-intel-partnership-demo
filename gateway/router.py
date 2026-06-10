@@ -9,7 +9,6 @@ metadata alongside the inference result.
 import os
 import re
 import time
-import time as time_module
 import logging
 from pathlib import Path
 from typing import Optional, Any
@@ -71,7 +70,7 @@ def check_rate_limit(client_ip: str, tenant_id: str = ""):
     if not RATE_LIMIT_RPM:
         return
     key = f"{tenant_id}:{client_ip}" if tenant_id else client_ip
-    now = time_module.time()
+    now = time.time()
     _rate_limits[key] = [t for t in _rate_limits[key] if now - t < 60]
     if len(_rate_limits[key]) >= RATE_LIMIT_RPM:
         raise HTTPException(status_code=429, detail="Rate limit exceeded")
@@ -1068,7 +1067,7 @@ _WORKLOAD_EXPIRY_SECONDS = 600
 
 
 def _cleanup_old_runs():
-    now = time_module.time()
+    now = time.time()
     expired = [k for k, v in _workload_runs.items() if now - v.get("started_at", now) > _WORKLOAD_EXPIRY_SECONDS]
     for k in expired:
         _workload_runs.pop(k, None)
@@ -1094,7 +1093,7 @@ async def workload_run(req: WorkloadRunRequest, raw_request: Request):
         "completed": 0,
         "total": 0,
         "results": [],
-        "started_at": time_module.time(),
+        "started_at": time.time(),
     }
     _workload_runs[run_id] = run_state
 
@@ -1107,7 +1106,7 @@ async def workload_run(req: WorkloadRunRequest, raw_request: Request):
             )
             run_state.update(result)
             run_state["status"] = "complete"
-            run_state["completed_at"] = time_module.time()
+            run_state["completed_at"] = time.time()
             import asyncio
             try:
                 loop = asyncio.new_event_loop()
