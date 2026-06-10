@@ -10,12 +10,12 @@ import pytest
 from pathlib import Path
 
 
-MODELS = ["granite-4-0-h-tiny", "codellama-7b-instruct", "llama-scout-17b"]
+MODELS = ["granite-2b-cpu", "phi3-mini-cpu", "deepseek-r1-distill-qwen-14b"]
 
 COST_RATES = {
-    "granite-4-0-h-tiny": 0.0004,
-    "codellama-7b-instruct": 0.0004,
-    "llama-scout-17b": 0.001,
+    "granite-2b-cpu": 0.0004,
+    "phi3-mini-cpu": 0.0004,
+    "deepseek-r1-distill-qwen-14b": 0.001,
 }
 
 
@@ -128,8 +128,8 @@ class TestTokenizeCost:
         text = "A reasonably long sentence to generate some tokens for comparison."
         resp = test_client.post("/v1/tokenize", json={"text": text})
         data = resp.json()
-        xeon_cost = data["models"]["granite-4-0-h-tiny"]["cost_estimate"]
-        gaudi_cost = data["models"]["llama-scout-17b"]["cost_estimate"]
+        xeon_cost = data["models"]["granite-2b-cpu"]["cost_estimate"]
+        gaudi_cost = data["models"]["deepseek-r1-distill-qwen-14b"]["cost_estimate"]
         assert gaudi_cost > xeon_cost, "Gaudi should cost more than Xeon 6"
 
 

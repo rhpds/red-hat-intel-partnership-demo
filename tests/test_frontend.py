@@ -61,7 +61,8 @@ class TestPages:
         "Overview.tsx",
         "Architecture.tsx",
         "TryIt.tsx",
-        "UseCases.tsx",
+        "Overdrive.tsx",
+        "Chat.tsx",
         "Operations.tsx",
         "GovernanceAudit.tsx",
         "Docs.tsx",
@@ -218,7 +219,7 @@ class TestBuildYourOwn:
 
     def test_has_model_size_selector(self, src_dir):
         content = (src_dir / "components" / "BuildYourOwn.tsx").read_text()
-        assert '1B' in content and '3B' in content and '7B' in content and '70B' in content, \
+        assert '2B' in content and '8B' in content and '14B' in content, \
             "Should have model size options"
 
     def test_has_route_prediction(self, src_dir):

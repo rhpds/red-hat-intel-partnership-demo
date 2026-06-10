@@ -38,9 +38,9 @@ class TestExistingRouterUnchanged:
             config = __import__("yaml").safe_load((project_root / "gateway" / "config.yaml").read_text())
             policy = rp.RoutingPolicy(config)
             decision = policy.route("embeddings")
-            assert decision.backend == "openvino-cpu"
+            assert decision.backend == "maas-cpu"
             decision = policy.route("completion", model_size_b=1)
-            assert decision.backend == "vllm-cpu"
+            assert decision.backend == "maas-cpu"
         finally:
             sys.path.remove(gw)
 

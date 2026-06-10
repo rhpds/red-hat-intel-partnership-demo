@@ -26,10 +26,10 @@ def frontend_dir(project_root) -> Path:
 class TestRoutingConfig:
     """Test that routing config defines complete task→backend mappings"""
 
-    def test_config_has_three_backends(self, gateway_dir):
+    def test_config_has_backends(self, gateway_dir):
         with open(gateway_dir / "config.yaml") as f:
             config = yaml.safe_load(f)
-        assert len(config['backends']) >= 3
+        assert len(config['backends']) >= 2
 
     def test_config_has_five_routes(self, gateway_dir):
         with open(gateway_dir / "config.yaml") as f:
@@ -53,12 +53,12 @@ class TestRoutingConfig:
     def test_local_config_exists(self, gateway_dir):
         assert (gateway_dir / "config.local.yaml").exists()
 
-    def test_local_config_uses_compose_hostnames(self, gateway_dir):
+    def test_local_config_uses_env_vars(self, gateway_dir):
         with open(gateway_dir / "config.local.yaml") as f:
             config = yaml.safe_load(f)
         urls = [b['url'] for b in config['backends']]
-        assert any('cpu-inference' in u for u in urls), \
-            "Local config should use podman-compose service names"
+        assert any('LITELLM_API_BASE' in u for u in urls), \
+            "Local config should use LITELLM_API_BASE env var"
         assert not any('.svc.cluster.local' in u for u in urls), \
             "Local config should NOT use cluster DNS"
 

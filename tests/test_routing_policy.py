@@ -153,13 +153,13 @@ class TestRoutingDecisions:
         assert has_conditions or has_backend, \
             "Completion route should have conditions or a default backend"
 
-    def test_batch_generation_routes_to_gaudi(self, routing_config):
-        """Batch generation should route to Gaudi backend"""
+    def test_batch_generation_routes_to_gpu(self, routing_config):
+        """Batch generation should route to GPU backend"""
         routes = [r for r in routing_config['routes'] if r['task'] == 'batch_generation']
         assert len(routes) > 0, "No route for batch_generation task"
         backend = routes[0].get('backend', '')
-        assert 'gaudi' in backend.lower(), \
-            f"Batch generation should route to Gaudi, got: {backend}"
+        assert 'gpu' in backend.lower() or 'gaudi' in backend.lower(), \
+            f"Batch generation should route to GPU, got: {backend}"
 
     def test_routes_have_reason(self, routing_config):
         """Each route should explain why it makes that routing decision"""
@@ -171,24 +171,19 @@ class TestRoutingDecisions:
 class TestBackendDefinitions:
     """Test backend configuration"""
 
-    def test_openvino_backend_defined(self, routing_config):
-        """OpenVINO CPU backend should be defined"""
+    def test_cpu_backend_defined(self, routing_config):
+        """CPU backend should be defined (maas-cpu or similar)"""
         names = [b['name'] for b in routing_config['backends']]
-        assert any('openvino' in n.lower() for n in names), \
-            "Should have an OpenVINO backend defined"
+        accelerators = [b.get('accelerator', '') for b in routing_config['backends']]
+        assert any('cpu' in n.lower() for n in names) or any('xeon' in a.lower() for a in accelerators), \
+            "Should have a CPU backend defined"
 
-    def test_vllm_cpu_backend_defined(self, routing_config):
-        """vLLM CPU backend should be defined"""
+    def test_gpu_backend_defined(self, routing_config):
+        """GPU backend should be defined (maas-gpu or similar)"""
         names = [b['name'] for b in routing_config['backends']]
-        assert any('cpu' in n.lower() and 'vllm' in n.lower() for n in names) or \
-            any('cpu' in n.lower() and 'llm' in n.lower() for n in names), \
-            "Should have a vLLM CPU backend defined"
-
-    def test_gaudi_backend_defined(self, routing_config):
-        """Gaudi GPU backend should be defined"""
-        names = [b['name'] for b in routing_config['backends']]
-        assert any('gaudi' in n.lower() for n in names), \
-            "Should have a Gaudi backend defined"
+        accelerators = [b.get('accelerator', '') for b in routing_config['backends']]
+        assert any('gpu' in n.lower() for n in names) or any('gaudi' in a.lower() for a in accelerators), \
+            "Should have a GPU backend defined"
 
     def test_backends_declare_capabilities(self, routing_config):
         """Each backend should declare its task capabilities"""

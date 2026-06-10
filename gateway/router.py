@@ -1285,7 +1285,7 @@ _tokenizer_cache: dict = {}
 TOKENIZER_MODELS = {
     "granite-2b-cpu": {"cost_per_1k": 0.0004, "multiplier": 1.3},
     "phi3-mini-cpu": {"cost_per_1k": 0.0004, "multiplier": 1.35},
-    "llama-scout-17b": {"cost_per_1k": 0.001, "multiplier": 1.25},
+    "deepseek-r1-distill-qwen-14b": {"cost_per_1k": 0.001, "multiplier": 1.25},
 }
 
 
@@ -1303,8 +1303,8 @@ def _real_tokenize(text: str, model_name: str) -> list[str]:
             from transformers import AutoTokenizer
             hf_name = {
                 "granite-2b-cpu": "ibm-granite/granite-3.0-2b-instruct",
-                "phi3-mini-cpu": "codellama/CodeLlama-7b-Instruct-hf",
-                "llama-scout-17b": "meta-llama/Llama-3.2-3B-Instruct",
+                "phi3-mini-cpu": "microsoft/Phi-3-mini-4k-instruct",
+                "deepseek-r1-distill-qwen-14b": "deepseek-ai/DeepSeek-R1-Distill-Qwen-14B",
             }.get(model_name, model_name)
             _tokenizer_cache[model_name] = AutoTokenizer.from_pretrained(
                 hf_name

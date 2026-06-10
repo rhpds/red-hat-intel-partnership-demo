@@ -218,7 +218,7 @@ class TestRoutingEndpoints:
         assert response.status_code == 200
         data = response.json()
         assert "backends" in data
-        assert len(data["backends"]) >= 3
+        assert len(data["backends"]) >= 2
 
     def test_backends_have_required_fields(self, test_client):
         response = test_client.get("/v1/backends")

@@ -72,7 +72,7 @@ class TestGate2TaskModelMapping:
                     "multimodal_incident_summary", "multimodal_rca", "image_to_manual"]
         for task in od_tasks:
             model = TASK_TO_LITELLM_MODEL[task]
-            assert "scout" in model or "llama" in model.lower(), f"Overdrive task '{task}' should map to large model, got '{model}'"
+            assert "deepseek" in model or "14b" in model, f"Overdrive task '{task}' should map to large model, got '{model}'"
 
 
 # ----------------------------------------------------------------
