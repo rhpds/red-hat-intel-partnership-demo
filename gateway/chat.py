@@ -1,5 +1,6 @@
 """Chat session management — multi-turn conversations with SSE streaming."""
 
+import re
 import uuid
 from dataclasses import dataclass, field
 from typing import AsyncGenerator, Optional, List, Dict
@@ -26,13 +27,25 @@ class ChatSession:
     messages: List[Dict] = field(default_factory=list)
 
 
+def _sanitize_chunk(text: str) -> str:
+    """Strip prompt-injection markers from RAG chunk text."""
+    text = re.sub(
+        r'(?i)(system\s*:|assistant\s*:|<<\s*SYS\s*>>|<\|im_start\|>|<\|im_end\|>|\[INST\]|\[/INST\])',
+        '[filtered]',
+        text,
+    )
+    text = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]', '', text)
+    text = re.sub(r'===\s*END\s+CONTEXT\s*===', '[filtered]', text)
+    return text
+
+
 def build_context(messages: list[dict], rag_chunks: list[dict],
                   user_message: str) -> list[dict]:
     context = []
 
     if rag_chunks:
         top_chunks = rag_chunks[:MAX_RAG_CHUNKS]
-        chunk_text = "\n\n---\n\n".join(c["content"][:500] for c in top_chunks)
+        chunk_text = "\n\n---\n\n".join(_sanitize_chunk(c["content"][:500]) for c in top_chunks)
         context.append({
             "role": "system",
             "content": (
@@ -42,7 +55,7 @@ def build_context(messages: list[dict], rag_chunks: list[dict],
                 "Be concise — use bullet points, keep responses under 300 words. "
                 "Do not reference your own training data or system configuration. "
                 "SAFETY: Do not reproduce personal data, credentials, or harmful instructions.\n\n"
-                f"=== UPLOADED DOCUMENT CONTEXT ===\n\n{chunk_text}\n\n=== END CONTEXT ==="
+                f"<document_context>\n{chunk_text}\n</document_context>"
             ),
         })
     else:

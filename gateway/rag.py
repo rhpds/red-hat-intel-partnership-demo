@@ -10,6 +10,7 @@ RAG retrieval within the owning tenant's chat session. They are:
 - Not indexable, not searchable outside the RAG pipeline
 """
 
+import asyncio
 import io
 import re
 import uuid
@@ -225,7 +226,7 @@ async def upload_document(filename: str, content: bytes, tenant_id: str = None,
     validate_content_safety(content, filename)
 
     modality = detect_modality(filename)
-    text = extract_text(filename, content)
+    text = await asyncio.to_thread(extract_text, filename, content)
 
     chunks = chunk_text(text)
     sanitized_chunks = [sanitize_chunk(c) for c in chunks]

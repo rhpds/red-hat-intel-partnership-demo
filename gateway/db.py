@@ -591,7 +591,7 @@ async def set_tenant_context(conn, tenant_id: str):
     import re
     if not re.fullmatch(r'[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}', tenant_id):
         raise ValueError(f"Invalid tenant_id format: {tenant_id}")
-    await conn.execute(f"SET app.current_tenant_id = '{tenant_id}'")
+    await conn.execute("SET app.current_tenant_id TO $1", tenant_id)
 
 
 # ─── Run Persistence ───

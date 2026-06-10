@@ -9,11 +9,25 @@ Three classification strategies:
 from __future__ import annotations
 
 import os
+import re
 import time
 import math
 import yaml
 from pathlib import Path
 from typing import Optional
+
+
+def _sanitize_input(text: str) -> str:
+    """Strip prompt-injection markers from user text before LLM classification."""
+    if not text:
+        return ""
+    text = re.sub(
+        r'(?i)(system\s*:|assistant\s*:|<<\s*SYS\s*>>|<\|im_start\|>|<\|im_end\|>|\[INST\]|\[/INST\])',
+        '[filtered]',
+        text,
+    )
+    text = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]', '', text)
+    return text
 
 
 def _load_departments() -> dict:
@@ -152,7 +166,7 @@ async def classify_llm(text: str, http_client, backend) -> dict:
                 "content": (
                     f"Classify this question into exactly one department: {dept_list}. "
                     f"Respond with ONLY the department key (e.g., 'hr', 'engineering', 'legal'). "
-                    f"Question: {text[:500]}"
+                    f"Question: {_sanitize_input(text[:500])}"
                 ),
             }],
             "max_tokens": 10,

@@ -109,10 +109,14 @@ async def _resolve_api_key(key: str) -> Optional[TenantContext]:
         key_hash = _hash_key(key)
         result = await db.verify_api_key_db(key_hash)
         if result:
+            tier = result.get("tier", "partner")
+            if tier not in TIER_ORDER:
+                logger.warning("API key has invalid tier: %s", tier)
+                tier = "pilot"
             return TenantContext(
                 tenant_id=result["tenant_id"],
                 tenant_slug=result.get("tenant_slug", "unknown"),
-                tier=result.get("tier", "partner"),
+                tier=tier,
                 scopes=result.get("scopes", ["read", "write"]),
             )
     except Exception as e:

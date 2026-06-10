@@ -793,17 +793,23 @@ async def platform_status():
     latest_completed = None
     training_info = None
 
-    for run_id, run in _workload_runs.items():
+    with _runs_lock:
+        workload_snapshot = dict(_workload_runs)
+        agent_snapshot = dict(_agent_runs)
+        training_snapshot = dict(_training_runs)
+        swarm_snapshot = dict(_swarm_runs)
+
+    for run_id, run in workload_snapshot.items():
         if run.get("status") == "running":
             active_runs.append({"type": "workload", "run_id": run_id, "profile": run.get("workload_profile", ""), "mode": run.get("power_mode", ""), "completed": run.get("completed", 0), "total": run.get("total", 0)})
         elif run.get("status") == "complete" and (latest_completed is None or run.get("completed_at", 0) > latest_completed.get("_completed_at", 0)):
             latest_completed = {"type": "workload", "run_id": run_id, "_completed_at": run.get("completed_at", 0), **{k: run.get(k) for k in ["workload_profile", "power_mode", "total_requests", "completed_requests", "route_counts", "requests_per_second", "estimated_tokens_per_second", "p50_latency_ms", "p95_latency_ms", "p99_latency_ms", "xeon_eco_utilization_pct", "xeon_performance_utilization_pct", "gaudi_overdrive_utilization_pct", "total_images", "total_documents", "modality_counts", "mode_label", "results"]}}
 
-    for run_id, run in _agent_runs.items():
+    for run_id, run in agent_snapshot.items():
         if run.get("status") == "running":
             active_runs.append({"type": "agent", "run_id": run_id, "steps_done": len([s for s in run.get("steps", []) if s.get("status") == "done"]), "steps_total": len(run.get("steps", []))})
 
-    for run_id, run in _training_runs.items():
+    for run_id, run in training_snapshot.items():
         if run.get("status") == "running":
             active_runs.append({"type": "training", "run_id": run_id})
             training_info = {"status": "running", "run_id": run_id}
@@ -811,7 +817,7 @@ async def platform_status():
             training_info = {"status": "completed", "run_id": run_id, "model": run.get("model_profile_id", ""), "base_score": run.get("evaluation", {}).get("base_score", 0), "tuned_score": run.get("evaluation", {}).get("tuned_score", 0), "improvement": run.get("evaluation", {}).get("improvement", 0)}
 
     swarm_completed = None
-    for run_id, run in _swarm_runs.items():
+    for run_id, run in swarm_snapshot.items():
         if run.get("status") == "running":
             agent_results = run.get("agent_results", [])
             total_agents = len(run.get("timeline", [])) or len(agent_results)
@@ -1063,6 +1069,7 @@ class WorkloadRunRequest(BaseModel):
 
 import threading
 
+_runs_lock = threading.Lock()
 _workload_runs: dict = {}
 _WORKLOAD_EXPIRY_SECONDS = 600
 
@@ -1083,7 +1090,8 @@ async def workload_run(req: WorkloadRunRequest, raw_request: Request):
         if not req.unlock_code or not _verify_unlock(req.unlock_code):
             raise HTTPException(status_code=403, detail="Unlock code required for live mode with this power mode")
 
-    _cleanup_old_runs()
+    with _runs_lock:
+        _cleanup_old_runs()
 
     import uuid
     run_id = f"run-{uuid.uuid4().hex[:8]}"
@@ -1096,7 +1104,8 @@ async def workload_run(req: WorkloadRunRequest, raw_request: Request):
         "results": [],
         "started_at": time.time(),
     }
-    _workload_runs[run_id] = run_state
+    with _runs_lock:
+        _workload_runs[run_id] = run_state
 
     def _run_in_background():
         try:
@@ -1133,9 +1142,11 @@ async def workload_run(req: WorkloadRunRequest, raw_request: Request):
 
 @app.get("/v1/workload/status/{run_id}")
 async def workload_status(run_id: str):
-    if run_id not in _workload_runs:
+    with _runs_lock:
+        run = _workload_runs.get(run_id)
+    if run is None:
         raise HTTPException(status_code=404, detail=f"Run '{run_id}' not found")
-    return _workload_runs[run_id]
+    return run
 
 
 _agent_runs: dict = {}
@@ -1153,7 +1164,8 @@ async def agent_research(req: AgentResearchRequest, raw_request: Request):
     import uuid
     run_id = f"agent-{uuid.uuid4().hex[:8]}"
     run_state = {"run_id": run_id, "status": "running", "steps": []}
-    _agent_runs[run_id] = run_state
+    with _runs_lock:
+        _agent_runs[run_id] = run_state
 
     def _run():
         try:
@@ -1175,16 +1187,19 @@ async def agent_research(req: AgentResearchRequest, raw_request: Request):
 
 @app.get("/v1/agent/status/{run_id}")
 async def agent_status(run_id: str):
-    if run_id not in _agent_runs:
+    with _runs_lock:
+        run = _agent_runs.get(run_id)
+    if run is None:
         raise HTTPException(status_code=404, detail=f"Agent run '{run_id}' not found")
-    return _agent_runs[run_id]
+    return run
 
 
 @app.post("/v1/agent/approve/{run_id}/{step_name}")
 async def agent_approve(run_id: str, step_name: str):
-    if run_id not in _agent_runs:
+    with _runs_lock:
+        run = _agent_runs.get(run_id)
+    if run is None:
         raise HTTPException(status_code=404, detail=f"Agent run '{run_id}' not found")
-    run = _agent_runs[run_id]
     for step in run.get("steps", []):
         if step["name"] == step_name and step["status"] == "awaiting_approval":
             step["status"] = "approved"
@@ -1208,7 +1223,8 @@ async def swarm_run(req: SwarmRunRequest, raw_request: Request):
     import uuid as _uuid
     run_id = f"swarm-{_uuid.uuid4().hex[:8]}"
     run_state = {"run_id": run_id, "status": "running", "agent_results": [], "timeline": [], "type": "swarm"}
-    _swarm_runs[run_id] = run_state
+    with _runs_lock:
+        _swarm_runs[run_id] = run_state
 
     def _run():
         try:
@@ -1225,9 +1241,11 @@ async def swarm_run(req: SwarmRunRequest, raw_request: Request):
 
 @app.get("/v1/swarm/status/{run_id}")
 async def swarm_status(run_id: str):
-    if run_id not in _swarm_runs:
+    with _runs_lock:
+        run = _swarm_runs.get(run_id)
+    if run is None:
         raise HTTPException(status_code=404, detail=f"Swarm run '{run_id}' not found")
-    return _swarm_runs[run_id]
+    return run
 
 
 @app.get("/v1/training/profiles")
@@ -1250,7 +1268,8 @@ async def training_run(req: TrainingRunRequest, raw_request: Request):
     import uuid as _uuid
     run_id = f"train-{_uuid.uuid4().hex[:8]}"
     run_state = {"run_id": run_id, "status": "running"}
-    _training_runs[run_id] = run_state
+    with _runs_lock:
+        _training_runs[run_id] = run_state
 
     def _run():
         try:
@@ -1276,9 +1295,11 @@ async def training_run(req: TrainingRunRequest, raw_request: Request):
 
 @app.get("/v1/training/status/{run_id}")
 async def training_status(run_id: str):
-    if run_id not in _training_runs:
+    with _runs_lock:
+        run = _training_runs.get(run_id)
+    if run is None:
         raise HTTPException(status_code=404, detail=f"Training run '{run_id}' not found")
-    return _training_runs[run_id]
+    return run
 
 
 _tokenizer_cache: dict = {}
@@ -1387,12 +1408,12 @@ async def run_history(run_type: str = None, limit: int = 50):
 async def capacity_overview():
     tenants = await db.list_tenants()
     active_counts = {}
-    for run_dict_name, run_type in [("_workload_runs", "workload"), ("_swarm_runs", "swarm"), ("_training_runs", "training"), ("_agent_runs", "agent")]:
-        run_dict = globals().get(run_dict_name, {})
-        for run_id, run in run_dict.items():
-            tid = run.get("tenant_id", "internal")
-            if run.get("status") == "running":
-                active_counts[tid] = active_counts.get(tid, 0) + 1
+    with _runs_lock:
+        all_runs = list(_workload_runs.values()) + list(_swarm_runs.values()) + list(_training_runs.values()) + list(_agent_runs.values())
+    for run in all_runs:
+        tid = run.get("tenant_id", "internal")
+        if run.get("status") == "running":
+            active_counts[tid] = active_counts.get(tid, 0) + 1
 
     capacity = []
     for t in tenants:

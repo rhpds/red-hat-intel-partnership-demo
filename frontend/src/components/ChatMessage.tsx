@@ -2,24 +2,7 @@ import { Card, CardBody, ExpandableSection, Label, Split, SplitItem } from '@pat
 import { UserIcon, RobotIcon } from '@patternfly/react-icons';
 import { useState } from 'react';
 import RoutingTrace from './RoutingTrace';
-
-interface TraceStep {
-  step: string;
-  hardware: string;
-  model?: string;
-  latency_ms?: number;
-  results?: number;
-  reason?: string;
-  status?: string;
-}
-
-interface CostInfo {
-  total_latency_ms: number;
-  total_cost: number;
-  total_tokens?: number;
-  xeon_ms?: number;
-  gaudi_ms?: number;
-}
+import type { TraceStep, CostInfo } from '../api/types';
 
 interface Props {
   role: 'user' | 'assistant';

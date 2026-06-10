@@ -16,22 +16,7 @@ import ChatMessage from '../components/ChatMessage';
 import DocumentUploader from '../components/DocumentUploader';
 import ModelSelector from '../components/ModelSelector';
 import { api } from '../api/client';
-
-interface TraceStep {
-  step: string;
-  hardware: string;
-  model?: string;
-  latency_ms?: number;
-  results?: number;
-  reason?: string;
-  status?: string;
-}
-
-interface CostInfo {
-  total_latency_ms: number;
-  total_cost: number;
-  total_tokens?: number;
-}
+import type { TraceStep, CostInfo, UploadedDoc } from '../api/types';
 
 interface Message {
   id: string;
@@ -39,15 +24,6 @@ interface Message {
   content: string;
   trace?: TraceStep[];
   cost?: CostInfo;
-}
-
-interface UploadedDoc {
-  id: string;
-  filename: string;
-  modality: string;
-  category: string;
-  chunk_count: number;
-  content_warnings?: string[];
 }
 
 const SESSION_KEY = 'intel-demo-chat-session';
@@ -138,7 +114,8 @@ export default function Chat() {
         throw new Error(`Server error: ${response.status}`);
       }
 
-      const reader = response.body!.getReader();
+      if (!response.body) throw new Error('Response body unavailable');
+      const reader = response.body.getReader();
       const decoder = new TextDecoder();
       let currentEvent = '';
       let content = '';
@@ -205,8 +182,10 @@ export default function Chat() {
   };
 
   const handleDeleteDoc = (id: string) => {
-    api.documentDelete(id).catch(() => {});
     setDocuments(prev => prev.filter(d => d.id !== id));
+    api.documentDelete(id).catch((e) => {
+      setError(e instanceof Error ? e.message : 'Failed to delete document');
+    });
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
