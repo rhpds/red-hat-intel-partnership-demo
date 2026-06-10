@@ -55,7 +55,7 @@ semanticRouter:
 
 localCpuInference:
   enabled: false
-  image: quay.io/intel-redhat/vllm-cpu:latest
+  image: quay.io/rh-ee-jkershaw/vllm-cpu:latest
   model: TinyLlama/TinyLlama-1.1B-Chat-v1.0
   port: 8000
   useBf16: true

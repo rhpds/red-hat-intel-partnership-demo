@@ -31,7 +31,7 @@ commonAnnotations:
 
 # Images (to be updated with actual registry and digest)
 images:
-  - name: "quay.io/intel-redhat/vllm-cpu:latest"
+  - name: "quay.io/rh-ee-jkershaw/vllm-cpu:latest"
     newName: "localhost/vllm-cpu"  # For local testing
     newTag: "test"  # For local testing
     # In production, replace with:
