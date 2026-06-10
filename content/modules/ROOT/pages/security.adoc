@@ -10,9 +10,17 @@
 
 * Allowed types: PDF, TXT, MD, code files, images, audio
 * Max file size: 10MB
-* Prompt injection defense: sanitize all chunks before embedding
+* Prompt injection defense: sanitize all chunks before embedding, sanitize user text before LLM classification, strip injection markers from RAG context
 * PII detection: logged but not blocked (demo context)
 * Auto-expiration: documents deleted after 24 hours
+* PDF/DOCX extraction runs in a thread pool to avoid blocking the async event loop
+
+== SQL & Input Safety
+
+* All SQL queries use parameterized values (no string interpolation)
+* Tenant context uses `SET ... TO $1` with UUID format validation
+* API key tier validated against known tier list; unknown tiers fall back to lowest privilege
+* Global run state dicts protected by threading.Lock to prevent race conditions
 
 == Tenant Isolation
 

@@ -85,7 +85,7 @@ frontend/src/               # React 19 + PatternFly 6
   api/client.ts             #   API endpoints
 
 helm/                       # Helm chart (RHDP quickstart_deploy_via_make)
-tests/                      # 133+ pytest tests
+tests/                      # 1,437 pytest tests
 content/                    # Antora docs site (Showroom lab guide)
 .github/workflows/          # CI: tests, image builds
 ```

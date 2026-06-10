@@ -33,7 +33,7 @@ cd frontend && npm run dev
 
 ## Testing
 
-- Backend: `python3 -m pytest tests/ -v` (133+ tests)
+- Backend: `python3 -m pytest tests/ -v` (1,437 tests)
 - Frontend: `cd frontend && npx vitest`
 - TypeScript: `cd frontend && npx tsc --noEmit`
 
