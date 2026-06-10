@@ -15,9 +15,8 @@ on:
         required: true
         type: string
 
-# TODO: Update REGISTRY once quay.io org access is confirmed
 env:
-  REGISTRY: quay.io/intel-redhat
+  REGISTRY: quay.io/rh-ee-jkershaw
   GATEWAY_IMAGE: inference-gateway
   FRONTEND_IMAGE: inference-frontend
 
