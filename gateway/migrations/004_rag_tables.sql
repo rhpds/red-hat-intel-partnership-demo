@@ -1,7 +1,14 @@
 -- Migration 004: RAG document pipeline + chat sessions
 -- Adds pgvector for semantic search, document storage, and chat history
+-- pgvector is optional: if not installed, RAG tables use TEXT instead of vector columns
 
-CREATE EXTENSION IF NOT EXISTS vector;
+DO $$
+BEGIN
+    CREATE EXTENSION IF NOT EXISTS vector;
+EXCEPTION WHEN OTHERS THEN
+    RAISE NOTICE 'pgvector not available — RAG embeddings will be stored as TEXT';
+END
+$$;
 
 -- Document storage
 CREATE TABLE IF NOT EXISTS documents (
@@ -22,16 +29,32 @@ CREATE INDEX IF NOT EXISTS idx_documents_tenant ON documents(tenant_id);
 CREATE INDEX IF NOT EXISTS idx_documents_session ON documents(session_id);
 CREATE INDEX IF NOT EXISTS idx_documents_expires ON documents(expires_at);
 
--- Document chunks with embeddings
-CREATE TABLE IF NOT EXISTS document_chunks (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    document_id UUID REFERENCES documents(id) ON DELETE CASCADE,
-    chunk_index INTEGER NOT NULL,
-    content TEXT NOT NULL,
-    modality VARCHAR(20) NOT NULL DEFAULT 'text',
-    embedding vector(768),
-    metadata JSONB DEFAULT '{}'
-);
+-- Document chunks with embeddings (vector type if pgvector available, otherwise TEXT fallback)
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'vector') THEN
+        CREATE TABLE IF NOT EXISTS document_chunks (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            document_id UUID REFERENCES documents(id) ON DELETE CASCADE,
+            chunk_index INTEGER NOT NULL,
+            content TEXT NOT NULL,
+            modality VARCHAR(20) NOT NULL DEFAULT 'text',
+            embedding vector(768),
+            metadata JSONB DEFAULT '{}'
+        );
+    ELSE
+        CREATE TABLE IF NOT EXISTS document_chunks (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            document_id UUID REFERENCES documents(id) ON DELETE CASCADE,
+            chunk_index INTEGER NOT NULL,
+            content TEXT NOT NULL,
+            modality VARCHAR(20) NOT NULL DEFAULT 'text',
+            embedding TEXT,
+            metadata JSONB DEFAULT '{}'
+        );
+    END IF;
+END
+$$;
 
 CREATE INDEX IF NOT EXISTS idx_chunks_document ON document_chunks(document_id);
 
