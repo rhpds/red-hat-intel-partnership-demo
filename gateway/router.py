@@ -147,6 +147,7 @@ class RouteRequest(BaseModel):
     texts: Optional[list[str]] = Field(default=None, max_length=100, description="Multiple texts for embeddings/reranking")
     max_tokens: int = Field(default=16, ge=1, le=4096)
     temperature: float = Field(default=0.7, ge=0.0, le=2.0)
+    routing_strategy: str = Field(default="standard", pattern=r"^(standard|semantic|vllm-sr)$")
 
 
 class RoutingMetadata(BaseModel):
@@ -504,8 +505,29 @@ async def route_request(request: RouteRequest, raw_request: Request):
     http_client = app.state.http_client
 
     start = time.time()
-    decision = policy.route(request.task, model_size_b=request.model_size_b)
-    backend = policy.get_backend(decision.backend)
+
+    if request.routing_strategy != "standard" and request.task in ("completion", "batch_generation"):
+        import semantic_router
+        user_text = _sanitize_prompt(request.prompt or request.text or "")
+        if request.routing_strategy == "semantic":
+            classification = semantic_router.classify_rules(user_text)
+            request.model = classification["model"]
+            strategy_reason = f"Semantic: {classification['department_label']} → {classification['model']}"
+        else:
+            classification = await semantic_router.classify_vllm_sr(user_text, http_client)
+            request.model = classification["model"]
+            dept = classification.get("department_label", "General")
+            strategy_reason = f"vLLM SR: {dept} → {classification['model']} (signal-driven)"
+        all_backends = policy.list_backends()
+        cpu_models = {"granite-2b-cpu", "phi3-mini-cpu", "granite-3-2-8b-instruct", "llama-31-70b-cpu"}
+        if request.model in cpu_models:
+            backend = next((b for b in all_backends if b.accelerator == "xeon6"), None)
+        else:
+            backend = next((b for b in all_backends if b.accelerator == "gaudi"), None) or (all_backends[0] if all_backends else None)
+        decision = type('D', (), {'backend': backend.name if backend else '', 'reason': strategy_reason, 'fallback': None})()
+    else:
+        decision = policy.route(request.task, model_size_b=request.model_size_b)
+        backend = policy.get_backend(decision.backend)
 
     if not backend:
         if local_inference.is_available():

@@ -362,6 +362,68 @@ export default function Overdrive() {
         </Content>
       </PageSection>
 
+      {/* ======== THREE ROUTING STRATEGIES ======== */}
+      <PageSection>
+        <Content>
+          <Content component="h2">Three Routing Strategies</Content>
+          <Content component="p" style={{ maxWidth: '720px', marginBottom: '1.5rem' }}>
+            The platform supports three routing strategies. Switch between them in
+            Try It Live or Interactive Chat to see how the same request routes differently.
+          </Content>
+        </Content>
+
+        <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
+          {/* Standard Routing */}
+          <div style={{ flex: '1 1 280px', padding: '1.25rem', background: 'var(--pf-t--global--background--color--secondary--default)', border: '2px solid var(--pf-t--global--border--color--default)', borderRadius: '10px', borderTop: '4px solid #0066cc' }}>
+            <div style={{ fontWeight: 700, fontSize: '1rem', marginBottom: '0.5rem' }}>Standard (Task-Type)</div>
+            <div style={{ fontSize: '0.85rem', marginBottom: '0.75rem', color: 'var(--pf-t--global--text--color--subtle)' }}>
+              Routes by task type and model size. No classification call needed.
+            </div>
+            <div style={{ fontFamily: 'var(--pf-t--global--font--family--mono)', fontSize: '0.78rem', lineHeight: 1.8 }}>
+              <div>Request &rarr; Task Type Check</div>
+              <div style={{ paddingLeft: '1rem' }}>&rarr; embeddings / classification / reranking &rarr; <Label isCompact color="blue">Xeon 6</Label></div>
+              <div style={{ paddingLeft: '1rem' }}>&rarr; completion ≤4B params &rarr; <Label isCompact color="blue">Xeon 6</Label></div>
+              <div style={{ paddingLeft: '1rem' }}>&rarr; completion &gt;4B params &rarr; <Label isCompact color="orange">Gaudi 3</Label></div>
+              <div style={{ paddingLeft: '1rem' }}>&rarr; batch_generation &rarr; <Label isCompact color="orange">Gaudi 3</Label></div>
+            </div>
+          </div>
+
+          {/* Semantic Department Routing */}
+          <div style={{ flex: '1 1 280px', padding: '1.25rem', background: 'var(--pf-t--global--background--color--secondary--default)', border: '2px solid var(--pf-t--global--border--color--default)', borderRadius: '10px', borderTop: '4px solid #6753ac' }}>
+            <div style={{ fontWeight: 700, fontSize: '1rem', marginBottom: '0.5rem' }}>Semantic Department</div>
+            <div style={{ fontSize: '0.85rem', marginBottom: '0.75rem', color: 'var(--pf-t--global--text--color--subtle)' }}>
+              Classifies the query by department and routes to the domain-optimized model.
+            </div>
+            <div style={{ fontFamily: 'var(--pf-t--global--font--family--mono)', fontSize: '0.78rem', lineHeight: 1.8 }}>
+              <div>Request &rarr; Department Classifier</div>
+              <div style={{ paddingLeft: '1rem' }}>&rarr; HR &rarr; granite-2b-cpu <Label isCompact color="blue">Xeon 6</Label></div>
+              <div style={{ paddingLeft: '1rem' }}>&rarr; Engineering &rarr; qwen3-14b <Label isCompact color="orange">Gaudi 3</Label></div>
+              <div style={{ paddingLeft: '1rem' }}>&rarr; Legal &rarr; deepseek-r1 <Label isCompact color="orange">Gaudi 3</Label></div>
+              <div style={{ paddingLeft: '1rem' }}>&rarr; Security &rarr; llama-scout-17b <Label isCompact color="orange">Gaudi 3</Label></div>
+              <div style={{ paddingLeft: '1rem' }}>&rarr; Executive &rarr; llama-31-70b <Label isCompact color="blue">Xeon 6</Label></div>
+            </div>
+          </div>
+
+          {/* vLLM Semantic Router */}
+          <div style={{ flex: '1 1 280px', padding: '1.25rem', background: 'var(--pf-t--global--background--color--secondary--default)', border: '2px solid var(--pf-t--global--border--color--default)', borderRadius: '10px', borderTop: '4px solid #c9190b' }}>
+            <div style={{ fontWeight: 700, fontSize: '1rem', marginBottom: '0.5rem' }}>vLLM Semantic Router</div>
+            <div style={{ fontSize: '0.85rem', marginBottom: '0.75rem', color: 'var(--pf-t--global--text--color--subtle)' }}>
+              Production-grade signal-driven routing. No LLM call for the routing decision itself.
+            </div>
+            <div style={{ fontFamily: 'var(--pf-t--global--font--family--mono)', fontSize: '0.78rem', lineHeight: 1.8 }}>
+              <div>Request &rarr; Signal Engine (OpenVINO on Xeon 6)</div>
+              <div style={{ paddingLeft: '1rem' }}>&rarr; BM25 keyword signals</div>
+              <div style={{ paddingLeft: '1rem' }}>&rarr; Embedding intent signals</div>
+              <div style={{ paddingLeft: '1rem' }}>&rarr; Priority-weighted decision rules</div>
+              <div style={{ paddingLeft: '1rem' }}>&rarr; Model selection (no LLM overhead)</div>
+            </div>
+            <div style={{ fontSize: '0.78rem', marginTop: '0.5rem', fontStyle: 'italic', color: 'var(--pf-t--global--text--color--subtle)' }}>
+              KV cache stays on Gaudi for generation — routing intelligence runs on CPU
+            </div>
+          </div>
+        </div>
+      </PageSection>
+
       {/* ======== THREE LANES ======== */}
       <PageSection>
         <Content>

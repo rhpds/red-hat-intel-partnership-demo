@@ -30,6 +30,7 @@ interface Props {
   steps: WorkflowStep[];
   prompt: string;
   runTrigger?: number;
+  routingStrategy?: string;
 }
 
 /* hwColors imported from ../constants/hwColors */
@@ -352,7 +353,7 @@ function renderDetailPanel(step: WorkflowStep, r: StepResult, totalWorkflowMs: n
   );
 }
 
-export default function LiveWorkflow({ title, subtitle, steps, prompt, runTrigger }: Props) {
+export default function LiveWorkflow({ title, subtitle, steps, prompt, runTrigger, routingStrategy = 'standard' }: Props) {
   const [results, setResults] = useState<StepResult[]>(steps.map(() => ({ status: 'pending' })));
   const [running, setRunning] = useState(false);
   const [totalMs, setTotalMs] = useState(0);
@@ -421,6 +422,7 @@ export default function LiveWorkflow({ title, subtitle, steps, prompt, runTrigge
         model_size_b: step.model_size_b || 0,
         max_tokens: step.task === 'completion' ? 60 : step.task === 'governance' || step.task === 'policy' ? 40 : 16,
         temperature: 0.3,
+        routing_strategy: routingStrategy,
       };
 
       if (step.task === 'reranking' && searchDocTexts.length > 0) {

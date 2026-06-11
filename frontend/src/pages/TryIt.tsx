@@ -10,10 +10,21 @@ import {
   Gallery,
   GalleryItem,
   Label,
+  MenuToggle,
+  Select,
+  SelectOption,
+  Split,
+  SplitItem,
 } from '@patternfly/react-core';
 import LiveWorkflow, { type WorkflowStep } from '../components/LiveWorkflow';
 import BuildYourOwn from '../components/BuildYourOwn';
 import HardwareBadge from '../components/HardwareBadge';
+
+const STRATEGIES = [
+  { value: 'standard', label: 'Standard (task-type)', description: 'Routes by task type and model size' },
+  { value: 'semantic', label: 'Semantic Department', description: 'Classifies by department, picks domain-optimized model' },
+  { value: 'vllm-sr', label: 'vLLM Semantic Router', description: 'Signal-driven routing with OpenVINO on Xeon 6' },
+];
 
 interface Prompt {
   label: string;
@@ -88,6 +99,8 @@ export default function TryIt() {
   const [activeTab, setActiveTab] = useState(0);
   const [selectedPrompt, setSelectedPrompt] = useState<Prompt | null>(null);
   const [runTrigger, setRunTrigger] = useState(0);
+  const [routingStrategy, setRoutingStrategy] = useState('standard');
+  const [strategyOpen, setStrategyOpen] = useState(false);
 
   const scenario = scenarios[activeTab];
 
@@ -98,9 +111,33 @@ export default function TryIt() {
           <Content component="h1">Try It Live</Content>
           <Content component="p" style={{ maxWidth: '720px' }}>
             Pick a workflow and click a scenario. Watch each step route to the Intel hardware
-            best suited for it — Xeon 6 for fast, cheap tasks and Gaudi for heavy generation.
-            You'll see actual latency, cost, and the routing engine's reasoning.
+            best suited for it. Switch the <strong>Routing Strategy</strong> to see how different
+            approaches select different models for the same prompt.
           </Content>
+          <Split hasGutter style={{ marginTop: '1rem', alignItems: 'center' }}>
+            <SplitItem>
+              <Label isCompact>Routing Strategy</Label>
+            </SplitItem>
+            <SplitItem>
+              <Select
+                isOpen={strategyOpen}
+                onOpenChange={setStrategyOpen}
+                onSelect={(_e, val) => { setRoutingStrategy(val as string); setStrategyOpen(false); }}
+                selected={routingStrategy}
+                toggle={(toggleRef) => (
+                  <MenuToggle ref={toggleRef} onClick={() => setStrategyOpen(!strategyOpen)} isExpanded={strategyOpen} style={{ minWidth: '240px' }}>
+                    {STRATEGIES.find(s => s.value === routingStrategy)?.label || 'Standard'}
+                  </MenuToggle>
+                )}
+              >
+                {STRATEGIES.map(s => (
+                  <SelectOption key={s.value} value={s.value} description={s.description}>
+                    {s.label}
+                  </SelectOption>
+                ))}
+              </Select>
+            </SplitItem>
+          </Split>
           <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)', display: 'block', marginTop: '0.5rem' }}>
             Running on Red Hat OpenShift AI &bull; Models served via KServe on MAAS &bull; Multi-tenant isolation via OpenShift namespaces
           </Content>
@@ -173,6 +210,7 @@ export default function TryIt() {
               steps={scenario.steps}
               prompt={selectedPrompt?.text || scenario.prompts[0].text}
               runTrigger={runTrigger}
+              routingStrategy={routingStrategy}
             />
           </div>
 
