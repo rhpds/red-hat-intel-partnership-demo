@@ -20,8 +20,8 @@
   vars:
     ocp_project_name: "{{ ocp_project_name | default('intel-rh-demo') }}"
     litellm_api_base: "{{ litellm_api_base | default('https://maas-rhdp.apps.maas.redhatworkshops.io') }}"
-    gateway_image: "{{ gateway_image | default('quay.io/rh-ee-jkershaw/inference-gateway:latest') }}"
-    frontend_image: "{{ frontend_image | default('quay.io/rh-ee-jkershaw/inference-frontend:latest') }}"
+    gateway_image: "{{ gateway_image | default('quay.io/rh-intel-demo/inference-gateway:latest') }}"
+    frontend_image: "{{ frontend_image | default('quay.io/rh-intel-demo/inference-frontend:latest') }}"
     gateway_replicas: "{{ gateway_replicas | default(2) }}"
     frontend_replicas: "{{ frontend_replicas | default(1) }}"
     postgres_storage: "{{ postgres_storage | default('10Gi') }}"

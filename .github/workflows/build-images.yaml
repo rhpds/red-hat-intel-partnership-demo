@@ -16,7 +16,7 @@ on:
         type: string
 
 env:
-  REGISTRY: quay.io/rh-ee-jkershaw
+  REGISTRY: quay.io/rh-intel-demo
   GATEWAY_IMAGE: inference-gateway
   FRONTEND_IMAGE: inference-frontend
 

@@ -32,7 +32,7 @@ commonAnnotations:
 
 # Images (to be updated with actual registry and digest)
 images:
-  - name: "quay.io/rh-ee-jkershaw/vllm-gaudi:latest"
+  - name: "quay.io/rh-intel-demo/vllm-gaudi:latest"
     newName: "localhost/vllm-gaudi"  # For local testing
     newTag: "test"  # For local testing
     # In production, replace with:

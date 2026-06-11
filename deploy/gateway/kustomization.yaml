@@ -22,6 +22,6 @@ commonAnnotations:
   platform.redhat.com/component: ai-routing
 
 images:
-  - name: "quay.io/rh-ee-jkershaw/inference-gateway:latest"
+  - name: "quay.io/rh-intel-demo/inference-gateway:latest"
     newName: "localhost/inference-gateway"
     newTag: "latest"
