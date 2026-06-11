@@ -39,6 +39,9 @@ class BackendInfo:
     healthy: bool = True
     api_key: str = ""
 
+    def __post_init__(self):
+        self.url = self.url.rstrip("/")
+
 
 def _resolve_env(value: str) -> str:
     """Replace ${ENV_VAR} and ${ENV_VAR:-default} references with environment variable values."""
