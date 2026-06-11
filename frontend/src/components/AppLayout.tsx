@@ -55,8 +55,6 @@ const navSections: NavSection[] = [
       { path: '/tokenizer', label: 'Tokenizer & Cost' },
       { path: '/agent', label: 'Research Agent' },
       { path: '/swarm', label: 'Agent Swarm' },
-      { path: '/training', label: 'Train + Serve' },
-      { path: '/optimization', label: 'Optimization' },
       { path: '/replay', label: 'Replay Comparison' },
       { path: '/recovery', label: 'Recovery & Resilience' },
     ],
@@ -66,8 +64,6 @@ const navSections: NavSection[] = [
     expandable: true,
     items: [
       { path: '/cockpit', label: 'Cockpit' },
-      { path: '/capacity', label: 'Capacity & Allocation' },
-      { path: '/operations', label: 'Operations' },
       { path: '/governance', label: 'Governance Audit' },
       { path: '/docs', label: 'Documentation' },
     ],
