@@ -1,19 +1,19 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: inference-gateway
+  name: gateway
   namespace: {{ .Values.namespace }}
   labels:
-    app: inference-gateway
+    app: gateway
 spec:
   replicas: {{ .Values.gateway.replicas }}
   selector:
     matchLabels:
-      app: inference-gateway
+      app: gateway
   template:
     metadata:
       labels:
-        app: inference-gateway
+        app: gateway
     spec:
       securityContext:
         runAsNonRoot: true
@@ -75,11 +75,11 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: inference-gateway
+  name: gateway
   namespace: {{ .Values.namespace }}
 spec:
   selector:
-    app: inference-gateway
+    app: gateway
   ports:
     - name: http
       port: 8080
@@ -88,12 +88,12 @@ spec:
 apiVersion: route.openshift.io/v1
 kind: Route
 metadata:
-  name: inference-gateway
+  name: gateway
   namespace: {{ .Values.namespace }}
 spec:
   to:
     kind: Service
-    name: inference-gateway
+    name: gateway
   port:
     targetPort: http
   tls:

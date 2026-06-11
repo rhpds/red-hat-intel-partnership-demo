@@ -35,14 +35,11 @@ spec:
           envFrom:
             - secretRef:
                 name: postgres-credentials
-          env:
-            - name: POSTGRESQL_DATABASE
-              value: gateway
           resources:
             {{- toYaml .Values.postgres.resources | nindent 12 }}
           volumeMounts:
             - name: data
-              mountPath: /var/lib/pgsql/data
+              mountPath: /var/lib/postgresql/data
           readinessProbe:
             exec:
               command: ["pg_isready", "-U", "gateway"]

@@ -1,19 +1,19 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: inference-frontend
+  name: frontend
   namespace: {{ .Values.namespace }}
   labels:
-    app: inference-frontend
+    app: frontend
 spec:
   replicas: {{ .Values.frontend.replicas }}
   selector:
     matchLabels:
-      app: inference-frontend
+      app: frontend
   template:
     metadata:
       labels:
-        app: inference-frontend
+        app: frontend
     spec:
       securityContext:
         runAsNonRoot: true
@@ -40,11 +40,11 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: inference-frontend
+  name: frontend
   namespace: {{ .Values.namespace }}
 spec:
   selector:
-    app: inference-frontend
+    app: frontend
   ports:
     - name: http
       port: 8080
@@ -53,12 +53,12 @@ spec:
 apiVersion: route.openshift.io/v1
 kind: Route
 metadata:
-  name: inference-frontend
+  name: frontend
   namespace: {{ .Values.namespace }}
 spec:
   to:
     kind: Service
-    name: inference-frontend
+    name: frontend
   port:
     targetPort: http
   tls:
