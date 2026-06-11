@@ -1,7 +1,7 @@
 site:
   title: Intel-Red Hat AI Inference Platform
   url: https://github.com/rhpds/red-hat-intel-partnership-demo
-  start_page: intel-inference-demo::index.adoc
+  start_page: modules::index.adoc
 
 content:
   sources:
