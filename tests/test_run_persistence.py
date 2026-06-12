@@ -253,23 +253,12 @@ class TestPublishingHouse:
 
 class TestFrontendPhase2:
 
-    def test_capacity_page_exists(self, project_root):
-        assert (project_root / "frontend" / "src" / "pages" / "CapacityDashboard.tsx").exists()
-
     def test_gallery_page_exists(self, project_root):
         assert (project_root / "frontend" / "src" / "pages" / "PublishingHouse.tsx").exists()
-
-    def test_capacity_route_exists(self, project_root):
-        app_tsx = (project_root / "frontend" / "src" / "App.tsx").read_text()
-        assert "/capacity" in app_tsx
 
     def test_gallery_route_exists(self, project_root):
         app_tsx = (project_root / "frontend" / "src" / "App.tsx").read_text()
         assert "/gallery" in app_tsx
-
-    def test_nav_has_capacity(self, project_root):
-        layout = (project_root / "frontend" / "src" / "components" / "AppLayout.tsx").read_text()
-        assert "/capacity" in layout
 
     def test_nav_has_gallery(self, project_root):
         layout = (project_root / "frontend" / "src" / "components" / "AppLayout.tsx").read_text()

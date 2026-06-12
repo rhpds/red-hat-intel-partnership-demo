@@ -63,7 +63,6 @@ class TestPages:
         "TryIt.tsx",
         "Overdrive.tsx",
         "Chat.tsx",
-        "Operations.tsx",
         "GovernanceAudit.tsx",
         "Docs.tsx",
     ])

@@ -240,16 +240,13 @@ class TestE2ETrainingFlow:
 
 class TestFrontendWiring:
 
-    def test_page_exists(self, project_root):
-        assert (project_root / "frontend" / "src" / "pages" / "TrainingDemo.tsx").exists()
-
-    def test_route_exists(self, project_root):
+    def test_route_removed(self, project_root):
         app = (project_root / "frontend" / "src" / "App.tsx").read_text()
-        assert "/training" in app
+        assert "/training" not in app
 
-    def test_nav_exists(self, project_root):
+    def test_nav_removed(self, project_root):
         layout = (project_root / "frontend" / "src" / "components" / "AppLayout.tsx").read_text()
-        assert "/training" in layout
+        assert "/training" not in layout
 
     def test_api_methods(self, project_root):
         client = (project_root / "frontend" / "src" / "api" / "client.ts").read_text()
