@@ -258,9 +258,10 @@ async def classify_vllm_sr(text: str, http_client) -> dict:
         confidence = 0.90
 
     except Exception:
-        best_dept = "general"
-        routed_model = "granite-3-2-8b-instruct"
-        confidence = 0.0
+        fallback = classify_rules(text)
+        best_dept = fallback["department"]
+        routed_model = fallback["model"]
+        confidence = fallback["confidence"] * 0.85
 
     elapsed_ms = (time.time() - start) * 1000
     dept = DEPARTMENTS.get(best_dept, DEPARTMENTS.get("general", {}))
