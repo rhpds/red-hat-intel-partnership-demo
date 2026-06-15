@@ -18,7 +18,6 @@ import {
   ToolbarContent,
   ToolbarItem,
   Label,
-  Divider,
 } from '@patternfly/react-core';
 import { BarsIcon } from '@patternfly/react-icons';
 import { useHealth } from '../api/hooks';
