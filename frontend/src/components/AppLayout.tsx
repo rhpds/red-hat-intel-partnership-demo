@@ -101,11 +101,12 @@ export default function AppLayout() {
           </PageToggleButton>
         </MastheadToggle>
         <MastheadBrand>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <img src="/intel-logo.svg" alt="Intel" style={{ height: '28px' }} />
-            <Divider orientation={{ default: 'vertical' }} />
-            <img src="/redhat-logo.svg" alt="Red Hat" style={{ height: '48px' }} />
-            <Divider orientation={{ default: 'vertical' }} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+            <div style={{ background: 'white', padding: '6px 14px', borderRadius: '6px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <img src="/intel-logo.svg" alt="Intel" style={{ height: '26px' }} />
+              <span style={{ color: '#ccc', fontSize: '1.2rem', fontWeight: 200 }}>|</span>
+              <img src="/redhat-logo.svg" alt="Red Hat" style={{ height: '56px' }} />
+            </div>
             <span style={{ fontSize: '0.95rem', fontWeight: 600, whiteSpace: 'nowrap' }}>
               Intel-Red Hat AI Inference Platform
             </span>
