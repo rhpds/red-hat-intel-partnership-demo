@@ -104,7 +104,7 @@ export default function AppLayout() {
             <div style={{ background: 'white', padding: '6px 14px', borderRadius: '6px', display: 'flex', alignItems: 'center', gap: '12px' }}>
               <img src="/intel-logo.svg" alt="Intel" style={{ height: '22px' }} />
               <span style={{ color: '#ccc', fontSize: '1.2rem', fontWeight: 200 }}>|</span>
-              <img src="/redhat-logo.svg" alt="Red Hat" style={{ height: '28px' }} />
+              <img src="/rh-logo-v2.svg" alt="Red Hat" style={{ height: '48px' }} />
             </div>
             <span style={{ fontSize: '0.95rem', fontWeight: 600, whiteSpace: 'nowrap' }}>
               AI Inference Platform
