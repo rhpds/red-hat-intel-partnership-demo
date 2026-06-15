@@ -1,6 +1,5 @@
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import {
-  Brand,
   Masthead,
   MastheadBrand,
   MastheadContent,
@@ -102,21 +101,15 @@ export default function AppLayout() {
           </PageToggleButton>
         </MastheadToggle>
         <MastheadBrand>
-          <Brand
-            src="/intel-logo.svg"
-            alt="Intel"
-            heights={{ default: '28px' }}
-          />
-          <Divider orientation={{ default: 'vertical' }} style={{ margin: '0 10px' }} />
-          <Brand
-            src="/redhat-logo.svg"
-            alt="Red Hat"
-            heights={{ default: '28px' }}
-          />
-          <Divider orientation={{ default: 'vertical' }} style={{ margin: '0 10px' }} />
-          <span style={{ fontSize: '0.95rem', fontWeight: 600, whiteSpace: 'nowrap' }}>
-            Intel-Red Hat AI Inference Platform
-          </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <img src="/intel-logo.svg" alt="Intel" style={{ height: '28px' }} />
+            <Divider orientation={{ default: 'vertical' }} />
+            <img src="/redhat-logo.svg" alt="Red Hat" style={{ height: '48px' }} />
+            <Divider orientation={{ default: 'vertical' }} />
+            <span style={{ fontSize: '0.95rem', fontWeight: 600, whiteSpace: 'nowrap' }}>
+              Intel-Red Hat AI Inference Platform
+            </span>
+          </div>
         </MastheadBrand>
       </MastheadMain>
       <MastheadContent>
