@@ -115,14 +115,14 @@ export default function AppLayout() {
       <MastheadContent>
         <Toolbar isStatic>
           <ToolbarContent>
-            <ToolbarItem>
+            <ToolbarItem align={{ default: 'alignEnd' }}>
               {tenant && (
                 <Label isCompact color={tenant.tier === 'internal' ? 'blue' : 'orange'}>
                   {tenant.tenant_slug}
                 </Label>
               )}
             </ToolbarItem>
-            <ToolbarItem align={{ default: 'alignEnd' }}>
+            <ToolbarItem>
               <Label
                 color={health?.status === 'healthy' ? 'green' : 'red'}
               >
