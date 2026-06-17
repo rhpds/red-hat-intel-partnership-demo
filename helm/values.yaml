@@ -1,7 +1,7 @@
 namespace: intel-rh-demo
 
 gateway:
-  image: quay.io/rh-intel-demo/inference-gateway:latest
+  image: quay.io/redhat-gpte/intel-inference-gateway:latest
   replicas: 2
   resources:
     requests:
@@ -15,7 +15,7 @@ gateway:
   localFallback: false
 
 frontend:
-  image: quay.io/rh-intel-demo/inference-frontend:latest
+  image: quay.io/redhat-gpte/intel-inference-frontend:latest
   replicas: 1
   resources:
     requests:
@@ -55,7 +55,7 @@ semanticRouter:
 
 localCpuInference:
   enabled: false
-  image: quay.io/rh-intel-demo/vllm-cpu:latest
+  image: quay.io/redhat-gpte/intel-vllm-cpu:latest
   model: TinyLlama/TinyLlama-1.1B-Chat-v1.0
   port: 8000
   useBf16: true

@@ -29,7 +29,7 @@ spec:
     - name: kserve-container
       # V1: Local testing image
       # V2: Replace with actual Gaudi image from vault.habana.ai or quay.io
-      image: "quay.io/rh-intel-demo/vllm-gaudi:latest"
+      image: "quay.io/redhat-gpte/intel-vllm-gaudi:latest"
       imagePullPolicy: IfNotPresent
 
       envFrom:

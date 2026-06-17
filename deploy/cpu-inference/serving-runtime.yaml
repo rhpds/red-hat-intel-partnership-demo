@@ -25,7 +25,7 @@ spec:
 
   containers:
     - name: kserve-container
-      image: "quay.io/rh-intel-demo/vllm-cpu:latest"
+      image: "quay.io/redhat-gpte/intel-vllm-cpu:latest"
       imagePullPolicy: IfNotPresent
 
       envFrom:
