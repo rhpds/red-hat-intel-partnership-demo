@@ -19,7 +19,7 @@ const TASKS = [
 const SIZE_MARKS = [
   { value: 2, label: '2B', model: 'granite-2b-cpu' },
   { value: 4, label: '3.8B', model: 'phi3-mini-cpu' },
-  { value: 8, label: '8B', model: 'granite-3-2-8b-instruct' },
+  { value: 8, label: '8B', model: 'qwen25-3b-cpu' },
   { value: 14, label: '14B', model: 'deepseek-r1-distill-qwen-14b' },
 ];
 

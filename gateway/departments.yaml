@@ -55,9 +55,9 @@ departments:
     label: "General"
     keywords: []
     description: "General queries not matching a specific department"
-    model: "granite-3-2-8b-instruct"
+    model: "granite-2b-cpu"
     cost_per_m_input: 0.0
-    reasoning: "Default balanced model on Xeon 6 CPU"
+    reasoning: "Default CPU model on Xeon 6 — fastest TTFT for general queries"
 
 # Opus baseline for cost comparison
 opus_baseline:

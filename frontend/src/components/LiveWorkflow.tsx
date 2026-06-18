@@ -418,7 +418,7 @@ export default function LiveWorkflow({ title, subtitle, steps, prompt, runTrigge
         task: step.task,
         prompt: stepPrompt,
         text: stepPrompt,
-        model: modelForTask[step.task] || 'granite-3-2-8b-instruct',
+        model: modelForTask[step.task] || 'granite-2b-cpu',
         model_size_b: step.model_size_b || 0,
         max_tokens: step.task === 'completion' ? 60 : step.task === 'governance' || step.task === 'policy' ? 40 : 16,
         temperature: 0.3,

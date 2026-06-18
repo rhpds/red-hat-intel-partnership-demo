@@ -14,7 +14,7 @@
 #   deepseek-r1-distill-qwen-14b  — 14B, deep analysis, 55 t/s
 #   microsoft-phi-4               — 14B, structured output, 47 t/s
 #   qwen3-14b                     — 14B, reasoning (think mode), 37 t/s
-#   granite-3-2-8b-instruct       — 8B, general-purpose, 37 t/s
+#   (granite-3-2-8b-instruct removed — runs on AWS GPU, not Intel)
 
 backends:
   - name: litellm-cpu

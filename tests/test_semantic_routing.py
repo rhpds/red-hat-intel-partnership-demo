@@ -169,13 +169,12 @@ class TestNullSafety:
     def test_fallback_on_none_backend(self, semantic_router):
         result = semantic_router._fallback_result("embedding", 0.001)
         assert result["department"] == "general"
-        assert result["model"] == "granite-3-2-8b-instruct"
+        assert result["model"] == "granite-2b-cpu"
 
     def test_model_to_dept_populated(self, semantic_router):
         mapping = semantic_router._MODEL_TO_DEPT
         assert len(mapping) >= 5, f"Expected 5+ model-to-dept entries, got {len(mapping)}"
         assert "granite-2b-cpu" in mapping
-        assert "granite-3-2-8b-instruct" in mapping
 
 
 # =========================================================================

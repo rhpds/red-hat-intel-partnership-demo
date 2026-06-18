@@ -9,7 +9,7 @@ listener:
 
 providers:
   defaults:
-    default_model: granite-3-2-8b-instruct
+    default_model: granite-2b-cpu
     api_format: openai
 
   models:
@@ -68,7 +68,7 @@ providers:
           extra_headers:
             Authorization: "Bearer ${LITELLM_API_KEY}"
 
-    - provider_model_id: granite-3-2-8b-instruct
+    - provider_model_id: granite-2b-cpu
       api_format: openai
       pricing:
         prompt_per_m: 0.0
@@ -86,7 +86,7 @@ routing:
     - name: deepseek-r1-distill-qwen-14b
     - name: llama-scout-17b
     - name: llama-31-70b-cpu
-    - name: granite-3-2-8b-instruct
+    - name: granite-2b-cpu
 
   signals:
     keywords:
@@ -281,5 +281,5 @@ routing:
             - signal: security_keywords
             - signal: executive_keywords
       modelRefs:
-        - name: granite-3-2-8b-instruct
+        - name: granite-2b-cpu
           weight: 100

@@ -108,7 +108,7 @@ def route_request(text: str) -> tuple[str, str, list[str]]:
         if model_refs:
             return best_decision["name"], model_refs[0]["name"], matched_signals
 
-    return "general-fallback", "granite-3-2-8b-instruct", ["fallback"]
+    return "general-fallback", "granite-2b-cpu", ["fallback"]
 
 
 class ChatRequest(BaseModel):

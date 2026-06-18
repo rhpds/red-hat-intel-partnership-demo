@@ -49,7 +49,7 @@ def _fallback_result(strategy: str, elapsed_s: float) -> dict:
         "strategy": strategy,
         "department": "general",
         "department_label": dept.get("label", "General"),
-        "model": dept.get("model", "granite-3-2-8b-instruct"),
+        "model": dept.get("model", "granite-2b-cpu"),
         "confidence": 0.0,
         "reasoning": "No backend available",
         "routing_ms": round(elapsed_s * 1000, 1),
@@ -84,7 +84,7 @@ def classify_rules(text: str) -> dict:
         "strategy": "rules",
         "department": best,
         "department_label": dept.get("label", best),
-        "model": dept.get("model", "granite-3-2-8b-instruct"),
+        "model": dept.get("model", "granite-2b-cpu"),
         "confidence": round(confidence, 2),
         "reasoning": dept.get("reasoning", ""),
         "routing_ms": round(elapsed_ms, 1),
@@ -142,7 +142,7 @@ async def classify_embedding(text: str, http_client, backend) -> dict:
         "strategy": "embedding",
         "department": best_dept,
         "department_label": dept.get("label", best_dept),
-        "model": dept.get("model", "granite-3-2-8b-instruct"),
+        "model": dept.get("model", "granite-2b-cpu"),
         "confidence": round(max(best_score, 0), 2),
         "reasoning": dept.get("reasoning", ""),
         "routing_ms": round(elapsed_ms, 1),
@@ -205,7 +205,7 @@ async def classify_llm(text: str, http_client, backend) -> dict:
         "strategy": "llm",
         "department": best_dept,
         "department_label": dept.get("label", best_dept),
-        "model": dept.get("model", "granite-3-2-8b-instruct"),
+        "model": dept.get("model", "granite-2b-cpu"),
         "confidence": round(confidence, 2),
         "reasoning": dept.get("reasoning", ""),
         "routing_ms": round(elapsed_ms, 1),
@@ -220,7 +220,7 @@ for _dept_id, _dept in DEPARTMENTS.items():
     _model = _dept.get("model", "")
     if _model and _dept_id != "general":
         _MODEL_TO_DEPT[_model] = _dept_id
-_MODEL_TO_DEPT["granite-3-2-8b-instruct"] = "general"
+_MODEL_TO_DEPT["granite-2b-cpu"] = "general"
 
 
 async def classify_vllm_sr(text: str, http_client) -> dict:
@@ -270,7 +270,7 @@ async def classify_vllm_sr(text: str, http_client) -> dict:
         "strategy": "vllm-sr",
         "department": best_dept,
         "department_label": dept.get("label", best_dept),
-        "model": routed_model or dept.get("model", "granite-3-2-8b-instruct"),
+        "model": routed_model or dept.get("model", "granite-2b-cpu"),
         "confidence": round(confidence, 2),
         "reasoning": "vLLM Semantic Router — signal-driven routing with OpenVINO on Intel Xeon 6",
         "routing_ms": round(elapsed_ms, 1),

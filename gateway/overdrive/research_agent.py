@@ -113,7 +113,7 @@ def step_decompose(question: str, live: bool = False) -> dict:
 
 def step_search(query: str, live: bool = False) -> dict:
     if live:
-        result = _call_gateway("search", text=query, model="granite-3-2-8b-instruct", model_size_b=8)
+        result = _call_gateway("search", text=query, model="granite-2b-cpu", model_size_b=2)
         search_results = (result.get("result") or {}).get("results", [])
         if search_results:
             docs = [{"id": f"live-{i}", "title": r.get("text", "")[:60], "content": r.get("text", ""), "score": r.get("score", 0.5)} for i, r in enumerate(search_results)]
