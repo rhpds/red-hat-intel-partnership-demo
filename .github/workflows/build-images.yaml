@@ -16,9 +16,9 @@ on:
         type: string
 
 env:
-  REGISTRY: quay.io/rh-intel-demo
-  GATEWAY_IMAGE: inference-gateway
-  FRONTEND_IMAGE: inference-frontend
+  REGISTRY: quay.io/redhat-gpte
+  GATEWAY_IMAGE: intel-inference-gateway
+  FRONTEND_IMAGE: intel-inference-frontend
 
 jobs:
   build:
