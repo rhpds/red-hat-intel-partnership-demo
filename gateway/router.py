@@ -278,6 +278,12 @@ async def _try_backend(http_client, backend, request, path, payload, start):
 
 def _postprocess_result(task: str, result: dict, prompt: str = "") -> dict:
     """Wrap raw chat completions into structured format for special tasks."""
+    # Normalize reasoning_content → content for models like DeepSeek R1
+    for choice in result.get("choices", []):
+        msg = choice.get("message")
+        if msg and not msg.get("content") and msg.get("reasoning_content"):
+            msg["content"] = msg["reasoning_content"]
+
     if task == "classification" and "choices" in result and "predictions" not in result:
         text = ""
         choices = result.get("choices", [])
