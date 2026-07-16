@@ -79,7 +79,7 @@ department and selects the optimal model automatically:
 
 |Security
 |"Assess this CVE for our infrastructure"
-|llama-scout-17b (Gaudi 3)
+|microsoft-phi-4 (Gaudi 3)
 
 |Executive
 |"Summarize our competitive positioning"

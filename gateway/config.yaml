@@ -62,7 +62,7 @@ routes:
       - model_size_b: 4
         operator: ">"
         backend: maas-gpu
-        reason: "Large model (>4B) on Gaudi 3 — llama-scout-17b, deepseek-14b, phi-4"
+        reason: "Large model (>4B) on Gaudi 3 — microsoft-phi-4, deepseek-14b, qwen3-14b"
     default_backend: maas-gpu
     reason: "Route by model size — small to Xeon 6 CPU, large to Gaudi 3 GPU"
     fallback: local

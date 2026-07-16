@@ -12,7 +12,7 @@ interface Props {
   onRoutingStrategyChange: (val: string) => void;
 }
 
-const MODELS = ['auto', 'granite-2b-cpu', 'phi3-mini-cpu', 'deepseek-r1-distill-qwen-14b', 'llama-scout-17b'];
+const MODELS = ['auto', 'granite-2b-cpu', 'phi3-mini-cpu', 'deepseek-r1-distill-qwen-14b', 'microsoft-phi-4'];
 const HARDWARE = ['auto', 'xeon6', 'gaudi'];
 const GOVERNANCE = ['open', 'supervised', 'locked'];
 const STRATEGIES = ['standard', 'semantic', 'vllm-sr'];

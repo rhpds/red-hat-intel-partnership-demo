@@ -399,7 +399,7 @@ export default function Overdrive() {
               <div style={{ paddingLeft: '1rem' }}>&rarr; HR &rarr; granite-2b-cpu <Label isCompact color="blue">Xeon 6</Label></div>
               <div style={{ paddingLeft: '1rem' }}>&rarr; Engineering &rarr; qwen3-14b <Label isCompact color="orange">Gaudi 3</Label></div>
               <div style={{ paddingLeft: '1rem' }}>&rarr; Legal &rarr; deepseek-r1 <Label isCompact color="orange">Gaudi 3</Label></div>
-              <div style={{ paddingLeft: '1rem' }}>&rarr; Security &rarr; llama-scout-17b <Label isCompact color="orange">Gaudi 3</Label></div>
+              <div style={{ paddingLeft: '1rem' }}>&rarr; Security &rarr; microsoft-phi-4 <Label isCompact color="orange">Gaudi 3</Label></div>
               <div style={{ paddingLeft: '1rem' }}>&rarr; Executive &rarr; llama-31-70b <Label isCompact color="blue">Xeon 6</Label></div>
             </div>
           </div>

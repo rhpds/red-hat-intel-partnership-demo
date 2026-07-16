@@ -283,7 +283,8 @@ def _postprocess_result(task: str, result: dict, prompt: str = "") -> dict:
         choices = result.get("choices", [])
         if choices:
             c = choices[0]
-            text = c.get("text", "") or (c.get("message") or {}).get("content", "")
+            msg = c.get("message") or {}
+            text = c.get("text", "") or msg.get("content") or msg.get("reasoning_content") or ""
         import re
         predictions = []
         known_labels = ["technical", "business", "operational", "security", "infrastructure",
@@ -312,7 +313,8 @@ def _postprocess_result(task: str, result: dict, prompt: str = "") -> dict:
         choices = result.get("choices", [])
         if choices:
             c = choices[0]
-            text = c.get("text", "") or (c.get("message") or {}).get("content", "")
+            msg = c.get("message") or {}
+            text = c.get("text", "") or msg.get("content") or msg.get("reasoning_content") or ""
         import re
         scores = re.findall(r'[\[\(]?\s*(\d)\s*[\]\)]?\s*[:\-–]?\s*([\d.]+)', text)
         rerank_results = []
@@ -334,7 +336,8 @@ def _postprocess_result(task: str, result: dict, prompt: str = "") -> dict:
         choices = result.get("choices", [])
         if choices:
             c = choices[0]
-            text = c.get("text", "") or (c.get("message") or {}).get("content", "")
+            msg = c.get("message") or {}
+            text = c.get("text", "") or msg.get("content") or msg.get("reasoning_content") or ""
         paragraphs = [p.strip() for p in text.split("\n") if p.strip() and len(p.strip()) > 20]
         return {
             "object": "search_results",
@@ -352,7 +355,8 @@ def _postprocess_result(task: str, result: dict, prompt: str = "") -> dict:
     choices = result.get("choices", [])
     if choices:
         c = choices[0]
-        text = c.get("text", "") or (c.get("message") or {}).get("content", "")
+        msg = c.get("message") or {}
+        text = c.get("text", "") or msg.get("content") or msg.get("reasoning_content") or ""
     action = prompt.lower()
     if task == "governance":
         if "delete" in action or "destroy" in action or "drop" in action:
@@ -1636,7 +1640,7 @@ async def send_chat_message(session_id: str, request: Request):
                 choices = result.get("choices", [])
                 if choices:
                     msg = choices[0].get("message", {})
-                    response_text = msg.get("content", "")
+                    response_text = msg.get("content") or msg.get("reasoning_content") or ""
             except Exception as e:
                 response_text = f"Inference error: {str(e)[:200]}"
 
@@ -1763,7 +1767,8 @@ async def semantic_compare(request: Request):
             resp.raise_for_status()
             result = resp.json()
             choices = result.get("choices", [])
-            response_text = choices[0].get("message", {}).get("content", "") if choices else ""
+            msg = choices[0].get("message", {}) if choices else {}
+            response_text = msg.get("content") or msg.get("reasoning_content") or ""
         except Exception as e:
             response_text = f"Error: {str(e)[:100]}"
 

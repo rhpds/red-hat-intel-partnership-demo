@@ -39,9 +39,9 @@ departments:
     label: "Security"
     keywords: ["vulnerability", "cve", "patch", "firewall", "encryption", "authentication", "breach", "pentest", "compliance", "soc2"]
     description: "Cybersecurity, vulnerability management, compliance"
-    model: "llama-scout-17b"
+    model: "microsoft-phi-4"
     cost_per_m_input: 0.15
-    reasoning: "Security analysis needs multimodal capability (Llama Scout on Gaudi)"
+    reasoning: "Security analysis needs deep reasoning capability (Phi-4 on Gaudi)"
 
   executive:
     label: "Executive / Strategy"

@@ -13,7 +13,7 @@ Frontend (React/PatternFly 6) → Gateway (FastAPI) → MAAS/LiteLLM → Intel H
 ```
 
 **Gateway** routes requests across 17 models served on Intel hardware via MAAS:
-- **Intel Gaudi 3 GPU**: qwen3-14b, deepseek-r1-distill-qwen-14b, llama-scout-17b, llama-31-70b
+- **Intel Gaudi 3 GPU**: qwen3-14b, deepseek-r1-distill-qwen-14b, microsoft-phi-4, llama-31-70b
 - **Intel Xeon 6 CPU** (OpenVINO): granite-2b-cpu, phi3-mini-cpu, qwen25-3b-cpu
 
 ## Features

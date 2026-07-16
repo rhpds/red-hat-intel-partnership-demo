@@ -16,9 +16,8 @@ data:
     #     nomic-embed-text-v1-5    — Nomic embeddings (768-dim)
     #   Gaudi (GPU):
     #     granite-3-2-8b-instruct  — IBM Granite 8B, general-purpose chat
-    #     llama-scout-17b          — Llama Scout 17B, complex reasoning
+    #     microsoft-phi-4          — Phi-4 14B, security analysis + structured output
     #     deepseek-r1-distill-qwen-14b — DeepSeek 14B, deep analysis
-    #     microsoft-phi-4          — Phi-4 14B, structured output
     #
     #   Down/incompatible: qwen3-14b, Llama-Guard-3-1B, Docling
 
@@ -78,7 +77,7 @@ data:
           - model_size_b: 8
             operator: ">"
             backend: litellm-gpu
-            reason: "llama-scout-17b on Gaudi — large model needs HBM and tensor cores"
+            reason: "Large model (>4B) on Gaudi 3 — microsoft-phi-4, deepseek-14b, qwen3-14b"
         default_backend: litellm-gpu
         reason: "Route by model size — small to Xeon 6, large to Gaudi"
         fallback: local

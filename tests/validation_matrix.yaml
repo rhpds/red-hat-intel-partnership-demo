@@ -1335,7 +1335,7 @@ stage_15_semantic_routing:
       points: 5
       required: true
     security_routes_correctly:
-      description: "CVE/vulnerability queries route to Security → llama-scout-17b"
+      description: "CVE/vulnerability queries route to Security → microsoft-phi-4"
       points: 5
       required: true
     executive_routes_correctly:
@@ -1343,7 +1343,7 @@ stage_15_semantic_routing:
       points: 5
       required: true
     general_fallback:
-      description: "Unmatched queries fall back to General → granite-3-2-8b-instruct"
+      description: "Unmatched queries fall back to General → granite-2b-cpu"
       points: 5
       required: true
 

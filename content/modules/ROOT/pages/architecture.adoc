@@ -30,7 +30,7 @@ The platform classifies incoming queries by department and routes to the optimal
 | Engineering | Code, debugging, DevOps | qwen3-14b (Gaudi 3)
 | Legal | Contracts, compliance | deepseek-r1-distill-qwen-14b (Gaudi 3)
 | Finance | Budgeting, forecasting | qwen3-14b (Gaudi 3)
-| Security | Vulnerability management | llama-scout-17b (Gaudi 3)
+| Security | Vulnerability management | microsoft-phi-4 (Gaudi 3)
 | Executive | Strategy, M&A | llama-31-70b (Xeon 6)
 |===
 

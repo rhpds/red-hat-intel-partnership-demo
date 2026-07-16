@@ -46,7 +46,7 @@ providers:
           extra_headers:
             Authorization: "Bearer ${LITELLM_API_KEY}"
 
-    - provider_model_id: llama-scout-17b
+    - provider_model_id: microsoft-phi-4
       api_format: openai
       pricing:
         prompt_per_m: 0.15
@@ -84,7 +84,7 @@ routing:
     - name: granite-2b-cpu
     - name: qwen3-14b
     - name: deepseek-r1-distill-qwen-14b
-    - name: llama-scout-17b
+    - name: microsoft-phi-4
     - name: llama-31-70b-cpu
     - name: granite-2b-cpu
 
@@ -256,7 +256,7 @@ routing:
           - signal: security_keywords
           - signal: security_intent
       modelRefs:
-        - name: llama-scout-17b
+        - name: microsoft-phi-4
           weight: 100
 
     - name: executive-route

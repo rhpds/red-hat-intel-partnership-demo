@@ -18,15 +18,15 @@ describe('AppLayout', () => {
     renderWithProviders(<AppLayout />);
     expect(screen.getByText('Overview')).toBeTruthy();
     expect(screen.getByText('Architecture')).toBeTruthy();
-    expect(screen.getByText('Try It')).toBeTruthy();
-    expect(screen.getByText('Use Cases')).toBeTruthy();
-    expect(screen.getByText('Operations')).toBeTruthy();
-    expect(screen.getByText('Governance')).toBeTruthy();
+    expect(screen.getByText('Try It Live')).toBeTruthy();
+    expect(screen.getByText('Interactive Chat')).toBeTruthy();
+    expect(screen.getByText('Routing Engine')).toBeTruthy();
+    expect(screen.getByText('Governance Audit')).toBeTruthy();
     expect(screen.getByText('Documentation')).toBeTruthy();
   });
 
   it('shows platform title', () => {
     renderWithProviders(<AppLayout />);
-    expect(screen.getByText(/Intel-Red Hat AI Inference Platform/i)).toBeTruthy();
+    expect(screen.getByText(/AI Inference Platform/i)).toBeTruthy();
   });
 });

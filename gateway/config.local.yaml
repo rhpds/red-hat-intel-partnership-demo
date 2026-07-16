@@ -10,9 +10,8 @@
 #   phi3-mini-cpu   — 7B, code completion, 45 t/s (vLLM)
 #
 # GPU path (Gaudi 3):
-#   llama-scout-17b                — 17B, complex reasoning, 60 t/s
+#   microsoft-phi-4               — 14B, security analysis + structured output, 47 t/s
 #   deepseek-r1-distill-qwen-14b  — 14B, deep analysis, 55 t/s
-#   microsoft-phi-4               — 14B, structured output, 47 t/s
 #   qwen3-14b                     — 14B, reasoning (think mode), 37 t/s
 #   (granite-3-2-8b-instruct removed — runs on AWS GPU, not Intel)
 
@@ -73,7 +72,7 @@ routes:
       - model_size_b: 4
         operator: ">"
         backend: litellm-gpu
-        reason: "Large model (>4B) on Gaudi 3 — llama-scout-17b, deepseek-14b, phi-4"
+        reason: "Large model (>4B) on Gaudi 3 — microsoft-phi-4, deepseek-14b, qwen3-14b"
     default_backend: litellm-gpu
     reason: "Route by model size — small to Xeon 6 CPU, large to Gaudi 3 GPU"
     fallback: local
