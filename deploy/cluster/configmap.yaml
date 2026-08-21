@@ -11,15 +11,13 @@ data:
     #
     # Confirmed working models:
     #   Xeon 6 (CPU):
-    #     granite-4-0-h-tiny       — IBM Granite tiny, fast classification/governance
-    #     codellama-7b-instruct    — Code Llama 7B, CPU-efficient completion
+    #     granite-2b-cpu           — IBM Granite 2B, fast classification/governance
+    #     phi3-mini-cpu            — Phi-3 Mini 3.8B, reranking/completion
+    #     qwen25-3b-cpu            — Qwen 2.5 3B, structured output
     #     nomic-embed-text-v1-5    — Nomic embeddings (768-dim)
     #   GPU:
-    #     granite-3-2-8b-instruct  — IBM Granite 8B, general-purpose chat
     #     microsoft-phi-4          — Phi-4 14B, security analysis + structured output
     #     deepseek-r1-distill-qwen-14b — DeepSeek 14B, deep analysis
-    #
-    #   Down/incompatible: qwen3-14b, Llama-Guard-3-1B, Docling
 
     backends:
       - name: litellm-cpu
@@ -31,6 +29,7 @@ data:
           - embeddings
           - classification
           - reranking
+          - search
           - governance
           - policy
         cost_per_1k_tokens: 0.0004
@@ -56,43 +55,43 @@ data:
 
       - task: classification
         backend: litellm-cpu
-        reason: "granite-4-0-h-tiny on Xeon 6 — fast, low-cost classification"
+        reason: "granite-2b-cpu on Xeon 6 OpenVINO — fast classification"
         fallback: local
 
       - task: search
         backend: litellm-cpu
-        reason: "Vector search via LiteLLM on Xeon 6"
+        reason: "Semantic search via embeddings on Xeon 6"
 
       - task: reranking
         backend: litellm-cpu
-        reason: "codellama-7b-instruct cross-encoder reranking on Xeon 6"
+        reason: "phi3-mini-cpu on Xeon 6 OpenVINO — cross-encoder reranking"
         fallback: local
 
       - task: completion
         conditions:
-          - model_size_b: 8
+          - model_size_b: 4
             operator: "<="
             backend: litellm-cpu
-            reason: "codellama-7b on Xeon 6 — small model, CPU-efficient with AMX"
-          - model_size_b: 8
+            reason: "Small model (<=4B) on Xeon 6 OpenVINO — granite-2b, phi3-mini, qwen25-3b"
+          - model_size_b: 4
             operator: ">"
             backend: litellm-gpu
-            reason: "Large model (>4B) on GPU — microsoft-phi-4, deepseek-14b, qwen3-14b"
+            reason: "Large model (>4B) on GPU — microsoft-phi-4, deepseek-14b"
         default_backend: litellm-gpu
         reason: "Route by model size — small to Xeon 6, large to GPU"
         fallback: local
 
       - task: batch_generation
         backend: litellm-gpu
-        reason: "deepseek-r1-distill-qwen-14b on GPU — batch throughput"
+        reason: "Batch workloads on GPU — high throughput"
         fallback: local
 
       - task: governance
         backend: litellm-cpu
-        reason: "granite-4-0-h-tiny on Xeon 6 — fast governance evaluation"
+        reason: "granite-2b-cpu on Xeon 6 OpenVINO — fast governance evaluation"
         fallback: local
 
       - task: policy
         backend: litellm-cpu
-        reason: "granite-4-0-h-tiny on Xeon 6 — policy compliance check"
+        reason: "granite-2b-cpu on Xeon 6 OpenVINO — policy compliance check"
         fallback: local
