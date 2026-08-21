@@ -33,7 +33,7 @@ cd frontend && npm run dev
 
 ## Testing
 
-- Backend: `python3 -m pytest tests/ -v` (1,437 tests)
+- Backend: `python3 -m pytest tests/ -v` (1,729 tests)
 - Frontend: `cd frontend && npx vitest`
 - TypeScript: `cd frontend && npx tsc --noEmit`
 
@@ -61,8 +61,14 @@ oc rollout restart deploy/gateway -n $NS
 
 ```
 gateway/
-  router.py            # Main FastAPI app (all endpoints)
-  chat.py              # Chat sessions, SSE streaming, context building
+  router.py            # Main FastAPI app — core routing, overdrive endpoints
+  runs.py              # Workload/agent/swarm/training run management (APIRouter)
+  chat_endpoints.py    # Chat sessions, SSE streaming, document upload (APIRouter)
+  extras.py            # Tokenizer, replay, recovery, gallery, semantic routing (APIRouter)
+  utils.py             # Shared: sanitize_prompt, cosine_similarity, check_rate_limit
+  knowledge.py         # Canonical knowledge bases (search, research, local)
+  governance.py        # Risk scoring, governance postprocessing, GOVERNANCE_STEPS
+  chat.py              # Chat session model, context building
   rag.py               # Document upload, chunking, embedding, search, security
   semantic_router.py   # 4-strategy department classifier (rules, embedding, LLM, vLLM SR)
   departments.yaml     # 6-department taxonomy with model mappings
@@ -82,7 +88,7 @@ frontend/src/
   api/types.ts         # TypeScript interfaces
 
 helm/                  # Helm chart for RHDP quickstart_deploy_via_make pattern
-tests/                 # 133+ pytest tests with validation matrix
+tests/                 # 1,729 pytest tests with validation matrix
 content/               # Antora docs site (ref arch, lab guide)
 ```
 

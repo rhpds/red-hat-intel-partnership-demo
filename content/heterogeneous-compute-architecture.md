@@ -288,7 +288,7 @@ The cost savings compound because the most frequent steps (embeddings, search, c
 - **Acceleration**: HBM (High Bandwidth Memory) for large model parameter streaming
 - **Runtime**: vLLM with Habana/Intel GPU integration
 - **Models**: Qwen3 14B, DeepSeek R1 Distill 14B, Microsoft Phi-4, Llama 3.1 70B
-- **Serving**: KServe InferenceService with vLLM Gaudi runtime, 1-3 replicas, concurrency 5
+- **Serving**: KServe InferenceService with vLLM GPU runtime, 1-3 replicas, concurrency 5
 - **Strengths**: Complex reasoning, long-context generation, batch processing
 - **Tasks**: Large model generation, multi-turn reasoning, deep analysis, batch workloads
 - **Cost**: $0.001 per 1K tokens (2.5x CPU, still 95%+ below frontier API pricing)
