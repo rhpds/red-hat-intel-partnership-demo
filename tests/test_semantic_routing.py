@@ -11,9 +11,6 @@ import pytest
 from pathlib import Path
 
 
-@pytest.fixture
-def gateway_dir(project_root) -> Path:
-    return project_root / "gateway"
 
 
 @pytest.fixture
@@ -228,7 +225,7 @@ class TestModelAlignment:
             assert "codellama-7b-instruct" not in content, f"Old model name in {f.name}"
 
     def test_tokenizer_models_match(self, gateway_dir):
-        content = (gateway_dir / "router.py").read_text()
+        content = (gateway_dir / "extras.py").read_text()
         assert '"granite-2b-cpu":' in content
         assert '"phi3-mini-cpu":' in content
         assert '"deepseek-r1-distill-qwen-14b":' in content

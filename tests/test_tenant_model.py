@@ -13,9 +13,6 @@ import pytest
 from pathlib import Path
 
 
-@pytest.fixture
-def gateway_dir(project_root) -> Path:
-    return project_root / "gateway"
 
 
 @pytest.fixture
@@ -279,10 +276,10 @@ class TestTenantAdminAPI:
 class TestPerTenantRateLimit:
 
     def test_rate_limit_function_accepts_tenant_id(self, gateway_dir):
-        content = (gateway_dir / "router.py").read_text()
+        content = (gateway_dir / "utils.py").read_text()
         assert re.search(r'def check_rate_limit\(.*tenant', content), \
             "check_rate_limit should accept tenant_id parameter"
 
     def test_rate_limit_key_includes_tenant(self, gateway_dir):
-        content = (gateway_dir / "router.py").read_text()
+        content = (gateway_dir / "utils.py").read_text()
         assert 'tenant' in content.split('_rate_limits')[1][:200] if '_rate_limits' in content else True

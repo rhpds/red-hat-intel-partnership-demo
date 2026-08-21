@@ -9,9 +9,6 @@ import pytest
 from pathlib import Path
 
 
-@pytest.fixture
-def gateway_dir(project_root) -> Path:
-    return project_root / "gateway"
 
 
 @pytest.fixture
@@ -115,7 +112,7 @@ class TestRunDbFunctions:
 class TestRouterPersistence:
 
     def test_workload_run_persists_on_complete(self, gateway_dir):
-        content = (gateway_dir / "router.py").read_text()
+        content = (gateway_dir / "runs.py").read_text()
         assert 'persist_run' in content
 
     def test_run_history_endpoint_exists(self, project_root, monkeypatch):

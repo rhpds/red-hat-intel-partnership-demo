@@ -11,9 +11,6 @@ import yaml
 from pathlib import Path
 
 
-@pytest.fixture
-def gateway_dir(project_root) -> Path:
-    return project_root / "gateway"
 
 
 @pytest.fixture
