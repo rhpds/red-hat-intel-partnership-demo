@@ -82,9 +82,9 @@ const LANE_META: Record<string, {
     bg: 'var(--rh-color--gaudi-bg)',
     labelColor: 'orange',
     model: 'deepseek-r1-distill-qwen-14b',
-    accelerator: 'Gaudi 3',
+    accelerator: 'GPU',
     capabilities: ['long_summary', 'incident_rca', 'batch_summary', 'document_summary', 'code_summary'],
-    hwStory: 'Deep reasoning (14B DeepSeek R1) on Intel Gaudi 3 with 128GB HBM. 100+ tokens/sec for long summaries, root cause analysis, and complex reasoning. Use when accuracy matters.',
+    hwStory: 'Deep reasoning (14B DeepSeek R1) on Intel GPU with 128GB HBM. 100+ tokens/sec for long summaries, root cause analysis, and complex reasoning. Use when accuracy matters.',
   },
 };
 
@@ -322,7 +322,7 @@ export default function Overdrive() {
           <Content component="p" style={{ maxWidth: '780px', fontSize: '1.05rem' }}>
             Route AI workloads to the right Intel hardware automatically. Small tasks run on
             cost-efficient <strong>Xeon 6</strong> CPUs. Heavy workloads accelerate on{' '}
-            <strong>Gaudi</strong>. The routing engine evaluates every request against a rubric
+            <strong>GPU</strong>. The routing engine evaluates every request against a rubric
             and provides full decision evidence — deployed on <strong>Red Hat OpenShift AI</strong> with
             models served via KServe.
           </Content>
@@ -353,7 +353,7 @@ export default function Overdrive() {
             The engine is a Python service (FastAPI) running as a containerized deployment on
             Red Hat OpenShift. It loads a YAML routing policy that maps task types to hardware
             backends, with conditional rules for model size and token thresholds. The backends
-            connect to Intel Xeon 6 and Gaudi hardware via Red Hat's Model-as-a-Service (MAAS)
+            connect to Intel Xeon 6 and GPU hardware via Red Hat's Model-as-a-Service (MAAS)
             LiteLLM proxy, which provides a unified OpenAI-compatible API across all models.
             KServe on OpenShift AI handles model serving and lifecycle. Every routing decision
             is logged to PostgreSQL with full evidence — which hardware, why, latency, and cost —
@@ -383,8 +383,8 @@ export default function Overdrive() {
               <div>Request &rarr; Task Type Check</div>
               <div style={{ paddingLeft: '1rem' }}>&rarr; embeddings / classification / reranking &rarr; <Label isCompact color="blue">Xeon 6</Label></div>
               <div style={{ paddingLeft: '1rem' }}>&rarr; completion ≤4B params &rarr; <Label isCompact color="blue">Xeon 6</Label></div>
-              <div style={{ paddingLeft: '1rem' }}>&rarr; completion &gt;4B params &rarr; <Label isCompact color="orange">Gaudi 3</Label></div>
-              <div style={{ paddingLeft: '1rem' }}>&rarr; batch_generation &rarr; <Label isCompact color="orange">Gaudi 3</Label></div>
+              <div style={{ paddingLeft: '1rem' }}>&rarr; completion &gt;4B params &rarr; <Label isCompact color="orange">GPU</Label></div>
+              <div style={{ paddingLeft: '1rem' }}>&rarr; batch_generation &rarr; <Label isCompact color="orange">GPU</Label></div>
             </div>
           </div>
 
@@ -397,9 +397,9 @@ export default function Overdrive() {
             <div style={{ fontFamily: 'var(--pf-t--global--font--family--mono)', fontSize: '0.78rem', lineHeight: 1.8 }}>
               <div>Request &rarr; Department Classifier</div>
               <div style={{ paddingLeft: '1rem' }}>&rarr; HR &rarr; granite-2b-cpu <Label isCompact color="blue">Xeon 6</Label></div>
-              <div style={{ paddingLeft: '1rem' }}>&rarr; Engineering &rarr; qwen3-14b <Label isCompact color="orange">Gaudi 3</Label></div>
-              <div style={{ paddingLeft: '1rem' }}>&rarr; Legal &rarr; deepseek-r1 <Label isCompact color="orange">Gaudi 3</Label></div>
-              <div style={{ paddingLeft: '1rem' }}>&rarr; Security &rarr; microsoft-phi-4 <Label isCompact color="orange">Gaudi 3</Label></div>
+              <div style={{ paddingLeft: '1rem' }}>&rarr; Engineering &rarr; qwen3-14b <Label isCompact color="orange">GPU</Label></div>
+              <div style={{ paddingLeft: '1rem' }}>&rarr; Legal &rarr; deepseek-r1 <Label isCompact color="orange">GPU</Label></div>
+              <div style={{ paddingLeft: '1rem' }}>&rarr; Security &rarr; microsoft-phi-4 <Label isCompact color="orange">GPU</Label></div>
               <div style={{ paddingLeft: '1rem' }}>&rarr; Executive &rarr; llama-31-70b <Label isCompact color="blue">Xeon 6</Label></div>
             </div>
           </div>
@@ -418,7 +418,7 @@ export default function Overdrive() {
               <div style={{ paddingLeft: '1rem' }}>&rarr; Model selection (no LLM overhead)</div>
             </div>
             <div style={{ fontSize: '0.78rem', marginTop: '0.5rem', fontStyle: 'italic', color: 'var(--pf-t--global--text--color--subtle)' }}>
-              KV cache stays on Gaudi for generation — routing intelligence runs on CPU
+              KV cache stays on GPU for generation — routing intelligence runs on CPU
             </div>
           </div>
         </div>
@@ -466,7 +466,7 @@ export default function Overdrive() {
             {[
               { id: 'eco', label: 'Eco Lane', hw: 'Intel Xeon 6', tasks: 'Classification, small prompts', threshold: '≤ 4K tokens' },
               { id: 'performance', label: 'Performance Lane', hw: 'Intel Xeon 6 + AMX', tasks: 'Embeddings, reranking, summaries', threshold: '≤ 16K tokens' },
-              { id: 'overdrive', label: 'Overdrive Lane', hw: 'Intel Gaudi', tasks: 'Long summaries, RCA, batch generation', threshold: '≥ 16K tokens' },
+              { id: 'overdrive', label: 'Overdrive Lane', hw: 'Intel GPU', tasks: 'Long summaries, RCA, batch generation', threshold: '≥ 16K tokens' },
             ].map(lane => {
               const meta = LANE_META[lane.id];
               return (
@@ -577,8 +577,8 @@ export default function Overdrive() {
         }}>
           {[
             { param: 'Task Type', hint: 'What the model does — classification, embedding, summarization, incident analysis, etc.' },
-            { param: 'Token Estimate', hint: 'Input size in tokens. Under 4K stays on Eco (Xeon 6). Over 16K routes to Overdrive (Gaudi).' },
-            { param: 'Priority', hint: 'Low/normal tasks stay on CPU. High/critical tasks qualify for the Gaudi accelerator lane.' },
+            { param: 'Token Estimate', hint: 'Input size in tokens. Under 4K stays on Eco (Xeon 6). Over 16K routes to Overdrive (GPU).' },
+            { param: 'Priority', hint: 'Low/normal tasks stay on CPU. High/critical tasks qualify for the GPU accelerator lane.' },
             { param: 'Latency Target', hint: 'Maximum acceptable response time. Tighter targets may require faster hardware.' },
           ].map(g => (
             <div key={g.param} style={{
@@ -792,7 +792,7 @@ export default function Overdrive() {
         <StepBadge step={3} label="See It at Scale" />
         <Content component="p" style={{ maxWidth: '640px', marginBottom: '1rem', color: 'var(--rh-color--text-secondary)' }}>
           Run 10 mixed AI workloads through the routing engine and watch them distribute across
-          Xeon 6 and Gaudi hardware. Then simulate a Gaudi failure to see how the platform
+          Xeon 6 and GPU hardware. Then simulate a GPU failure to see how the platform
           gracefully degrades without dropping requests.
         </Content>
 
@@ -803,7 +803,7 @@ export default function Overdrive() {
             <Content component="p" style={{ marginBottom: '1rem', color: 'var(--rh-color--text-secondary)' }}>
               Send 10 requests with different task types, token sizes, and priorities through the
               routing engine. The results show how workloads are automatically distributed across
-              Xeon 6 (eco and performance lanes) and Gaudi (overdrive lane).
+              Xeon 6 (eco and performance lanes) and GPU (overdrive lane).
             </Content>
             <Button variant="primary" onClick={runBatch} isLoading={batchLoading} isDisabled={batchLoading}>
               Run Batch Demo
@@ -849,7 +849,7 @@ export default function Overdrive() {
                 {[
                   { label: 'Xeon 6 (Eco)', value: batchResult.routes?.eco ?? 0, color: 'green' as const },
                   { label: 'Xeon 6 (Perf)', value: batchResult.routes?.performance ?? 0, color: 'blue' as const },
-                  { label: 'Gaudi', value: batchResult.routes?.overdrive ?? 0, color: 'orange' as const },
+                  { label: 'GPU', value: batchResult.routes?.overdrive ?? 0, color: 'orange' as const },
                   { label: 'Fallback', value: batchResult.fallbacks ?? 0, color: 'grey' as const },
                   { label: 'Unrouted', value: batchResult.indeterminate ?? 0, color: 'red' as const },
                 ].map((item) => (
@@ -882,12 +882,12 @@ export default function Overdrive() {
 
         {/* Failover simulation */}
         <Card style={{ marginTop: '1.5rem' }}>
-          <CardTitle>Simulate Gaudi Hardware Failure</CardTitle>
+          <CardTitle>Simulate GPU Hardware Failure</CardTitle>
           <CardBody>
             <Content component="p" style={{ marginBottom: '1rem', color: 'var(--rh-color--text-secondary)' }}>
-              What happens when the Gaudi accelerator goes offline? This simulation temporarily
+              What happens when the GPU accelerator goes offline? This simulation temporarily
               disables the overdrive lane, re-runs the same 10 workloads, then <strong>automatically
-              restores</strong> the lane. Watch how requests that need Gaudi are gracefully rerouted
+              restores</strong> the lane. Watch how requests that need GPU are gracefully rerouted
               to Xeon 6 — with full evidence for every decision.
             </Content>
             <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
@@ -897,7 +897,7 @@ export default function Overdrive() {
                 isLoading={failoverLoading}
                 isDisabled={failoverLoading}
               >
-                Simulate Gaudi Failure
+                Simulate GPU Failure
               </Button>
               {failoverResult && (
                 <Button variant="secondary" onClick={resetLanes}>
@@ -910,7 +910,7 @@ export default function Overdrive() {
 
         {failoverResult && (
           <Card style={{ marginTop: '1rem' }}>
-            <CardTitle>Before vs After: Gaudi Failure Simulation</CardTitle>
+            <CardTitle>Before vs After: GPU Failure Simulation</CardTitle>
             <CardBody>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
                 {/* Before */}
@@ -939,7 +939,7 @@ export default function Overdrive() {
                   <div style={{ fontSize: '0.82rem' }}>
                     Xeon 6 Eco: {failoverResult.before.routes?.eco ?? 0} &middot;{' '}
                     Xeon 6 Perf: {failoverResult.before.routes?.performance ?? 0} &middot;{' '}
-                    Gaudi: {failoverResult.before.routes?.overdrive ?? 0}
+                    GPU: {failoverResult.before.routes?.overdrive ?? 0}
                   </div>
                 </div>
 
@@ -947,7 +947,7 @@ export default function Overdrive() {
                 <div>
                   <div style={{ fontWeight: 700, marginBottom: '0.5rem' }}>
                     <Label color="red" isCompact style={{ marginRight: '0.5rem' }}>AFTER</Label>
-                    Gaudi Offline
+                    GPU Offline
                   </div>
                   <div style={{ display: 'flex', gap: 0, height: '28px', borderRadius: 6, overflow: 'hidden', marginBottom: '0.75rem' }}>
                     {(['eco', 'performance', 'overdrive'] as const).map(lane => {
@@ -980,7 +980,7 @@ export default function Overdrive() {
                   <div style={{ fontSize: '0.82rem' }}>
                     Xeon 6 Eco: {failoverResult.after.routes?.eco ?? 0} &middot;{' '}
                     Xeon 6 Perf: {failoverResult.after.routes?.performance ?? 0} &middot;{' '}
-                    Gaudi: {failoverResult.after.routes?.overdrive ?? 0} &middot;{' '}
+                    GPU: {failoverResult.after.routes?.overdrive ?? 0} &middot;{' '}
                     <strong style={{ color: 'var(--rh-color--brand)' }}>
                       Rerouted to Xeon 6: {failoverResult.after.fallbacks ?? 0}
                     </strong>
@@ -989,7 +989,7 @@ export default function Overdrive() {
               </div>
 
               <Alert variant="success" isInline style={{ marginTop: '1rem' }} title="Graceful degradation confirmed">
-                When Gaudi went offline, {failoverResult.after.fallbacks ?? 0} workloads that required
+                When GPU went offline, {failoverResult.after.fallbacks ?? 0} workloads that required
                 the accelerator were automatically rerouted to Xeon 6. Zero requests were dropped.
                 The overdrive lane has been automatically restored to healthy.
               </Alert>

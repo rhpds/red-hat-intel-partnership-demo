@@ -342,7 +342,7 @@ resources:
 
 ### Try GPU Acceleration
 
-For higher throughput, see the **Gaudi GPU quickstart** at:  
+For higher throughput, see the **GPU quickstart** at:  
 `docs/quickstarts/gaudi-hello-world/README.md`
 
 ### Integration with Applications

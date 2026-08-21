@@ -4,14 +4,14 @@ import { api } from '../api/client';
 
 const HW_COLORS: Record<string, string> = { xeon_eco: '#3e8635', xeon_performance: '#0068b5', gaudi_overdrive: '#e67e22' };
 const HW_LABELS: Record<string, { label: string; color: 'green' | 'blue' | 'orange' }> = {
-  xeon_eco: { label: 'Xeon 6 Eco', color: 'green' }, xeon_performance: { label: 'Xeon 6 + AMX', color: 'blue' }, gaudi_overdrive: { label: 'Gaudi', color: 'orange' },
+  xeon_eco: { label: 'Xeon 6 Eco', color: 'green' }, xeon_performance: { label: 'Xeon 6 + AMX', color: 'blue' }, gaudi_overdrive: { label: 'GPU', color: 'orange' },
 };
 
 interface AgentResult { agent_id: string; name: string; role: string; hardware_lane: string; hw_label: string; model: string; status: string; output: string; latency_ms: number; wave: number; }
 interface WaveDef { wave: number; label: string; agents: string[]; depends_on: number | null; desc: string; }
 
 const SCENARIOS = [
-  { id: 'incident', name: 'Incident Investigation', desc: 'A P1 production incident: checkout degradation with Gaudi memory pressure. Agents triage, analyze logs, interpret metrics, find root cause, and report.' },
+  { id: 'incident', name: 'Incident Investigation', desc: 'A P1 production incident: checkout degradation with GPU memory pressure. Agents triage, analyze logs, interpret metrics, find root cause, and report.' },
   { id: 'security_audit', name: 'Security Audit', desc: 'Comprehensive security audit: scan for CVEs, verify CIS compliance, analyze threat vectors, prioritize risks, and generate remediation plan.' },
   { id: 'capacity_planning', name: 'Capacity Planning', desc: 'Platform growth analysis: audit resource utilization, model traffic patterns, project growth, optimize costs, and plan procurement.' },
 ];
@@ -73,8 +73,8 @@ export default function SwarmDemo() {
         <Content>
           <Content component="h1">Agent Swarm</Content>
           <Content component="p" style={{ maxWidth: '780px', fontSize: '1.05rem' }}>
-            Multiple specialized AI agents coordinate across Intel Xeon 6 and Gaudi to solve
-            complex problems. Fast tasks run on Xeon 6. Heavy reasoning runs on Gaudi.
+            Multiple specialized AI agents coordinate across Intel Xeon 6 and GPU to solve
+            complex problems. Fast tasks run on Xeon 6. Heavy reasoning runs on GPU.
             Agents work in waves — parallel where possible, sequential where dependencies exist.
           </Content>
         </Content>
@@ -271,7 +271,7 @@ export default function SwarmDemo() {
                   {finalReport}
                 </div>
                 <div style={{ marginTop: '12px', fontSize: '0.78rem', color: 'var(--rh-color--text-secondary)' }}>
-                  {String(metrics?.agent_count)} agents · {String(metrics?.wave_count)} waves · Intel Xeon 6 + Gaudi · Simulated
+                  {String(metrics?.agent_count)} agents · {String(metrics?.wave_count)} waves · Intel Xeon 6 + GPU · Simulated
                 </div>
                 <Button variant="secondary" style={{ marginTop: '8px' }} onClick={() => { setAgents([]); setDone(false); setFinalReport(''); setCurrentWave(0); setWaveDefs([]); setMetrics(null); }}>
                   Run Again

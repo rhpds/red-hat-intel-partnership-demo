@@ -26,11 +26,11 @@
 **Action**: Scroll through the stack diagram and backend cards.
 
 **Talk track**:
-> "Five layers. Applications on top, a routing engine that classifies every request, OpenShift AI managing the model serving, and two hardware paths at the bottom — Intel Xeon 6 for lightweight tasks, Intel Gaudi 3 for heavy reasoning."
+> "Five layers. Applications on top, a routing engine that classifies every request, OpenShift AI managing the model serving, and two hardware paths at the bottom — Intel Xeon 6 for lightweight tasks, Intel GPU for heavy reasoning."
 
 **Click**: Scroll to the live backend cards.
 
-> "These backends are live. Xeon 6 runs Granite 2B and Phi-3 Mini via OpenVINO — fast, cheap, good for classification, embedding, and simple Q&A. Gaudi 3 runs larger models — Qwen 14B, DeepSeek R1, Phi-4 — for tasks that need real reasoning depth."
+> "These backends are live. Xeon 6 runs Granite 2B and Phi-3 Mini via OpenVINO — fast, cheap, good for classification, embedding, and simple Q&A. GPU runs larger models — Qwen 14B, DeepSeek R1, Phi-4 — for tasks that need real reasoning depth."
 
 **Click**: Scroll to the routing rules table.
 
@@ -47,7 +47,7 @@
 **Action**: The 3-lane architecture is visible.
 
 **Talk track**:
-> "The routing engine uses three lanes. Eco handles small requests up to 4K tokens on Xeon 6 — your HR lookups, simple classifications. Performance handles mid-range up to 16K tokens, also on Xeon 6 with AMX acceleration. Overdrive handles everything above 16K on Gaudi 3."
+> "The routing engine uses three lanes. Eco handles small requests up to 4K tokens on Xeon 6 — your HR lookups, simple classifications. Performance handles mid-range up to 16K tokens, also on Xeon 6 with AMX acceleration. Overdrive handles everything above 16K on GPU."
 
 **Click**: Scroll to "Route a Request." Set Task Type to "classification", Token Estimate to 500, Priority to "normal." Click "Evaluate Route."
 
@@ -55,11 +55,11 @@
 
 **Click**: Change Task Type to "long_summary", Token Estimate to 24000. Click "Evaluate Route."
 
-> "A 24K-token summary goes to Overdrive on Gaudi 3. Same four checks, different outcome — the token count exceeded the Xeon 6 limit, so it routes to GPU automatically."
+> "A 24K-token summary goes to Overdrive on GPU. Same four checks, different outcome — the token count exceeded the Xeon 6 limit, so it routes to GPU automatically."
 
-**Click**: Scroll to "See It at Scale." Click "Simulate Gaudi Failure."
+**Click**: Scroll to "See It at Scale." Click "Simulate GPU Failure."
 
-> "Now watch what happens when Gaudi goes down. The platform detects the failure and reroutes to Xeon 6. Zero dropped requests. Higher latency, yes — but no outage. When Gaudi recovers, traffic flows back automatically."
+> "Now watch what happens when GPU goes down. The platform detects the failure and reroutes to Xeon 6. Zero dropped requests. Higher latency, yes — but no outage. When GPU recovers, traffic flows back automatically."
 
 **Click**: Navigate to "Try It Live."
 
@@ -76,7 +76,7 @@
 
 **Click**: Click the first RAG scenario card.
 
-> "Enterprise RAG — four steps. Embed the query on Xeon 6, vector search on Xeon 6, rerank on Xeon 6, generate the answer on Gaudi. Three of four steps at CPU pricing."
+> "Enterprise RAG — four steps. Embed the query on Xeon 6, vector search on Xeon 6, rerank on Xeon 6, generate the answer on GPU. Three of four steps at CPU pricing."
 
 **Wait**: Pipeline completes.
 
@@ -84,7 +84,7 @@
 
 **Click**: Switch to the "AIOps Copilot" tab. Click the first scenario.
 
-> "AIOps incident response. Classify severity on Xeon 6, find similar past incidents on Xeon 6, generate a root cause analysis on Gaudi, then a governance gate on Xeon 6 that checks whether the recommended action is safe to execute."
+> "AIOps incident response. Classify severity on Xeon 6, find similar past incidents on Xeon 6, generate a root cause analysis on GPU, then a governance gate on Xeon 6 that checks whether the recommended action is safe to execute."
 
 **Wait**: Pipeline completes.
 
@@ -92,7 +92,7 @@
 
 **Click**: Switch to "Governed Agent" tab. Click a scenario with a risky action (e.g., "decommission legacy server").
 
-> "This is where governance matters. The agent classifies intent, scores risk, generates an action plan on Gaudi, then the policy check on Xeon 6 decides whether to allow, escalate, or deny. Watch the risk score — anything above the threshold gets flagged."
+> "This is where governance matters. The agent classifies intent, scores risk, generates an action plan on GPU, then the policy check on Xeon 6 decides whether to allow, escalate, or deny. Watch the risk score — anything above the threshold gets flagged."
 
 **Wait**: Pipeline completes. Point out the governance decision.
 
@@ -115,7 +115,7 @@
 
 **Type**: Ask a question about the uploaded document. Send it.
 
-> "Now watch the routing trace under each response. The embedding and search happen on Xeon 6, the answer generation on Gaudi. You can see the exact model, hardware, and latency for every step."
+> "Now watch the routing trace under each response. The embedding and search happen on Xeon 6, the answer generation on GPU. You can see the exact model, hardware, and latency for every step."
 
 **Wait**: Response streams in via SSE.
 
@@ -129,14 +129,14 @@
 
 **Type**: Ask a security-related question.
 
-> "With semantic routing, the platform classifies this as a Security question and routes to Phi-4 on Gaudi automatically. An HR question would go to Granite 2B on Xeon 6. The department taxonomy is fully customizable."
+> "With semantic routing, the platform classifies this as a Security question and routes to Phi-4 on GPU automatically. An HR question would go to Granite 2B on Xeon 6. The department taxonomy is fully customizable."
 
 ---
 
 ## Scene 6: Close (30s)
 
 **Talk track**:
-> "That's the full core demo. Intelligent routing across Intel Xeon 6 and Gaudi 3, multi-step workflow pipelines, RAG with document upload, governance controls, and full audit trails. All running on Red Hat OpenShift, deployable in under an hour. Let's talk about what this looks like in your environment."
+> "That's the full core demo. Intelligent routing across Intel Xeon 6 and GPU, multi-step workflow pipelines, RAG with document upload, governance controls, and full audit trails. All running on Red Hat OpenShift, deployable in under an hour. Let's talk about what this looks like in your environment."
 
 ---
 

@@ -48,7 +48,7 @@ class TestCockpitContent:
     def test_has_lane_cards(self, frontend_src):
         content = (frontend_src / "pages" / "CockpitDashboard.tsx").read_text()
         assert "XEON ECO" in content or "Xeon Eco" in content
-        assert "GAUDI" in content
+        assert "GPU" in content
 
     def test_has_gauges(self, frontend_src):
         content = (frontend_src / "pages" / "CockpitDashboard.tsx").read_text()

@@ -4,13 +4,13 @@ __meta__:
     display_name: "Intel-Red Hat AI Inference Platform"
     description: >-
       Multi-tenant inference gateway with dual-path routing across
-      Intel Xeon 6 (CPU/OpenVINO) and Gaudi 3 (GPU) via MAAS LiteLLM.
+      Intel Xeon 6 (CPU/OpenVINO) and Intel GPU via MAAS LiteLLM.
       Includes interactive RAG chat, semantic department routing, and
       real-time routing trace.
     labels:
       - intel
       - ai-inference
-      - gaudi
+      - gpu
       - xeon
       - openvino
       - maas

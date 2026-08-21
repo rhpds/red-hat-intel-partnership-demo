@@ -58,7 +58,7 @@ data:
           - model_size_b: 4
             operator: ">"
             backend: litellm-gpu
-            reason: "Large model on Gaudi 3"
+            reason: "Large model on GPU"
         default_backend: litellm-gpu
 {{- if .Values.localCpuInference.enabled }}
         fallback: local-cpu
@@ -67,5 +67,5 @@ data:
 {{- end }}
       - task: batch_generation
         backend: litellm-gpu
-        reason: "Batch workloads on Gaudi 3"
+        reason: "Batch workloads on GPU"
         fallback: local

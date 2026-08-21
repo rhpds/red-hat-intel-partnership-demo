@@ -44,7 +44,7 @@ const branchLine: React.CSSProperties = {
 
 export default function RequestFlowDiagram() {
   return (
-    <div role="img" aria-label="Request flow diagram: Partner App sends request to Inference Gateway, which routes to either Xeon 6 pool (embeddings, classification, reranking, small LLM) or Gaudi pool (large LLM, batch generation), then logs to PostgreSQL and Prometheus" style={{ maxWidth: '640px', margin: '0 auto', padding: '1.5rem 0' }}>
+    <div role="img" aria-label="Request flow diagram: Partner App sends request to Inference Gateway, which routes to either Xeon 6 pool (embeddings, classification, reranking, small LLM) or GPU pool (large LLM, batch generation), then logs to PostgreSQL and Prometheus" style={{ maxWidth: '640px', margin: '0 auto', padding: '1.5rem 0' }}>
       {/* Source */}
       <div style={nodeStyle('var(--rh-color--surface)', 'var(--pf-t--global--border--color--default)')}>
         Partner Application / API Client
@@ -100,7 +100,7 @@ export default function RequestFlowDiagram() {
           </div>
         </div>
 
-        {/* Gaudi */}
+        {/* GPU */}
         <div style={{ flex: 1 }}>
           <div style={connectorStyle} />
           <div style={arrowDown} />
@@ -108,7 +108,7 @@ export default function RequestFlowDiagram() {
             ...nodeStyle('var(--rh-color--gaudi-bg)', 'var(--rh-color--gaudi)'),
             borderRadius: '12px',
           }}>
-            <Label color="orange" style={{ marginBottom: '8px' }}>Gaudi</Label>
+            <Label color="orange" style={{ marginBottom: '8px' }}>GPU</Label>
             <div style={{ fontSize: '0.82rem', lineHeight: '1.7', fontWeight: 400 }}>
               <div>Large LLM (&gt; 8B)</div>
               <div>Batch Generation</div>

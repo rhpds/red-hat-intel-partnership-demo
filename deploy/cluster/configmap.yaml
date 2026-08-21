@@ -14,7 +14,7 @@ data:
     #     granite-4-0-h-tiny       — IBM Granite tiny, fast classification/governance
     #     codellama-7b-instruct    — Code Llama 7B, CPU-efficient completion
     #     nomic-embed-text-v1-5    — Nomic embeddings (768-dim)
-    #   Gaudi (GPU):
+    #   GPU:
     #     granite-3-2-8b-instruct  — IBM Granite 8B, general-purpose chat
     #     microsoft-phi-4          — Phi-4 14B, security analysis + structured output
     #     deepseek-r1-distill-qwen-14b — DeepSeek 14B, deep analysis
@@ -77,14 +77,14 @@ data:
           - model_size_b: 8
             operator: ">"
             backend: litellm-gpu
-            reason: "Large model (>4B) on Gaudi 3 — microsoft-phi-4, deepseek-14b, qwen3-14b"
+            reason: "Large model (>4B) on GPU — microsoft-phi-4, deepseek-14b, qwen3-14b"
         default_backend: litellm-gpu
-        reason: "Route by model size — small to Xeon 6, large to Gaudi"
+        reason: "Route by model size — small to Xeon 6, large to GPU"
         fallback: local
 
       - task: batch_generation
         backend: litellm-gpu
-        reason: "deepseek-r1-distill-qwen-14b on Gaudi — batch throughput"
+        reason: "deepseek-r1-distill-qwen-14b on GPU — batch throughput"
         fallback: local
 
       - task: governance

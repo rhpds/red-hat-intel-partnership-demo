@@ -29,11 +29,11 @@ Watch the 4-step pipeline execute:
 
 |Generate Answer
 |Synthesize a response from the top documents
-|Gaudi
+|GPU
 |===
 
 Notice: 3 of 4 steps run on Xeon 6 (cheap, fast). Only the generation
-step — which needs large model throughput — routes to Gaudi. This is
+step — which needs large model throughput — routes to GPU. This is
 the core cost optimization.
 
 == Step 2: Run an AIOps Copilot Pipeline
@@ -44,7 +44,7 @@ This pipeline:
 
 . *Classifies severity* on Xeon 6 (fast triage)
 . *Finds similar incidents* via embeddings on Xeon 6
-. *Generates root cause analysis* on Gaudi (needs 17B model)
+. *Generates root cause analysis* on GPU (needs 17B model)
 . *Runs governance gate* on Xeon 6 (policy check)
 
 Each step shows its actual latency, cost, and the routing engine's

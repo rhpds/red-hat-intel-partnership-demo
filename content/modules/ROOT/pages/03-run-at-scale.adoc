@@ -16,7 +16,7 @@ Set the power mode to *Drive* (25 requests) and click *Run*.
 Watch the results:
 
 * *Xeon 6 requests* — triage, embeddings, reranking (fast, cheap)
-* *Gaudi requests* — root cause analysis, long summaries (throughput)
+* *GPU requests* — root cause analysis, long summaries (throughput)
 * *Cost breakdown* — see the per-request cost on each hardware tier
 * *Latency distribution* — p50, p95, p99 across both paths
 
@@ -33,17 +33,17 @@ Xeon 6 at a fraction of the cost.
 Each profile demonstrates a different enterprise pattern:
 
 * *RAG Barrage* — knowledge base queries at scale (mostly Xeon 6)
-* *Token Cannon* — heavy generation stress test (mostly Gaudi)
+* *Token Cannon* — heavy generation stress test (mostly GPU)
 * *Model Race* — same tasks across all hardware to show why routing matters
 
 == What You've Seen
 
-This demo proves that intelligent routing across Intel Xeon 6 and Gaudi,
+This demo proves that intelligent routing across Intel Xeon 6 and GPU,
 deployed on Red Hat OpenShift AI:
 
 * *Cuts costs* — 60-80% savings on mixed workloads by keeping small tasks
   on CPUs
-* *Maintains performance* — large model generation still runs on Gaudi at
+* *Maintains performance* — large model generation still runs on GPU at
   100+ tokens/sec
 * *Provides transparency* — every routing decision is logged with full
   evidence

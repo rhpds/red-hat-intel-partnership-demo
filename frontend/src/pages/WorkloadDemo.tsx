@@ -28,101 +28,101 @@ const PROFILES = [
   { value: 'multimodal_incident_commander', label: 'Incident Commander', desc: 'Multimodal — screenshots + logs + metrics into incident synthesis' },
   { value: 'architecture_explainer', label: 'Architecture Explainer', desc: 'Multimodal — diagrams explained with vision-language reasoning' },
   { value: 'visual_rag_barrage', label: 'Visual RAG', desc: 'Multimodal — embed images, search visually, answer with context' },
-  { value: 'token_cannon_multimodal', label: 'Token Cannon MM', desc: 'Multimodal — stress heavy visual generation across Gaudi' },
+  { value: 'token_cannon_multimodal', label: 'Token Cannon MM', desc: 'Multimodal — stress heavy visual generation across GPU' },
   { value: 'image_to_manual', label: 'Image to Manual', desc: 'Multimodal — generate installation guides and manuals from equipment images' },
 ];
 
 const NARRATIVES: Record<string, { title: string; story: string; phases: Array<{ name: string; tasks: string[]; hw: string; desc: string }> }> = {
   incident_storm: {
     title: 'Enterprise Incident Storm',
-    story: 'A production AI platform is under pressure. Alerts are flooding in — pod crashes, memory pressure, certificate expiry, and Gaudi accelerator overload. The platform must triage every alert (Xeon 6), find relevant runbooks (Xeon 6), generate root cause analysis (Gaudi), and produce executive summaries — all simultaneously.',
+    story: 'A production AI platform is under pressure. Alerts are flooding in — pod crashes, memory pressure, certificate expiry, and GPU accelerator overload. The platform must triage every alert (Xeon 6), find relevant runbooks (Xeon 6), generate root cause analysis (GPU), and produce executive summaries — all simultaneously.',
     phases: [
       { name: 'Alert Triage', tasks: ['classification'], hw: 'Xeon 6', desc: 'Incoming alerts classified by severity on Xeon 6 — fast, cheap, no GPU needed.' },
       { name: 'Knowledge Retrieval', tasks: ['embedding', 'rerank'], hw: 'Xeon 6', desc: 'Alert text embedded and matched against runbooks using Xeon 6 with AMX.' },
       { name: 'Situation Summary', tasks: ['short_summary'], hw: 'Xeon 6', desc: 'Quick executive briefs generated on Xeon 6 for the ops dashboard.' },
-      { name: 'Deep Analysis', tasks: ['long_summary', 'incident_rca'], hw: 'Gaudi', desc: 'Root cause analysis on Gaudi — needs memory bandwidth for large context.' },
-      { name: 'Overnight Report', tasks: ['batch_summary'], hw: 'Gaudi', desc: 'Batch reports with capacity planning recommendations on Gaudi.' },
+      { name: 'Deep Analysis', tasks: ['long_summary', 'incident_rca'], hw: 'GPU', desc: 'Root cause analysis on GPU — needs memory bandwidth for large context.' },
+      { name: 'Overnight Report', tasks: ['batch_summary'], hw: 'GPU', desc: 'Batch reports with capacity planning recommendations on GPU.' },
     ],
   },
   rag_barrage: {
     title: 'High-Throughput RAG Pipeline',
-    story: 'An enterprise knowledge base is being queried at scale. Engineers are asking questions about Intel hardware, OpenShift deployment, and model optimization. Every question triggers an embed-search-rerank-generate pipeline spanning Xeon 6 and Gaudi.',
+    story: 'An enterprise knowledge base is being queried at scale. Engineers are asking questions about Intel hardware, OpenShift deployment, and model optimization. Every question triggers an embed-search-rerank-generate pipeline spanning Xeon 6 and GPU.',
     phases: [
       { name: 'Document Indexing', tasks: ['embedding'], hw: 'Xeon 6', desc: 'Knowledge base articles vectorized on Xeon 6 for fast indexing.' },
       { name: 'Relevance Scoring', tasks: ['rerank'], hw: 'Xeon 6', desc: 'Retrieved docs re-ranked by CodeLlama cross-encoder on Xeon 6.' },
-      { name: 'Answer Generation', tasks: ['rag_question'], hw: 'Mixed', desc: 'Simple questions on Xeon 6. Complex synthesis routed to Gaudi.' },
-      { name: 'Document Distillation', tasks: ['document_summary'], hw: 'Gaudi', desc: 'Long technical docs condensed on Gaudi high-bandwidth memory.' },
+      { name: 'Answer Generation', tasks: ['rag_question'], hw: 'Mixed', desc: 'Simple questions on Xeon 6. Complex synthesis routed to GPU.' },
+      { name: 'Document Distillation', tasks: ['document_summary'], hw: 'GPU', desc: 'Long technical docs condensed on GPU high-bandwidth memory.' },
     ],
   },
   token_cannon: {
     title: 'Maximum Generation Throughput',
-    story: 'Stress test with the heaviest generation workloads — long analyses, batch reports, document distillation, and codebase reviews. Nearly everything routes to Gaudi because these tasks demand large context windows and sustained generation.',
+    story: 'Stress test with the heaviest generation workloads — long analyses, batch reports, document distillation, and codebase reviews. Nearly everything routes to GPU because these tasks demand large context windows and sustained generation.',
     phases: [
-      { name: 'Long Analysis', tasks: ['long_summary'], hw: 'Gaudi', desc: 'Multi-page analyses at 100+ tokens/sec on Gaudi.' },
-      { name: 'Batch Reports', tasks: ['batch_summary'], hw: 'Gaudi', desc: 'Weekly telemetry aggregated into comprehensive reports.' },
-      { name: 'Document Distillation', tasks: ['document_summary'], hw: 'Gaudi', desc: '40+ page whitepapers condensed using full context window.' },
-      { name: 'Code Review', tasks: ['code_summary'], hw: 'Gaudi', desc: 'Codebase analysis and optimization recommendations.' },
+      { name: 'Long Analysis', tasks: ['long_summary'], hw: 'GPU', desc: 'Multi-page analyses at 100+ tokens/sec on GPU.' },
+      { name: 'Batch Reports', tasks: ['batch_summary'], hw: 'GPU', desc: 'Weekly telemetry aggregated into comprehensive reports.' },
+      { name: 'Document Distillation', tasks: ['document_summary'], hw: 'GPU', desc: '40+ page whitepapers condensed using full context window.' },
+      { name: 'Code Review', tasks: ['code_summary'], hw: 'GPU', desc: 'Codebase analysis and optimization recommendations.' },
     ],
   },
   model_race: {
     title: 'Cross-Hardware Comparison',
-    story: 'Same task types run across all three tiers to show why hardware-aware routing matters. Small tasks prove Xeon 6 is faster and cheaper. Large tasks prove Gaudi is essential.',
+    story: 'Same task types run across all three tiers to show why hardware-aware routing matters. Small tasks prove Xeon 6 is faster and cheaper. Large tasks prove GPU is essential.',
     phases: [
       { name: 'Small → Eco', tasks: ['classification'], hw: 'Xeon 6 Eco', desc: 'Quick classification on Granite — fast, minimal cost.' },
       { name: 'Mid → Performance', tasks: ['short_summary'], hw: 'Xeon 6 Perf', desc: 'Summaries on CodeLlama 7B with AMX — no GPU cost.' },
-      { name: 'Large → Overdrive', tasks: ['long_summary', 'document_summary'], hw: 'Gaudi', desc: 'Heavy generation — only viable on Gaudi HBM.' },
+      { name: 'Large → Overdrive', tasks: ['long_summary', 'document_summary'], hw: 'GPU', desc: 'Heavy generation — only viable on GPU HBM.' },
     ],
   },
   dashboard_storm: {
     title: 'Dashboard Storm (Multimodal)',
-    story: 'Operational dashboards flood the platform with screenshots. Xeon 6 classifies and sorts them instantly. Gaudi explains high-value screenshots using vision-language reasoning.',
+    story: 'Operational dashboards flood the platform with screenshots. Xeon 6 classifies and sorts them instantly. GPU explains high-value screenshots using vision-language reasoning.',
     phases: [
       { name: 'Screenshot Classify', tasks: ['screenshot_classification'], hw: 'Xeon 6 Eco', desc: 'Quick classification of dashboard type and alert state.' },
-      { name: 'Chart Interpret', tasks: ['chart_interpretation'], hw: 'Gaudi', desc: 'Vision-language interpretation of time-series charts.' },
-      { name: 'Screenshot Summary', tasks: ['screenshot_summary'], hw: 'Gaudi', desc: 'Full dashboard explanation with anomaly detection.' },
-      { name: 'Incident Synthesis', tasks: ['multimodal_incident_summary'], hw: 'Gaudi', desc: 'Multi-screenshot incident summary with visual evidence.' },
+      { name: 'Chart Interpret', tasks: ['chart_interpretation'], hw: 'GPU', desc: 'Vision-language interpretation of time-series charts.' },
+      { name: 'Screenshot Summary', tasks: ['screenshot_summary'], hw: 'GPU', desc: 'Full dashboard explanation with anomaly detection.' },
+      { name: 'Incident Synthesis', tasks: ['multimodal_incident_summary'], hw: 'GPU', desc: 'Multi-screenshot incident summary with visual evidence.' },
     ],
   },
   multimodal_incident_commander: {
     title: 'Incident Commander (Multimodal)',
-    story: 'A production incident unfolds. Screenshots, logs, and metrics pour in. Xeon 6 classifies fast. Gaudi synthesizes everything into root cause analysis using vision and text.',
+    story: 'A production incident unfolds. Screenshots, logs, and metrics pour in. Xeon 6 classifies fast. GPU synthesizes everything into root cause analysis using vision and text.',
     phases: [
-      { name: 'Visual Triage', tasks: ['screenshot_summary', 'chart_interpretation'], hw: 'Gaudi', desc: 'Dashboard screenshots analyzed for anomalies.' },
-      { name: 'Root Cause', tasks: ['multimodal_rca'], hw: 'Gaudi', desc: 'Multi-source RCA combining screenshots, diagrams, and logs.' },
-      { name: 'Document Review', tasks: ['document_visual_summary'], hw: 'Gaudi', desc: 'Post-mortem documents with charts summarized.' },
+      { name: 'Visual Triage', tasks: ['screenshot_summary', 'chart_interpretation'], hw: 'GPU', desc: 'Dashboard screenshots analyzed for anomalies.' },
+      { name: 'Root Cause', tasks: ['multimodal_rca'], hw: 'GPU', desc: 'Multi-source RCA combining screenshots, diagrams, and logs.' },
+      { name: 'Document Review', tasks: ['document_visual_summary'], hw: 'GPU', desc: 'Post-mortem documents with charts summarized.' },
     ],
   },
   architecture_explainer: {
     title: 'Architecture Explainer (Multimodal)',
-    story: 'Architecture diagrams submitted for AI-powered explanation. Gaudi handles vision-language reasoning to interpret complex system diagrams and answer questions.',
+    story: 'Architecture diagrams submitted for AI-powered explanation. GPU handles vision-language reasoning to interpret complex system diagrams and answer questions.',
     phases: [
-      { name: 'Diagram Explain', tasks: ['diagram_explanation'], hw: 'Gaudi', desc: 'Architecture diagrams interpreted with system understanding.' },
-      { name: 'Visual Q&A', tasks: ['visual_rag_question'], hw: 'Gaudi', desc: 'Questions answered using diagrams + documentation context.' },
+      { name: 'Diagram Explain', tasks: ['diagram_explanation'], hw: 'GPU', desc: 'Architecture diagrams interpreted with system understanding.' },
+      { name: 'Visual Q&A', tasks: ['visual_rag_question'], hw: 'GPU', desc: 'Questions answered using diagrams + documentation context.' },
     ],
   },
   visual_rag_barrage: {
     title: 'Visual RAG (Multimodal)',
-    story: 'Multimodal knowledge base queried at scale. Documents with images, diagrams, and screenshots are indexed on Xeon 6 and answered on Gaudi.',
+    story: 'Multimodal knowledge base queried at scale. Documents with images, diagrams, and screenshots are indexed on Xeon 6 and answered on GPU.',
     phases: [
       { name: 'Visual Index', tasks: ['image_text_embedding', 'visual_similarity'], hw: 'Xeon 6', desc: 'Images and text embedded for multimodal search.' },
       { name: 'Layout Extract', tasks: ['ocr_layout_extract'], hw: 'Xeon 6', desc: 'Text and structure extracted from document pages.' },
-      { name: 'Visual Answer', tasks: ['visual_rag_question', 'document_visual_summary'], hw: 'Gaudi', desc: 'Answers synthesized from visual + text context.' },
+      { name: 'Visual Answer', tasks: ['visual_rag_question', 'document_visual_summary'], hw: 'GPU', desc: 'Answers synthesized from visual + text context.' },
     ],
   },
   token_cannon_multimodal: {
     title: 'Token Cannon: Multimodal',
-    story: 'Maximum multimodal generation. Nearly everything routes to Gaudi — vision-language reasoning with large context windows across screenshots, charts, and documents.',
+    story: 'Maximum multimodal generation. Nearly everything routes to GPU — vision-language reasoning with large context windows across screenshots, charts, and documents.',
     phases: [
-      { name: 'Heavy Visual Gen', tasks: ['screenshot_summary', 'chart_interpretation', 'document_visual_summary', 'multimodal_rca'], hw: 'Gaudi', desc: 'All heavy multimodal generation on Gaudi HBM.' },
+      { name: 'Heavy Visual Gen', tasks: ['screenshot_summary', 'chart_interpretation', 'document_visual_summary', 'multimodal_rca'], hw: 'GPU', desc: 'All heavy multimodal generation on GPU HBM.' },
     ],
   },
   image_to_manual: {
     title: 'Image to Manual (Multimodal)',
-    story: 'Product images and equipment photos are submitted. Xeon 6 identifies the hardware. Gaudi generates complete installation guides, operating manuals, and troubleshooting docs from a single image.',
+    story: 'Product images and equipment photos are submitted. Xeon 6 identifies the hardware. GPU generates complete installation guides, operating manuals, and troubleshooting docs from a single image.',
     phases: [
       { name: 'Image Identify', tasks: ['image_classification'], hw: 'Xeon 6 Eco', desc: 'Identify hardware type from the image — server, accelerator, switch.' },
-      { name: 'Manual Generate', tasks: ['image_to_manual'], hw: 'Gaudi', desc: 'Generate full technical documentation from the equipment image.' },
-      { name: 'Config Capture', tasks: ['screenshot_summary'], hw: 'Gaudi', desc: 'Capture configuration details from management interface screenshots.' },
+      { name: 'Manual Generate', tasks: ['image_to_manual'], hw: 'GPU', desc: 'Generate full technical documentation from the equipment image.' },
+      { name: 'Config Capture', tasks: ['screenshot_summary'], hw: 'GPU', desc: 'Capture configuration details from management interface screenshots.' },
     ],
   },
 };
@@ -145,7 +145,7 @@ const LANE_COLORS: Record<string, string> = {
 const LANE_LABELS: Record<string, { label: string; color: 'green' | 'blue' | 'orange' | 'grey' }> = {
   eco: { label: 'Xeon 6 (Eco)', color: 'green' },
   performance: { label: 'Xeon 6 (Perf)', color: 'blue' },
-  overdrive: { label: 'Gaudi', color: 'orange' },
+  overdrive: { label: 'GPU', color: 'orange' },
   unrouted: { label: 'Unrouted', color: 'grey' },
 };
 
@@ -241,7 +241,7 @@ export default function WorkloadDemo() {
           <Content component="h1">Workload Performance Demo</Content>
           <Content component="p" style={{ maxWidth: '780px', fontSize: '1.05rem' }}>
             Run real enterprise workload scenarios at different scales. Watch how requests
-            distribute across Intel Xeon 6 (fast, cheap tasks) and Gaudi (heavy generation).
+            distribute across Intel Xeon 6 (fast, cheap tasks) and GPU (heavy generation).
             Each profile simulates a pattern you'd see in production — incident response,
             RAG pipelines, heavy generation, or cross-hardware comparison.
           </Content>
@@ -369,8 +369,8 @@ export default function WorkloadDemo() {
                       <div key={i} style={{ display: 'flex', alignItems: 'center' }}>
                         <div style={{
                           padding: '8px 12px', borderRadius: '6px', minWidth: '120px',
-                          background: phase.hw.includes('Gaudi') ? 'var(--rh-color--gaudi-bg)' : 'var(--rh-color--xeon6-bg)',
-                          border: `1px solid ${phase.hw.includes('Gaudi') ? 'var(--rh-color--gaudi)' : 'var(--rh-color--xeon6)'}`,
+                          background: phase.hw.includes('GPU') ? 'var(--rh-color--gaudi-bg)' : 'var(--rh-color--xeon6-bg)',
+                          border: `1px solid ${phase.hw.includes('GPU') ? 'var(--rh-color--gaudi)' : 'var(--rh-color--xeon6)'}`,
                         }}>
                           <div style={{ fontWeight: 600, fontSize: '0.8rem' }}>{phase.name}</div>
                           <div style={{ fontSize: '0.72rem', color: 'var(--rh-color--text-secondary)', marginTop: '2px' }}>
@@ -446,8 +446,8 @@ export default function WorkloadDemo() {
             return activePhase ? (
               <div style={{
                 marginBottom: '1rem', padding: '10px 14px', borderRadius: '6px',
-                background: activePhase.hw.includes('Gaudi') ? 'var(--rh-color--gaudi-bg)' : 'var(--rh-color--xeon6-bg)',
-                border: `1px solid ${activePhase.hw.includes('Gaudi') ? 'var(--rh-color--gaudi)' : 'var(--rh-color--xeon6)'}`,
+                background: activePhase.hw.includes('GPU') ? 'var(--rh-color--gaudi-bg)' : 'var(--rh-color--xeon6-bg)',
+                border: `1px solid ${activePhase.hw.includes('GPU') ? 'var(--rh-color--gaudi)' : 'var(--rh-color--xeon6)'}`,
               }}>
                 <div style={{ fontWeight: 700, fontSize: '0.88rem' }}>{activePhase.name}</div>
                 <div style={{ fontSize: '0.8rem', color: 'var(--rh-color--text-secondary)' }}>{activePhase.desc}</div>
@@ -604,7 +604,7 @@ export default function WorkloadDemo() {
               {[
                 { label: 'Xeon 6 Eco', pct: result.xeon_eco_utilization_pct, color: 'var(--rh-color--success)' },
                 { label: 'Xeon 6 Performance', pct: result.xeon_performance_utilization_pct, color: 'var(--rh-color--xeon6)' },
-                { label: 'Gaudi Overdrive', pct: result.gaudi_overdrive_utilization_pct, color: 'var(--rh-color--gaudi)' },
+                { label: 'GPU Overdrive', pct: result.gaudi_overdrive_utilization_pct, color: 'var(--rh-color--gaudi)' },
               ].map(u => (
                 <div key={u.label} style={{ flex: '1 1 180px' }}>
                   <div style={{ fontWeight: 600, fontSize: '0.85rem', marginBottom: '6px' }}>{u.label}</div>

@@ -17,9 +17,9 @@ import { CheckCircleIcon, ExclamationCircleIcon, InProgressIcon, LockIcon, Pendi
 import { api } from '../api/client';
 
 const PRESETS = [
-  { label: 'Hardware Routing', question: 'How does the routing engine decide between Xeon 6 and Gaudi for different workload types?' },
-  { label: 'Failover', question: 'What happens when the Gaudi accelerator goes offline? Describe the failover mechanism.' },
-  { label: 'Cost & Throughput', question: 'Compare the throughput and cost characteristics of running inference on Xeon 6 vs Gaudi.' },
+  { label: 'Hardware Routing', question: 'How does the routing engine decide between Xeon 6 and GPU for different workload types?' },
+  { label: 'Failover', question: 'What happens when the GPU accelerator goes offline? Describe the failover mechanism.' },
+  { label: 'Cost & Throughput', question: 'Compare the throughput and cost characteristics of running inference on Xeon 6 vs GPU.' },
   { label: 'Tokenization', question: 'Explain the tokenization differences across models and how they affect routing decisions.' },
   { label: 'Governance', question: 'What governance controls are in place for AI-generated actions on this platform?' },
 ];
@@ -124,7 +124,7 @@ export default function ResearchAgent() {
           <Content component="p" style={{ maxWidth: '780px', fontSize: '1.05rem' }}>
             Ask complex questions. Watch the agent break them down, search the knowledge base,
             rerank results, and synthesize answers. Fast steps (search, rerank) run on Intel
-            Xeon 6. Heavy steps (decompose, synthesize) run on Gaudi. Every decision is
+            Xeon 6. Heavy steps (decompose, synthesize) run on GPU. Every decision is
             transparent — you see what happened, why, and on which hardware.
           </Content>
         </Content>
@@ -243,7 +243,7 @@ export default function ResearchAgent() {
                     {/* Header */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
                       <span style={{ fontWeight: 700, fontSize: '0.92rem' }}>{meta.label}</span>
-                      <Label isCompact color={step.hw === 'Gaudi' ? 'orange' : step.hw === 'Xeon 6' ? 'blue' : 'grey'}>{step.hw}</Label>
+                      <Label isCompact color={step.hw === 'GPU' ? 'orange' : step.hw === 'Xeon 6' ? 'blue' : 'grey'}>{step.hw}</Label>
                       <StatusIcon status={step.status} />
                       {step.latency_ms != null && step.latency_ms > 0 && (
                         <span style={{ fontSize: '0.78rem', fontFamily: 'var(--pf-t--global--font--family--mono)', color: 'var(--rh-color--text-secondary)' }}>

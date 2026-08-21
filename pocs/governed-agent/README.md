@@ -16,7 +16,7 @@ Request: "Restart inference pods to clear OOM state"
 [2] Score risk ─────────> Xeon 6 / OpenVINO (<5ms)
     |     Risk: medium (0.50)
     |
-[3] Generate plan ──────> Gaudi / vLLM (7B model, <2s)
+[3] Generate plan ──────> GPU / vLLM (7B model, <2s)
     |     "1. Cordon node  2. Drain pods  3. Delete pods  4. Uncordon"
     |
 [4] Policy validation ──> Local policy engine (<1ms)
@@ -29,7 +29,7 @@ Try dangerous requests to see the governance gates activate:
 
 ```bash
 # This will be DENIED
-python3 app.py --request "Delete the gaudi-inference namespace"
+python3 app.py --request "Delete the gpu-inference namespace"
 
 # This will be ESCALATED
 python3 app.py --request "Patch the deployment to add privileged security context"

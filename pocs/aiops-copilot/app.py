@@ -5,7 +5,7 @@ AI Operations Copilot Demo — Intel-Red Hat AI Partner Platform
 Demonstrates governed AIOps from signal to action:
   1. Classify alert severity on Xeon 6 (OpenVINO)
   2. Embed alert and find similar past incidents on Xeon 6 (OpenVINO)
-  3. Generate root cause analysis on Gaudi (vLLM)
+  3. Generate root cause analysis on GPU (vLLM)
   4. Governance gate — validate recommendation before action
 """
 
@@ -38,7 +38,7 @@ GOVERNANCE_POLICIES = {
 MOCK_RESPONSES = {
     "classification": {"routing": {"selected_backend": "openvino-cpu", "accelerator": "xeon6", "reason": "Classification models run efficiently on CPU with ONNX/OpenVINO", "latency_ms": 3.5, "cost_estimate_per_1k_tokens": 0.001, "task": "classification"}, "result": {"label": "P2", "confidence": 0.87}},
     "embeddings": {"routing": {"selected_backend": "openvino-cpu", "accelerator": "xeon6", "reason": "Embeddings are compute-bound, AMX-accelerated on Xeon 6", "latency_ms": 4.8, "cost_estimate_per_1k_tokens": 0.001, "task": "embeddings"}, "result": {"data": [{"embedding": [0.1]*384}]}},
-    "completion": {"routing": {"selected_backend": "vllm-gaudi", "accelerator": "gaudi", "reason": "Large models (> 3B) need Gaudi HBM and tensor acceleration", "latency_ms": 1450, "cost_estimate_per_1k_tokens": 0.008, "task": "completion"}, "result": {"choices": [{"text": "Based on similar incidents (INC-2024-0891, INC-2025-0289), this appears to be connection pool exhaustion or cold-start latency. Recommended action: restart the inference gateway pods and verify model serving readiness probes."}]}},
+    "completion": {"routing": {"selected_backend": "vllm-gaudi", "accelerator": "gaudi", "reason": "Large models (> 3B) need GPU HBM and tensor acceleration", "latency_ms": 1450, "cost_estimate_per_1k_tokens": 0.008, "task": "completion"}, "result": {"choices": [{"text": "Based on similar incidents (INC-2024-0891, INC-2025-0289), this appears to be connection pool exhaustion or cold-start latency. Recommended action: restart the inference gateway pods and verify model serving readiness probes."}]}},
 }
 
 
@@ -192,7 +192,7 @@ def run_aiops(alert_text: str, verbose: bool = False):
     for inc in correlate_result["similar_incidents"]:
         print(f"         {inc['id']}: {inc['title']} [{inc['severity']}]")
 
-    print("[3/4] Generating root cause analysis on Gaudi...")
+    print("[3/4] Generating root cause analysis on GPU...")
     rca_result = step_generate_rca(
         alert_text, correlate_result["similar_incidents"], classify_result["severity"]
     )

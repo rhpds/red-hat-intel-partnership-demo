@@ -1,6 +1,6 @@
-# Intel × Red Hat OpenShift AI — golden paths (CPU + Gaudi)
+# Intel × Red Hat OpenShift AI — golden paths (CPU + GPU)
 
-**Purpose:** Two **supported demo paths** for the Intel-sponsored OpenShift AI cluster at Rackspace: **Xeon6 CPU inference** and **Gaudi-accelerated inference**. After cluster discovery, replace every `[TBD]` with pinned versions (cluster version, operator catalog, image **digests**).
+**Purpose:** Two **supported demo paths** for the Intel-sponsored OpenShift AI cluster at Rackspace: **Xeon6 CPU inference** and **GPU-accelerated inference**. After cluster discovery, replace every `[TBD]` with pinned versions (cluster version, operator catalog, image **digests**).
 
 ---
 
@@ -8,13 +8,13 @@
 
 Record once per release train and update when the platform team bumps versions.
 
-| Component | CPU path (Xeon6) | Gaudi path | Source of truth |
+| Component | CPU path (Xeon6) | GPU path | Source of truth |
 |-----------|------------------|------------|-------------------|
 | OpenShift (`oc get clusterversion`) | `[TBD]` | `[TBD]` | Cluster |
 | OpenShift AI / RHOAI operator | `[TBD]` | `[TBD]` | Installed Operators |
 | Serving layer (e.g. KServe, Serverless if used) | `[TBD]` | `[TBD]` | OperatorHub / GitOps repo |
 | Inference runtime (e.g. vLLM build) | `[TBD]` | `[TBD]` | ImageStream or deploy manifest |
-| Habana / Gaudi stack (driver, plugin, user-space) | N/A | `[TBD]` | Node labels + Intel matrix |
+| Habana / GPU stack (driver, plugin, user-space) | N/A | `[TBD]` | Node labels + Intel matrix |
 | **Model artifact** (name, license, HF revision) | `[TBD]` | `[TBD]` | Internal model registry |
 | **Image digest** (immutable pin) | `[TBD]` | `[TBD]` | `oc describe` / registry UI |
 
@@ -22,13 +22,13 @@ Record once per release train and update when the platform team bumps versions.
 
 ## Golden path A — LLM inference on **Xeon6 (CPU only)**
 
-**Story for Intel / partners:** Cost-efficient inference and batch for **smaller** models or **latency-tolerant** workloads without consuming Gaudi capacity.
+**Story for Intel / partners:** Cost-efficient inference and batch for **smaller** models or **latency-tolerant** workloads without consuming GPU capacity.
 
 **Recommended stack (pick what matches your installed OpenShift AI):**
 
 - **Serving:** `InferenceService` (KServe) or OpenShift AI model serving CRs already standardized on the cluster.  
 - **Runtime:** **vLLM CPU** or the **CPU** profile of your approved serving runtime (must match operator docs for your RHOAI version).  
-- **Scheduling:** Node selector / tolerations targeting **`[TBD: Xeon6 worker pool label]`**. **Do not** schedule on Gaudi nodes for this path.  
+- **Scheduling:** Node selector / tolerations targeting **`[TBD: Xeon6 worker pool label]`**. **Do not** schedule on GPU nodes for this path.  
 - **Model class:** Small instruct model appropriate for CPU (example families: **Phi-3-mini**, **TinyLlama**, **Llama-3.2-1B-Instruct** — **only** use weights your org has cleared for partner demos).
 
 **Sizing defaults (tune after one benchmark run):**
@@ -43,20 +43,20 @@ Record once per release train and update when the platform team bumps versions.
 
 ---
 
-## Golden path B — LLM inference on **Intel Gaudi**
+## Golden path B — LLM inference on **Intel GPU**
 
-**Story for Intel / partners:** Accelerator-backed inference for **larger** models or **higher throughput** than the CPU path, using **Habana / Gaudi** integration supported on this cluster.
+**Story for Intel / partners:** Accelerator-backed inference for **larger** models or **higher throughput** than the CPU path, using Intel GPU integration supported on this cluster.
 
 **Recommended stack:**
 
-- **Serving:** Same **KServe / OpenShift AI** pattern as path A **unless** platform mandates a Gaudi-specific ServingRuntime (follow what is already validated on **this** cluster).  
+- **Serving:** Same **KServe / OpenShift AI** pattern as path A **unless** platform mandates a GPU-specific ServingRuntime (follow what is already validated on **this** cluster).  
 - **Runtime:** **vLLM with Habana** or the **Habana-tuned** serving image your matrix lists — **must** match `[TBD: Habana user-space version]`.  
-- **Scheduling:** Node selector for **`[TBD: Gaudi node label]`**; requests **`habana.ai/*`** resources as per device plugin.  
+- **Scheduling:** Node selector for **`[TBD: GPU node label]`**; requests **`habana.ai/*`** resources as per device plugin.  
 - **Model class:** One **medium** instruct model approved for GPU-class demos (e.g. **7B–8B** class — **only** if legal + capacity allow; otherwise smaller).
 
 **Sizing defaults:**
 
-- `[TBD]` Gaudi device fraction / HPU allocation per policy.  
+- `[TBD]` GPU device fraction / HPU allocation per policy.  
 - Document **max concurrent replicas** per partner namespace to protect others.
 
 **Success criteria:**
@@ -92,13 +92,13 @@ Automate reminders via ticket bot or GitOps “expires-after” annotation if yo
 
 ---
 
-## When to steer partners to CPU vs Gaudi
+## When to steer partners to CPU vs GPU
 
 | Partner need | Start here |
 |--------------|------------|
 | Slide deck / “hello world” LLM | **CPU path** |
 | Batch / offline scoring, cost-sensitive | **CPU path** |
-| Higher throughput, larger context, interactive “wow” | **Gaudi path** (if model fits allow-list) |
+| Higher throughput, larger context, interactive “wow” | **GPU path** (if model fits allow-list) |
 | Training at scale | **Out of scope** unless explicitly enabled and resourced |
 
 ---

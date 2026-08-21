@@ -50,13 +50,13 @@ const workflows: Workflow[] = [
 /* hwColors imported from ../constants/hwColors */
 const hwLabels: Record<string, string> = {
   xeon6: 'Xeon 6',
-  gaudi: 'Gaudi',
+  gaudi: 'GPU',
   local: 'Local',
 };
 
 export default function WorkflowDiagrams() {
   return (
-    <div role="img" aria-label="Three workflow diagrams showing how Enterprise RAG, AIOps Copilot, and Governed Agent route multi-step inference across Xeon 6 CPU and Gaudi GPU hardware" style={{ display: 'flex', gap: '24px', flexWrap: 'wrap', justifyContent: 'center' }}>
+    <div role="img" aria-label="Three workflow diagrams showing how Enterprise RAG, AIOps Copilot, and Governed Agent route multi-step inference across Xeon 6 CPU and GPU hardware" style={{ display: 'flex', gap: '24px', flexWrap: 'wrap', justifyContent: 'center' }}>
       {workflows.map((wf) => (
         <div key={wf.title} style={{
           flex: '1 1 280px', maxWidth: '340px',
@@ -130,7 +130,7 @@ export default function WorkflowDiagrams() {
             textAlign: 'center',
           }}>
             {wf.steps.filter(s => s.hw === 'xeon6').length} steps on Xeon 6 &middot;{' '}
-            {wf.steps.filter(s => s.hw === 'gaudi').length} on Gaudi &middot;{' '}
+            {wf.steps.filter(s => s.hw === 'gaudi').length} on GPU &middot;{' '}
             {wf.steps.filter(s => s.hw === 'local').length > 0
               ? `${wf.steps.filter(s => s.hw === 'local').length} local`
               : ''}

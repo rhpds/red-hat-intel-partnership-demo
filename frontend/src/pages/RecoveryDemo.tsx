@@ -55,9 +55,9 @@ export default function RecoveryDemo() {
         <Content>
           <Content component="h1">Recovery &amp; Resilience</Content>
           <Content component="p" style={{ maxWidth: '780px', fontSize: '1.05rem' }}>
-            What happens when hardware fails? This demo simulates an Intel Gaudi accelerator going
+            What happens when hardware fails? This demo simulates an Intel GPU accelerator going
             offline mid-workload. Watch the routing engine automatically reroute traffic to Xeon 6,
-            then restore optimal routing when Gaudi recovers — with zero dropped requests.
+            then restore optimal routing when GPU recovers — with zero dropped requests.
           </Content>
         </Content>
       </PageSection>
@@ -115,7 +115,7 @@ export default function RecoveryDemo() {
 
                   <div style={{ marginTop: '8px' }}>
                     <Label isCompact color={phase.gaudi_healthy ? 'green' : 'red'}>
-                      Gaudi: {phase.gaudi_healthy ? 'Online' : 'Offline'}
+                      GPU: {phase.gaudi_healthy ? 'Online' : 'Offline'}
                     </Label>
                   </div>
                 </CardBody>

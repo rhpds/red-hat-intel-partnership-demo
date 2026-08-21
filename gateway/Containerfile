@@ -2,7 +2,7 @@ FROM registry.access.redhat.com/ubi9/python-311:latest
 
 LABEL name="inference-gateway" \
       version="1.0.0" \
-      description="Intel-Red Hat AI Inference Gateway — routes requests across Xeon 6 and Gaudi backends"
+      description="Intel-Red Hat AI Inference Gateway — routes requests across Xeon 6 and GPU backends"
 
 WORKDIR /opt/app-root/src
 

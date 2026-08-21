@@ -4,19 +4,19 @@ import '../styles/cockpit.css';
 
 /* ─── Config ─── */
 const WORKLOAD_DEMOS = [
-  { id: 'incident_storm', name: 'Incident Storm', desc: 'Enterprise alert flood — classify on Xeon 6, deep analysis on Gaudi.', phases: ['Alert Triage (Xeon 6)', 'Knowledge Search (Xeon 6)', 'Deep Analysis (Gaudi)', 'Batch Reporting (Gaudi)'] },
-  { id: 'rag_barrage', name: 'RAG Barrage', desc: 'High-throughput RAG — embed, search, rerank, answer generation.', phases: ['Document Indexing (Xeon 6)', 'Relevance Scoring (Xeon 6)', 'Answer Generation (Mixed)', 'Document Distillation (Gaudi)'] },
-  { id: 'token_cannon', name: 'Token Cannon', desc: 'Maximum generation throughput — stress Gaudi with heavy output.', phases: ['Long Analysis (Gaudi)', 'Batch Reports (Gaudi)', 'Doc Distillation (Gaudi)', 'Code Review (Gaudi)'] },
-  { id: 'model_race', name: 'Model Race', desc: 'Same tasks across all hardware — compare Xeon 6 vs Gaudi live.', phases: ['Small Tasks (Xeon Eco)', 'Mid Tasks (Xeon Perf)', 'Large Tasks (Gaudi)'] },
-  { id: 'dashboard_storm', name: 'Dashboard Storm', desc: 'Multimodal — operational screenshots classified and interpreted.', phases: ['Screenshot Classify (Xeon 6)', 'Chart Interpret (Gaudi)', 'Summary Generation (Gaudi)', 'Incident Synthesis (Gaudi)'] },
-  { id: 'multimodal_incident_commander', name: 'Incident Commander', desc: 'Multimodal — screenshots + logs + metrics into incident synthesis.', phases: ['Screenshot Classify (Xeon 6)', 'Diagram Analysis (Gaudi)', 'Incident Synthesis (Gaudi)'] },
-  { id: 'architecture_explainer', name: 'Architecture Explainer', desc: 'Multimodal — diagrams explained with vision-language reasoning.', phases: ['Diagram Classify (Xeon 6)', 'Diagram Explain (Gaudi)', 'Architecture Summary (Gaudi)'] },
-  { id: 'visual_rag_barrage', name: 'Visual RAG', desc: 'Multimodal — embed images, search visually, answer with context.', phases: ['Image Embedding (Xeon 6)', 'Visual Rerank (Xeon 6)', 'Image Q&A (Gaudi)'] },
-  { id: 'token_cannon_multimodal', name: 'Token Cannon MM', desc: 'Multimodal — stress heavy visual generation across Gaudi.', phases: ['Chart Interpretation (Gaudi)', 'Doc Explanation (Gaudi)', 'Visual Summary (Gaudi)'] },
-  { id: 'image_to_manual', name: 'Image to Manual', desc: 'Multimodal — generate installation guides from equipment images.', phases: ['Image Classify (Xeon 6)', 'Manual Generation (Gaudi)', 'Doc Distillation (Gaudi)'] },
+  { id: 'incident_storm', name: 'Incident Storm', desc: 'Enterprise alert flood — classify on Xeon 6, deep analysis on GPU.', phases: ['Alert Triage (Xeon 6)', 'Knowledge Search (Xeon 6)', 'Deep Analysis (GPU)', 'Batch Reporting (GPU)'] },
+  { id: 'rag_barrage', name: 'RAG Barrage', desc: 'High-throughput RAG — embed, search, rerank, answer generation.', phases: ['Document Indexing (Xeon 6)', 'Relevance Scoring (Xeon 6)', 'Answer Generation (Mixed)', 'Document Distillation (GPU)'] },
+  { id: 'token_cannon', name: 'Token Cannon', desc: 'Maximum generation throughput — stress GPU with heavy output.', phases: ['Long Analysis (GPU)', 'Batch Reports (GPU)', 'Doc Distillation (GPU)', 'Code Review (GPU)'] },
+  { id: 'model_race', name: 'Model Race', desc: 'Same tasks across all hardware — compare Xeon 6 vs GPU live.', phases: ['Small Tasks (Xeon Eco)', 'Mid Tasks (Xeon Perf)', 'Large Tasks (GPU)'] },
+  { id: 'dashboard_storm', name: 'Dashboard Storm', desc: 'Multimodal — operational screenshots classified and interpreted.', phases: ['Screenshot Classify (Xeon 6)', 'Chart Interpret (GPU)', 'Summary Generation (GPU)', 'Incident Synthesis (GPU)'] },
+  { id: 'multimodal_incident_commander', name: 'Incident Commander', desc: 'Multimodal — screenshots + logs + metrics into incident synthesis.', phases: ['Screenshot Classify (Xeon 6)', 'Diagram Analysis (GPU)', 'Incident Synthesis (GPU)'] },
+  { id: 'architecture_explainer', name: 'Architecture Explainer', desc: 'Multimodal — diagrams explained with vision-language reasoning.', phases: ['Diagram Classify (Xeon 6)', 'Diagram Explain (GPU)', 'Architecture Summary (GPU)'] },
+  { id: 'visual_rag_barrage', name: 'Visual RAG', desc: 'Multimodal — embed images, search visually, answer with context.', phases: ['Image Embedding (Xeon 6)', 'Visual Rerank (Xeon 6)', 'Image Q&A (GPU)'] },
+  { id: 'token_cannon_multimodal', name: 'Token Cannon MM', desc: 'Multimodal — stress heavy visual generation across GPU.', phases: ['Chart Interpretation (GPU)', 'Doc Explanation (GPU)', 'Visual Summary (GPU)'] },
+  { id: 'image_to_manual', name: 'Image to Manual', desc: 'Multimodal — generate installation guides from equipment images.', phases: ['Image Classify (Xeon 6)', 'Manual Generation (GPU)', 'Doc Distillation (GPU)'] },
 ];
 const SWARM_DEMOS = [
-  { id: 'swarm:incident', name: 'Swarm: Incident', desc: 'Multi-agent incident investigation across Xeon 6 + Gaudi.', phases: ['Wave 1: Investigation', 'Wave 2: Root Cause', 'Wave 3: Report'] },
+  { id: 'swarm:incident', name: 'Swarm: Incident', desc: 'Multi-agent incident investigation across Xeon 6 + GPU.', phases: ['Wave 1: Investigation', 'Wave 2: Root Cause', 'Wave 3: Report'] },
   { id: 'swarm:security_audit', name: 'Swarm: Security Audit', desc: 'Multi-agent security scan — CVEs, compliance, threat analysis.', phases: ['Wave 1: Scanning', 'Wave 2: Risk Assessment', 'Wave 3: Audit Report'] },
   { id: 'swarm:capacity_planning', name: 'Swarm: Capacity Plan', desc: 'Multi-agent capacity analysis — utilization, growth, cost.', phases: ['Wave 1: Data Collection', 'Wave 2: Cost Optimization', 'Wave 3: Report'] },
 ];
@@ -231,7 +231,7 @@ export default function CockpitDashboard() {
             <div style={{ fontSize: '1.1rem', fontWeight: 700, letterSpacing: '0.05em' }}>
               INFERENCE <span style={{ color: '#ee0000' }}>OVERDRIVE</span>
             </div>
-            <div style={{ fontSize: '0.65rem', color: '#666', letterSpacing: '0.04em' }}>INTEL XEON 6 + GAUDI · LIVE INFERENCE</div>
+            <div style={{ fontSize: '0.65rem', color: '#666', letterSpacing: '0.04em' }}>INTEL XEON 6 + GPU · LIVE INFERENCE</div>
           </div>
         </div>
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
@@ -359,7 +359,7 @@ export default function CockpitDashboard() {
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.6rem', color: '#555', marginTop: '3px' }}>
                 <span>0s</span>
-                <span style={{ display: 'flex', gap: '8px' }}><span style={{ color: '#3e8635' }}>● Eco</span><span style={{ color: '#0068b5' }}>● Perf</span><span style={{ color: '#e67e22' }}>● Gaudi</span></span>
+                <span style={{ display: 'flex', gap: '8px' }}><span style={{ color: '#3e8635' }}>● Eco</span><span style={{ color: '#0068b5' }}>● Perf</span><span style={{ color: '#e67e22' }}>● GPU</span></span>
                 <span>{history[history.length - 1]?.t || 0}s</span>
               </div>
             </div>
@@ -370,7 +370,7 @@ export default function CockpitDashboard() {
             {[
               { name: 'INTEL XEON ECO', hw: 'Granite · Xeon 6', count: eco, color: '#3e8635' },
               { name: 'INTEL XEON PERF', hw: 'CodeLlama · Xeon 6 + AMX', count: perf, color: '#0068b5' },
-              { name: 'INTEL GAUDI', hw: 'DeepSeek R1 14B', count: gaudi, color: '#e67e22' },
+              { name: 'INTEL GPU', hw: 'DeepSeek R1 14B', count: gaudi, color: '#e67e22' },
             ].map(l => (
               <div key={l.name} style={{ background: '#161616', border: `1px solid ${l.count > 0 ? l.color : '#333'}`, borderRadius: '6px', padding: '10px', borderLeft: `3px solid ${l.color}`, transition: 'border-color 0.3s' }}>
                 <div style={{ fontWeight: 700, fontSize: '0.72rem', letterSpacing: '0.04em' }}>{l.name}</div>
@@ -389,7 +389,7 @@ export default function CockpitDashboard() {
               {[
                 { key: 'granite-2b-cpu', name: 'Granite', hw: 'Xeon 6 Eco' },
                 { key: 'phi3-mini-cpu', name: 'Phi-3 Mini', hw: 'Xeon 6 + AMX' },
-                { key: 'deepseek-r1-distill-qwen-14b', name: 'DeepSeek R1 14B', hw: 'Gaudi' },
+                { key: 'deepseek-r1-distill-qwen-14b', name: 'DeepSeek R1 14B', hw: 'GPU' },
               ].map(m => {
                 const s = models[m.key];
                 const count = s ? s.count as number : 0;
@@ -418,7 +418,7 @@ export default function CockpitDashboard() {
         </>
       )}
 
-      <div style={{ marginTop: '24px', fontSize: '0.6rem', color: '#444', textAlign: 'center' }}>Intel Xeon 6 + Gaudi — Red Hat OpenShift AI</div>
+      <div style={{ marginTop: '24px', fontSize: '0.6rem', color: '#444', textAlign: 'center' }}>Intel Xeon 6 + GPU — Red Hat OpenShift AI</div>
     </div>
   );
 }

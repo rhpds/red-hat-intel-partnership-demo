@@ -2,7 +2,7 @@
 
 ## What This Is
 
-Multi-tenant AI inference gateway that routes workloads across Intel Xeon 6 (CPU) and Gaudi (GPU) hardware on Red Hat OpenShift. Includes an interactive RAG chat with document upload, real-time routing trace, and model switching.
+Multi-tenant AI inference gateway that routes workloads across Intel Xeon 6 (CPU) and Intel GPU hardware on Red Hat OpenShift. Includes an interactive RAG chat with document upload, real-time routing trace, and model switching.
 
 ## Architecture
 

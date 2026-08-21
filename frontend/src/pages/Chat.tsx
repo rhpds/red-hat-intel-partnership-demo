@@ -208,7 +208,7 @@ export default function Chat() {
             </Content>
             <Content component="small" style={{ color: 'var(--pf-t--global--text--color--subtle)', display: 'block', marginTop: '0.5rem', maxWidth: '720px', lineHeight: '1.5' }}>
               <strong>Standard</strong> — routes by task type and model size. Embeddings and classification stay on
-              Xeon 6, large generation goes to Gaudi 3.{' '}
+              Xeon 6, large generation goes to GPU.{' '}
               <strong>Semantic Department</strong> — classifies your question by department (HR, Engineering, Legal,
               Finance, Security, Executive) and routes to the model optimized for that domain.{' '}
               <strong>vLLM Semantic Router</strong> — production-grade signal-driven routing with OpenVINO on Intel Xeon 6.

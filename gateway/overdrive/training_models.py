@@ -84,21 +84,21 @@ DATASET_SAMPLES = {
         {
             "input": "Alerts: ['gaudi-worker-01 GPU memory utilization 97%', 'inference-gateway p99 > 10s']\nLogs: ['HBM allocation failed for batch-job-7842', 'fallback routing activated']\nService: inference-gateway → gaudi-inference",
             "base_output": "The GPU memory is full and inference is slow. Check the GPU usage.",
-            "tuned_output": "Gaudi HBM exhaustion caused by unthrottled batch-job-7842 consuming 94GB of 96GB available. The routing engine activated fallback to Xeon 6 Performance lane, causing p99 latency spike from 200ms to 10s. Fix: terminate batch-job-7842, add habana.ai/gaudi resource limits to batch workload manifests, implement token budget admission controller for the Gaudi lane.",
+            "tuned_output": "GPU HBM exhaustion caused by unthrottled batch-job-7842 consuming 94GB of 96GB available. The routing engine activated fallback to Xeon 6 Performance lane, causing p99 latency spike from 200ms to 10s. Fix: terminate batch-job-7842, add habana.ai/gaudi resource limits to batch workload manifests, implement token budget admission controller for the GPU lane.",
         },
     ],
     "synthetic_openshift_troubleshooting_v1": [
         {
             "input": "Error: CrashLoopBackOff on pod vllm-gaudi-0 in namespace gaudi-inference\noc describe: Back-off restarting failed container, Exit code 137 (OOMKilled)",
             "base_output": "The pod is crashing. Try restarting it or checking the logs.",
-            "tuned_output": "Pod vllm-gaudi-0 is being OOMKilled (exit 137) — the container memory limit is too low for the model being served. For a 17B parameter model on Gaudi, set memory request to 32Gi and limit to 64Gi. Check: `oc get pod vllm-gaudi-0 -o jsonpath='{.spec.containers[0].resources}'`. Also verify the model fits in Gaudi HBM: `hl-smi` should show sufficient free memory.",
+            "tuned_output": "Pod vllm-gaudi-0 is being OOMKilled (exit 137) — the container memory limit is too low for the model being served. For a 17B parameter model on GPU, set memory request to 32Gi and limit to 64Gi. Check: `oc get pod vllm-gaudi-0 -o jsonpath='{.spec.containers[0].resources}'`. Also verify the model fits in GPU HBM: `hl-smi` should show sufficient free memory.",
         },
     ],
     "synthetic_dashboard_vision_v1": [
         {
             "input": "[Dashboard screenshot showing latency spike from 200ms to 4,500ms with correlated error rate increase from 0.1% to 3.2%]",
             "base_output": "The chart shows some metrics changing over time.",
-            "tuned_output": "This Grafana dashboard shows a critical latency degradation event starting at 14:23 UTC. P99 latency increased 22x (200ms → 4,500ms) over 15 minutes. The error rate panel shows a correlated increase from 0.1% to 3.2%, with HTTP 502 errors concentrated on the /v1/route endpoint. The service status panel shows 2 of 5 inference pods unhealthy. This pattern is consistent with a Gaudi accelerator failure causing fallback routing overload on Xeon 6.",
+            "tuned_output": "This Grafana dashboard shows a critical latency degradation event starting at 14:23 UTC. P99 latency increased 22x (200ms → 4,500ms) over 15 minutes. The error rate panel shows a correlated increase from 0.1% to 3.2%, with HTTP 502 errors concentrated on the /v1/route endpoint. The service status panel shows 2 of 5 inference pods unhealthy. This pattern is consistent with a GPU accelerator failure causing fallback routing overload on Xeon 6.",
         },
     ],
 }
@@ -119,7 +119,7 @@ HARDWARE_TRAINING_BENCHMARKS = {
         "advantage": "No GPU required — train lightweight classifiers and utility models on the same hardware that serves them",
     },
     "gaudi": {
-        "name": "Intel Gaudi 3",
+        "name": "Intel GPU",
         "memory": "128GB HBM2E",
         "lora_7b_time": "~20 minutes",
         "sft_7b_time": "~2 hours",

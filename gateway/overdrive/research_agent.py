@@ -7,12 +7,12 @@ import httpx
 
 KNOWLEDGE_BASE = [
     {"id": "kb-001", "title": "Intel Xeon 6 for AI Inference", "content": "Intel Xeon 6 processors with Advanced Matrix Extensions (AMX) provide cost-efficient AI inference for small-to-medium models. Classification, embeddings, and reranking tasks run on Xeon 6 at production throughput without requiring GPU resources. The AMX instruction set accelerates INT8 and BF16 matrix operations natively."},
-    {"id": "kb-002", "title": "Intel Gaudi Accelerator Architecture", "content": "Intel Gaudi accelerators feature high-bandwidth memory (HBM2E) with 96GB capacity and dedicated tensor processing cores. Gaudi excels at large language model inference with 17B+ parameter models, providing 100+ tokens/sec generation throughput. The HBM bandwidth enables large context windows up to 400K tokens."},
-    {"id": "kb-003", "title": "Hardware-Aware Routing Engine", "content": "The routing engine evaluates each inference request against a rubric of checks: task type, token estimate, priority, and latency target. Small classification tasks route to Xeon 6 Eco lane. Mid-range embeddings and summaries route to Xeon 6 Performance lane. Large generation tasks route to Gaudi Overdrive lane. Every decision includes full evidence."},
-    {"id": "kb-004", "title": "Overdrive Lane Evaluation", "content": "The Overdrive engine uses a three-lane architecture: Eco (Granite Tiny on Xeon 6, ≤4K tokens), Performance (CodeLlama 7B on Xeon 6, ≤16K tokens), and Overdrive (Llama Scout 17B on Gaudi, ≤64K tokens). The routing matrix matches task type and token estimate to the optimal lane. Fallback rules ensure graceful degradation."},
-    {"id": "kb-005", "title": "Tokenization and Cost Model", "content": "Different models tokenize text differently, producing different token counts and costs. Xeon 6 inference costs $0.0004 per 1K tokens. Gaudi inference costs $0.001 per 1K tokens. The routing engine automatically selects the cheapest viable hardware tier, sending small workloads to Xeon 6 and reserving Gaudi for tasks that need its bandwidth."},
+    {"id": "kb-002", "title": "Intel GPU Accelerator Architecture", "content": "Intel GPU accelerators feature high-bandwidth memory (HBM2E) with 96GB capacity and dedicated tensor processing cores. GPU excels at large language model inference with 17B+ parameter models, providing 100+ tokens/sec generation throughput. The HBM bandwidth enables large context windows up to 400K tokens."},
+    {"id": "kb-003", "title": "Hardware-Aware Routing Engine", "content": "The routing engine evaluates each inference request against a rubric of checks: task type, token estimate, priority, and latency target. Small classification tasks route to Xeon 6 Eco lane. Mid-range embeddings and summaries route to Xeon 6 Performance lane. Large generation tasks route to GPU Overdrive lane. Every decision includes full evidence."},
+    {"id": "kb-004", "title": "Overdrive Lane Evaluation", "content": "The Overdrive engine uses a three-lane architecture: Eco (Granite Tiny on Xeon 6, ≤4K tokens), Performance (CodeLlama 7B on Xeon 6, ≤16K tokens), and Overdrive (Llama Scout 17B on GPU, ≤64K tokens). The routing matrix matches task type and token estimate to the optimal lane. Fallback rules ensure graceful degradation."},
+    {"id": "kb-005", "title": "Tokenization and Cost Model", "content": "Different models tokenize text differently, producing different token counts and costs. Xeon 6 inference costs $0.0004 per 1K tokens. GPU inference costs $0.001 per 1K tokens. The routing engine automatically selects the cheapest viable hardware tier, sending small workloads to Xeon 6 and reserving GPU for tasks that need its bandwidth."},
     {"id": "kb-006", "title": "Failover and Graceful Degradation", "content": "When a hardware tier goes offline, the routing engine automatically reroutes requests. Overdrive lane failures fall back to Performance (if tokens < 32K). Performance failures fall back to Eco (for classification and short summaries). Every fallback decision is recorded with full evidence showing the reason for rerouting."},
-    {"id": "kb-007", "title": "KServe and OpenShift AI Integration", "content": "Models are served via KServe ServingRuntime on Red Hat OpenShift AI. CPU inference uses vLLM optimized for Xeon 6 with AMX. GPU inference uses vLLM with Habana Gaudi device plugin. Both runtimes support OpenAI-compatible API endpoints for chat completions, embeddings, and classification."},
+    {"id": "kb-007", "title": "KServe and OpenShift AI Integration", "content": "Models are served via KServe ServingRuntime on Red Hat OpenShift AI. CPU inference uses vLLM optimized for Xeon 6 with AMX. GPU inference uses vLLM with Habana GPU device plugin. Both runtimes support OpenAI-compatible API endpoints for chat completions, embeddings, and classification."},
     {"id": "kb-008", "title": "LiteLLM Proxy Configuration", "content": "LiteLLM provides a unified OpenAI-compatible API gateway fronting multiple model backends. The platform routes through a MAAS-hosted LiteLLM instance. Models available: Granite, CodeLlama, Llama Scout, DeepSeek, Phi-4, Nomic embeddings. Configure the endpoint URL and API key via environment variables."},
     {"id": "kb-009", "title": "Workload Profiles for Performance Demos", "content": "Four workload profiles simulate enterprise patterns: Incident Storm (classification + RCA), RAG Barrage (embed + search + rerank + generate), Token Cannon (heavy generation stress test), and Model Race (cross-hardware comparison). Power modes scale from Standby (5 requests) to Overdrive (1000 requests)."},
     {"id": "kb-010", "title": "Governance and Approval Workflow", "content": "The platform includes a governance layer that evaluates AI-generated actions by risk level. Low-risk actions (read logs) auto-approve. Medium-risk actions (restart services) require human review. High-risk actions (delete namespaces) are denied. Every decision is recorded with evidence bundles for audit."},
@@ -75,8 +75,8 @@ def step_decompose(question: str, live: bool = False) -> dict:
             if lines:
                 return {
                     "sub_queries": lines[:4],
-                    "hw": "Gaudi",
-                    "routing_reason": "Query decomposition by Llama Scout 17B on Gaudi — real LLM reasoning to break complex questions into focused sub-queries.",
+                    "hw": "GPU",
+                    "routing_reason": "Query decomposition by Llama Scout 17B on GPU — real LLM reasoning to break complex questions into focused sub-queries.",
                     "raw_response": text,
                 }
 
@@ -85,7 +85,7 @@ def step_decompose(question: str, live: bool = False) -> dict:
     if any(w in question.lower() for w in ["compare", "vs", "versus", "difference"]):
         sub_queries = [
             "What are the capabilities of Xeon 6 for inference?",
-            "What are the capabilities of Gaudi for inference?",
+            "What are the capabilities of GPU for inference?",
             "How does the routing engine choose between them?",
         ]
     elif any(w in question.lower() for w in ["failover", "offline", "failure", "degrade"]):
@@ -97,7 +97,7 @@ def step_decompose(question: str, live: bool = False) -> dict:
     elif any(w in question.lower() for w in ["token", "cost", "price"]):
         sub_queries = [
             "How does tokenization differ across models?",
-            "What is the cost model for Xeon 6 vs Gaudi?",
+            "What is the cost model for Xeon 6 vs GPU?",
         ]
     else:
         sub_queries = [f"Overview: {question}", f"Technical details: {question}"]
@@ -106,8 +106,8 @@ def step_decompose(question: str, live: bool = False) -> dict:
 
     return {
         "sub_queries": sub_queries,
-        "hw": "Gaudi",
-        "routing_reason": "Query decomposition requires reasoning capability — Llama Scout 17B on Gaudi breaks complex questions into focused sub-queries.",
+        "hw": "GPU",
+        "routing_reason": "Query decomposition requires reasoning capability — Llama Scout 17B on GPU breaks complex questions into focused sub-queries.",
     }
 
 
@@ -180,8 +180,8 @@ def step_synthesize(question: str, sub_queries: list[str], documents: list[dict]
             return {
                 "answer": text,
                 "citations": citations,
-                "hw": "Gaudi",
-                "routing_reason": "Answer synthesis by Llama Scout 17B on Gaudi — real LLM generation with multi-document context.",
+                "hw": "GPU",
+                "routing_reason": "Answer synthesis by Llama Scout 17B on GPU — real LLM generation with multi-document context.",
                 "latency_ms": result.get("routing", {}).get("latency_ms", 0),
             }
 
@@ -194,8 +194,8 @@ def step_synthesize(question: str, sub_queries: list[str], documents: list[dict]
     return {
         "answer": answer,
         "citations": citations,
-        "hw": "Gaudi",
-        "routing_reason": "Answer synthesis requires sustained generation with large context — Llama Scout 17B on Gaudi uses HBM bandwidth for multi-document reasoning.",
+        "hw": "GPU",
+        "routing_reason": "Answer synthesis requires sustained generation with large context — Llama Scout 17B on GPU uses HBM bandwidth for multi-document reasoning.",
     }
 
 

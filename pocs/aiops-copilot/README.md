@@ -16,7 +16,7 @@ Alert: "Inference gateway p99 > 5s for 10 minutes"
     |     INC-2024-0891: API gateway latency spike
     |     INC-2025-0289: Model serving 503 errors
     |
-[3] Generate RCA ────────> Gaudi / vLLM (7B model, <2s)
+[3] Generate RCA ────────> GPU / vLLM (7B model, <2s)
     |     "Connection pool exhaustion likely due to..."
     |
 [4] Governance gate ─────> Policy engine (local, <1ms)
@@ -31,7 +31,7 @@ The key: AI agents need more than inference. They need governed execution.
 ## Run
 
 ```bash
-python3 app.py --alert "Pod OOM kills in gaudi-inference namespace, 3 restarts in 5 minutes"
+python3 app.py --alert "Pod OOM kills in gpu-inference namespace, 3 restarts in 5 minutes"
 python3 app.py --alert "SSL certificate expires in 24 hours on model serving route" --verbose
 python3 app.py --json  # structured output
 ```

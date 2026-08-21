@@ -1,6 +1,6 @@
 = Architecture Overview
 
-The Intel-Red Hat AI Inference Platform routes AI workloads across Intel hardware — Xeon 6 CPUs for fast, cost-efficient tasks and Gaudi GPUs for large-model generation.
+The Intel-Red Hat AI Inference Platform routes AI workloads across Intel hardware — Xeon 6 CPUs for fast, cost-efficient tasks and Intel GPUs for large-model generation.
 
 == Dual-Path Routing
 
@@ -8,7 +8,7 @@ The Intel-Red Hat AI Inference Platform routes AI workloads across Intel hardwar
 |===
 | Path | Hardware | Use Cases
 | CPU Path | Intel Xeon 6 + OpenVINO | Embeddings, classification, reranking, small models (≤4B params)
-| GPU Path | Intel Gaudi 3 | Large model completion, batch generation (>4B params)
+| GPU Path | Intel GPU | Large model completion, batch generation (>4B params)
 |===
 
 == Request Flow
@@ -27,10 +27,10 @@ The platform classifies incoming queries by department and routes to the optimal
 |===
 | Department | Description | Model
 | HR | Employee policies, benefits | granite-2b-cpu (Xeon 6)
-| Engineering | Code, debugging, DevOps | qwen3-14b (Gaudi 3)
-| Legal | Contracts, compliance | deepseek-r1-distill-qwen-14b (Gaudi 3)
-| Finance | Budgeting, forecasting | qwen3-14b (Gaudi 3)
-| Security | Vulnerability management | microsoft-phi-4 (Gaudi 3)
+| Engineering | Code, debugging, DevOps | qwen3-14b (GPU)
+| Legal | Contracts, compliance | deepseek-r1-distill-qwen-14b (GPU)
+| Finance | Budgeting, forecasting | qwen3-14b (GPU)
+| Security | Vulnerability management | microsoft-phi-4 (GPU)
 | Executive | Strategy, M&A | llama-31-70b (Xeon 6)
 |===
 

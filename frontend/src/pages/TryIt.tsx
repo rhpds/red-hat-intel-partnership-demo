@@ -46,7 +46,7 @@ const scenarios: WorkflowScenario[] = [
     key: 'rag',
     title: 'Enterprise RAG',
     subtitle: 'Embed → Search → Rerank → Generate',
-    message: 'Embedding, search, and reranking are fast — Xeon 6 handles them cheaply. Gaudi only activates for the generation step, where large model throughput matters.',
+    message: 'Embedding, search, and reranking are fast — Xeon 6 handles them cheaply. GPU only activates for the generation step, where large model throughput matters.',
     steps: [
       { label: 'Embed Query', hw: 'xeon6', task: 'embeddings' },
       { label: 'Vector Search', hw: 'xeon6', task: 'search' },

@@ -1,19 +1,19 @@
 # Intel-Red Hat AI Inference Platform
 
-Multi-tenant AI inference gateway that routes workloads across Intel Xeon 6 (CPU) and Gaudi 3 (GPU) hardware on Red Hat OpenShift. Features interactive RAG chat with document upload, semantic department routing, model switching, and real-time routing trace.
+Multi-tenant AI inference gateway that routes workloads across Intel Xeon 6 (CPU) and Intel GPU hardware on Red Hat OpenShift. Features interactive RAG chat with document upload, semantic department routing, model switching, and real-time routing trace.
 
 ## Architecture
 
 ```
 Frontend (React/PatternFly 6) → Gateway (FastAPI) → MAAS/LiteLLM → Intel Hardware
                                      ↓                                  ↓
-                                PostgreSQL (pgvector)           Gaudi 3 GPU / Xeon 6 CPU
+                                PostgreSQL (pgvector)           Intel GPU / Xeon 6 CPU
                                      ↓
                           vLLM Semantic Router (optional)
 ```
 
 **Gateway** routes requests across 17 models served on Intel hardware via MAAS:
-- **Intel Gaudi 3 GPU**: qwen3-14b, deepseek-r1-distill-qwen-14b, microsoft-phi-4, llama-31-70b
+- **Intel GPU**: qwen3-14b, deepseek-r1-distill-qwen-14b, microsoft-phi-4, llama-31-70b
 - **Intel Xeon 6 CPU** (OpenVINO): granite-2b-cpu, phi3-mini-cpu, qwen25-3b-cpu
 
 ## Features

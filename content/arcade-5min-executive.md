@@ -1,4 +1,4 @@
-# Arcade Talk Track: The 5-Minute Executive
+3# Arcade Talk Track: The 5-Minute Executive
 
 **Audience**: Partner / Customer executive  
 **Duration**: 3–5 minutes  
@@ -15,9 +15,9 @@
 **Talk track**:
 > "This is the Intel–Red Hat AI Inference Platform. It solves a real problem enterprises face today: not every AI workload needs a GPU. A simple HR policy lookup doesn't need the same hardware as a deep security analysis — but most platforms route everything the same way."
 
-**Click**: Scroll to the three hardware cards (Xeon 6 / Gaudi / OpenShift AI).
+**Click**: Scroll to the three hardware cards (Xeon 6 / GPU / OpenShift AI).
 
-> "The platform has two hardware paths. Intel Xeon 6 with AMX handles small, fast tasks at a fraction of the cost. Intel Gaudi 3 handles the heavy reasoning. Red Hat OpenShift AI ties them together with intelligent routing."
+> "The platform has two hardware paths. Intel Xeon 6 with AMX handles small, fast tasks at a fraction of the cost. Intel GPU handles the heavy reasoning. Red Hat OpenShift AI ties them together with intelligent routing."
 
 **Click**: "See How It Works" button.
 
@@ -51,7 +51,7 @@
 
 **Click**: Click the first scenario card ("Analyze infrastructure risks").
 
-> "Watch what happens. The first three steps — embedding, search, and reranking — run on Xeon 6. They're lightweight operations that don't need a GPU. Only the final answer generation goes to Gaudi."
+> "Watch what happens. The first three steps — embedding, search, and reranking — run on Xeon 6. They're lightweight operations that don't need a GPU. Only the final answer generation goes to GPU."
 
 **Wait**: The 4-step pipeline executes. Each step shows a hardware badge and latency.
 
@@ -76,14 +76,14 @@
 
 **Wait**: Requests stream through. The route distribution builds.
 
-> "Look at the hardware utilization. The platform automatically split the workload — lightweight tasks on Xeon 6, heavy reasoning on Gaudi. No manual configuration, no overprovisioning. Every request got the right hardware for its workload."
+> "Look at the hardware utilization. The platform automatically split the workload — lightweight tasks on Xeon 6, heavy reasoning on GPU. No manual configuration, no overprovisioning. Every request got the right hardware for its workload."
 
 ---
 
 ## Scene 5: Close (30s)
 
 **Talk track**:
-> "That's the Intel–Red Hat AI Inference Platform. Intelligent routing across Xeon 6 and Gaudi, running on OpenShift, with full governance and audit trails. It's available today as a Red Hat demo — we can have it running in your environment in under an hour."
+> "That's the Intel–Red Hat AI Inference Platform. Intelligent routing across Xeon 6 and GPU, running on OpenShift, with full governance and audit trails. It's available today as a Red Hat demo — we can have it running in your environment in under an hour."
 
 ---
 
@@ -92,4 +92,4 @@
 1. **Not every AI workload needs a GPU** — route by workload, not by default
 2. **Cost savings are automatic** — the routing engine decides, not the developer
 3. **Enterprise-ready** — OpenShift, governance, audit trails, multi-tenant
-4. **Intel hardware advantage** — Xeon 6 AMX for small tasks, Gaudi 3 for heavy reasoning
+4. **Intel hardware advantage** — Xeon 6 AMX for small tasks, Intel GPU for heavy reasoning

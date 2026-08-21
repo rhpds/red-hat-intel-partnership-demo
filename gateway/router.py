@@ -2,7 +2,7 @@
 Inference Gateway Router
 
 Unified entry point for all inference requests. Routes to the correct
-backend (OpenVINO CPU, vLLM CPU, vLLM Gaudi) and returns routing
+backend (OpenVINO CPU, vLLM CPU, vLLM GPU) and returns routing
 metadata alongside the inference result.
 """
 
@@ -123,7 +123,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="Intel-Red Hat AI Inference Gateway",
-    description="Routes inference requests across Xeon 6 CPU and Gaudi GPU backends",
+    description="Routes inference requests across Xeon 6 CPU and GPU backends",
     version="1.0.0",
     lifespan=lifespan,
     dependencies=[Depends(verify_api_key)],
@@ -416,14 +416,14 @@ def _postprocess_result(task: str, result: dict, prompt: str = "") -> dict:
 
 SEARCH_KNOWLEDGE_BASE = [
     {"id": "xeon6-amx", "text": "Intel Xeon 6 processors include Advanced Matrix Extensions (AMX) that accelerate AI inference workloads with hardware-level INT8 and BF16 matrix operations, delivering up to 10x throughput improvement for transformer models."},
-    {"id": "gaudi3-arch", "text": "Intel Gaudi 3 accelerators are purpose-built for deep learning with 128GB HBM2E memory and 24 Tensor Processor Cores, providing 2x throughput improvement for large language model inference."},
+    {"id": "gaudi3-arch", "text": "Intel GPU accelerators are purpose-built for deep learning with 128GB HBM2E memory and 24 Tensor Processor Cores, providing 2x throughput improvement for large language model inference."},
     {"id": "openshift-ai", "text": "Red Hat OpenShift AI integrates KServe for model serving, provides a model registry, supports distributed training, and includes built-in monitoring on heterogeneous Intel hardware."},
     {"id": "kserve", "text": "KServe is a Kubernetes-native model serving framework providing serverless inference with autoscaling, canary deployments, and multi-model serving via custom ServingRuntimes."},
-    {"id": "vllm", "text": "vLLM is a high-throughput inference engine using PagedAttention for efficient memory management, supporting OpenAI-compatible APIs on both Intel CPUs and Gaudi accelerators."},
+    {"id": "vllm", "text": "vLLM is a high-throughput inference engine using PagedAttention for efficient memory management, supporting OpenAI-compatible APIs on both Intel CPUs and GPU accelerators."},
     {"id": "openvino", "text": "OpenVINO Model Server optimizes inference for Intel hardware with INT8 quantization, dynamic batching, and multi-model serving for embedding and reranking workloads on Xeon 6."},
     {"id": "rag", "text": "Retrieval-Augmented Generation combines document retrieval with language model generation to reduce hallucination and ground responses in factual content."},
-    {"id": "routing", "text": "The inference gateway routes requests to optimal hardware based on task type and model size — embeddings to Xeon 6 CPUs for cost efficiency, large model generation to Gaudi accelerators."},
-    {"id": "hybrid", "text": "The hybrid CPU-GPU architecture reduces inference costs by 60-70% compared to GPU-only deployments by splitting workloads between Xeon 6 and Gaudi based on task requirements."},
+    {"id": "routing", "text": "The inference gateway routes requests to optimal hardware based on task type and model size — embeddings to Xeon 6 CPUs for cost efficiency, large model generation to GPU accelerators."},
+    {"id": "hybrid", "text": "The hybrid CPU-GPU architecture reduces inference costs by 60-70% compared to GPU-only deployments by splitting workloads between Xeon 6 and GPU based on task requirements."},
 ]
 
 _search_embeddings_cache: dict = {}
@@ -1479,29 +1479,29 @@ async def validate_content(req: ContentValidateRequest):
 
 GALLERY_POCS = [
     {"id": "intelligent-routing", "title": "Intelligent Hardware Routing", "category": "inference", "status": "live",
-     "description": "Route AI workloads across Intel Xeon 6 and Gaudi based on task complexity, cost, and hardware capability.",
-     "hardware": ["Xeon 6", "Gaudi"], "tags": ["routing", "inference", "cost-optimization"]},
+     "description": "Route AI workloads across Intel Xeon 6 and GPU based on task complexity, cost, and hardware capability.",
+     "hardware": ["Xeon 6", "GPU"], "tags": ["routing", "inference", "cost-optimization"]},
     {"id": "multi-agent-swarm", "title": "Multi-Agent Incident Swarm", "category": "agents", "status": "live",
      "description": "5-8 specialized agents coordinate across Intel hardware to investigate, analyze, and report on incidents.",
-     "hardware": ["Xeon 6", "Gaudi"], "tags": ["agents", "incident-response", "parallel"]},
+     "hardware": ["Xeon 6", "GPU"], "tags": ["agents", "incident-response", "parallel"]},
     {"id": "training-pipeline", "title": "Fine-Tuning on Intel Hardware", "category": "training", "status": "live",
-     "description": "LoRA/QLoRA fine-tuning with hardware benchmarks comparing Xeon 6 vs Gaudi training performance.",
-     "hardware": ["Xeon 6", "Gaudi"], "tags": ["training", "fine-tuning", "lora"]},
+     "description": "LoRA/QLoRA fine-tuning with hardware benchmarks comparing Xeon 6 vs GPU training performance.",
+     "hardware": ["Xeon 6", "GPU"], "tags": ["training", "fine-tuning", "lora"]},
     {"id": "multimodal-inference", "title": "Multimodal Vision-Language", "category": "inference", "status": "live",
-     "description": "Image classification, chart interpretation, and document analysis with vision-language models on Gaudi.",
-     "hardware": ["Gaudi"], "tags": ["multimodal", "vision", "documents"]},
+     "description": "Image classification, chart interpretation, and document analysis with vision-language models on GPU.",
+     "hardware": ["GPU"], "tags": ["multimodal", "vision", "documents"]},
     {"id": "recovery-resilience", "title": "Hardware Failure Recovery", "category": "resilience", "status": "live",
-     "description": "Automatic rerouting when Gaudi goes offline — zero dropped requests, graceful degradation to Xeon 6.",
-     "hardware": ["Xeon 6", "Gaudi"], "tags": ["resilience", "failover", "zero-downtime"]},
+     "description": "Automatic rerouting when GPU goes offline — zero dropped requests, graceful degradation to Xeon 6.",
+     "hardware": ["Xeon 6", "GPU"], "tags": ["resilience", "failover", "zero-downtime"]},
     {"id": "sovereign-cloud", "title": "Sovereign Cloud Deployment", "category": "infrastructure", "status": "planned",
      "description": "Air-gapped deployment model with mirrored images and no external egress for regulated environments.",
-     "hardware": ["Xeon 6", "Gaudi"], "tags": ["sovereign", "air-gap", "compliance"]},
+     "hardware": ["Xeon 6", "GPU"], "tags": ["sovereign", "air-gap", "compliance"]},
     {"id": "tdx-confidential", "title": "Intel TDX Confidential Computing", "category": "security", "status": "planned",
      "description": "Attestation-aware routing with Intel Trust Domain Extensions for partner workload confidentiality.",
      "hardware": ["Xeon 6 + TDX"], "tags": ["tdx", "confidential", "attestation"]},
     {"id": "capacity-virtualization", "title": "Capacity Virtualization", "category": "infrastructure", "status": "in-progress",
      "description": "Per-tenant resource allocation with dynamic capacity planning and auto-scaling recommendations.",
-     "hardware": ["Xeon 6", "Gaudi"], "tags": ["capacity", "quotas", "scaling"]},
+     "hardware": ["Xeon 6", "GPU"], "tags": ["capacity", "quotas", "scaling"]},
 ]
 
 @app.get("/v1/gallery/pocs")

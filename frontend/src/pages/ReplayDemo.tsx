@@ -31,7 +31,7 @@ export default function ReplayDemo() {
           <Content component="p" style={{ maxWidth: '780px', fontSize: '1.05rem' }}>
             What if you ran the same workload with different hardware? This demo replays the same
             25 requests twice: once on Xeon 6 only (no GPU), once with intelligent routing across
-            Xeon 6 + Gaudi. See the difference hardware-aware routing makes.
+            Xeon 6 + GPU. See the difference hardware-aware routing makes.
           </Content>
         </Content>
       </PageSection>
@@ -76,7 +76,7 @@ export default function ReplayDemo() {
               <div style={{ fontSize: '3rem', fontWeight: 700, color: 'var(--rh-color--success)', fontFamily: 'var(--pf-t--global--font--family--mono)' }}>
                 {result.speedup}x
               </div>
-              <div style={{ fontSize: '0.88rem', fontWeight: 600, marginBottom: '8px' }}>faster with Intel Gaudi</div>
+              <div style={{ fontSize: '0.88rem', fontWeight: 600, marginBottom: '8px' }}>faster with Intel GPU</div>
               <div style={{ fontSize: '0.82rem', color: 'var(--rh-color--text-secondary)', maxWidth: '600px', margin: '0 auto' }}>
                 {result.insight}
               </div>

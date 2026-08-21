@@ -75,7 +75,7 @@ class TestPowerReportMarkdown:
         md = generate_markdown_report(_sample_metrics())
         assert "Route Distribution" in md
         assert "Xeon" in md
-        assert "Gaudi" in md
+        assert "GPU" in md
 
     def test_markdown_has_throughput(self):
         from overdrive.power_report import generate_markdown_report

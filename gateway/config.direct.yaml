@@ -1,5 +1,5 @@
 ---
-# Direct-to-model routing — bypasses LiteLLM, hits KServe on Gaudi 3 / CPU
+# Direct-to-model routing — bypasses LiteLLM, hits KServe on GPU / CPU
 # Auth: OCP bearer token (set OCP_TOKEN env var via `oc whoami -t`)
 #
 # IMPORTANT: Update the URLs below with your actual cluster endpoints.
@@ -59,31 +59,31 @@ routes:
       - model_size_b: 15
         operator: "<="
         backend: phi4-gaudi3
-        reason: "Phi-4 14B on Gaudi 3 — fast structured output"
+        reason: "Phi-4 14B on GPU — fast structured output"
       - model_size_b: 15
         operator: ">"
         backend: llama70b-cpu
         reason: "Llama 3.1 70B Q4 on CPU — large model"
     default_backend: deepseek-gaudi3
-    reason: "Default to DeepSeek 14B on Gaudi 3"
+    reason: "Default to DeepSeek 14B on GPU"
     fallback: local
 
   - task: batch_generation
     backend: qwen3-gaudi3
-    reason: "Qwen3 14B on Gaudi 3 — batch throughput"
+    reason: "Qwen3 14B on GPU — batch throughput"
     fallback: deepseek-gaudi3
 
   - task: classification
     backend: phi4-gaudi3
-    reason: "Phi-4 on Gaudi 3 — structured classification"
+    reason: "Phi-4 on GPU — structured classification"
     fallback: local
 
   - task: governance
     backend: phi4-gaudi3
-    reason: "Phi-4 on Gaudi 3 — governance evaluation"
+    reason: "Phi-4 on GPU — governance evaluation"
     fallback: local
 
   - task: policy
     backend: phi4-gaudi3
-    reason: "Phi-4 on Gaudi 3 — policy compliance"
+    reason: "Phi-4 on GPU — policy compliance"
     fallback: local

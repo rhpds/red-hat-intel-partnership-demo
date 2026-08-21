@@ -25,7 +25,7 @@ departments:
     description: "Legal documents, contracts, regulatory compliance"
     model: "deepseek-r1-distill-qwen-14b"
     cost_per_m_input: 0.15
-    reasoning: "Legal precision requires deep reasoning (DeepSeek R1 on Gaudi)"
+    reasoning: "Legal precision requires deep reasoning (DeepSeek R1 on GPU)"
 
   finance:
     label: "Finance"
@@ -33,7 +33,7 @@ departments:
     description: "Financial analysis, budgeting, forecasting"
     model: "qwen3-14b"
     cost_per_m_input: 0.15
-    reasoning: "Financial analysis needs reasoning on Gaudi GPU"
+    reasoning: "Financial analysis needs reasoning on GPU"
 
   security:
     label: "Security"
@@ -41,7 +41,7 @@ departments:
     description: "Cybersecurity, vulnerability management, compliance"
     model: "microsoft-phi-4"
     cost_per_m_input: 0.15
-    reasoning: "Security analysis needs deep reasoning capability (Phi-4 on Gaudi)"
+    reasoning: "Security analysis needs deep reasoning capability (Phi-4 on GPU)"
 
   executive:
     label: "Executive / Strategy"

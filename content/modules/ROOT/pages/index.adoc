@@ -3,7 +3,7 @@
 Welcome to the Intel-Red Hat AI Inference Platform quickstart.
 
 This lab walks you through an enterprise AI inference gateway that intelligently
-routes workloads across Intel Xeon 6 CPUs and Intel Gaudi accelerators, deployed
+routes workloads across Intel Xeon 6 CPUs and Intel GPUs, deployed
 on Red Hat OpenShift AI.
 
 == What You'll Learn
@@ -28,8 +28,8 @@ to select optimal Intel hardware for each request
 |CPU inference with AMX (Advanced Matrix Extensions) for embeddings,
 classification, reranking — fast and cost-efficient
 
-|*Intel Gaudi 3*
-|GPU inference with 128GB HBM for large language model generation — 100+ tokens/sec
+|*Intel GPU*
+|GPU inference with HBM for large language model generation — 100+ tokens/sec
 for 17B+ parameter models
 
 |*Red Hat OpenShift AI*

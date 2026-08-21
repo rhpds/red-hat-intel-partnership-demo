@@ -70,7 +70,7 @@
       ]
     },
     {
-      "title": "Xeon 6 vs Gaudi Traffic Split",
+      "title": "Xeon 6 vs GPU Traffic Split",
       "type": "stat",
       "datasource": "Prometheus",
       "gridPos": { "h": 6, "w": 8, "x": 8, "y": 16 },
@@ -81,7 +81,7 @@
         },
         {
           "expr": "sum(gateway_routing_decisions_total{backend=~\".*gaudi.*\"})",
-          "legendFormat": "Gaudi (GPU)"
+          "legendFormat": "GPU"
         }
       ]
     },

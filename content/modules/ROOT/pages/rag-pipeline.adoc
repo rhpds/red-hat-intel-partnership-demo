@@ -10,7 +10,7 @@ Retrieval-Augmented Generation with multimodal document support and hardware-awa
 | 1. Embed | Convert query to vector | Xeon 6 | nomic-embed-text-v1-5
 | 2. Search | pgvector similarity search | PostgreSQL | —
 | 3. Rerank | Cross-encoder relevance | Xeon 6 | phi3-mini-cpu
-| 4. Generate | Answer from context | Gaudi or Xeon 6 | Auto-routed by model size
+| 4. Generate | Answer from context | GPU or Xeon 6 | Auto-routed by model size
 | 5. Govern | Safety check | Xeon 6 | granite-2b-cpu
 |===
 

@@ -19,21 +19,21 @@ import { api } from '../api/client';
 const MODELS = [
   { key: 'granite-2b-cpu', label: 'Granite 2B', lane: 'Eco', hw: 'Xeon 6', color: 'var(--rh-color--success)', bg: 'var(--rh-color--success-bg)', labelColor: 'green' as const },
   { key: 'phi3-mini-cpu', label: 'Phi-3 Mini', lane: 'Performance', hw: 'Xeon 6', color: 'var(--rh-color--xeon6)', bg: 'var(--rh-color--xeon6-bg)', labelColor: 'blue' as const },
-  { key: 'deepseek-r1-distill-qwen-14b', label: 'DeepSeek R1 14B', lane: 'Overdrive', hw: 'Gaudi', color: 'var(--rh-color--gaudi)', bg: 'var(--rh-color--gaudi-bg)', labelColor: 'orange' as const },
+  { key: 'deepseek-r1-distill-qwen-14b', label: 'DeepSeek R1 14B', lane: 'Overdrive', hw: 'GPU', color: 'var(--rh-color--gaudi)', bg: 'var(--rh-color--gaudi-bg)', labelColor: 'orange' as const },
 ];
 
 const THRESHOLDS = [
   { max: 4000, lane: 'Eco', hw: 'Xeon 6', color: 'var(--rh-color--success)' },
   { max: 16000, lane: 'Performance', hw: 'Xeon 6', color: 'var(--rh-color--xeon6)' },
-  { max: 64000, lane: 'Overdrive', hw: 'Gaudi', color: 'var(--rh-color--gaudi)' },
+  { max: 64000, lane: 'Overdrive', hw: 'GPU', color: 'var(--rh-color--gaudi)' },
 ];
 
 const MAX_TEXT_LENGTH = 5000;
 
 const PRESETS = [
   { label: 'Short', text: 'Classify this support ticket as urgent or routine.' },
-  { label: 'Medium', text: 'The monitoring system detected elevated p99 latency on the inference gateway pods in the production namespace. The average response time increased from 850ms to 4,200ms over the last 15 minutes. CPU utilization on the Xeon 6 worker nodes is at 78% while Gaudi accelerator memory usage remains stable at 42%. No pod restarts or OOM events have been recorded. The issue correlates with a 3x increase in batch generation requests from the analytics pipeline.' },
-  { label: 'Long', text: 'Incident Report: Production Inference Gateway Degradation\n\nSummary: At 14:23 UTC, the AI inference gateway began routing all requests to the CPU-only eco lane after the Gaudi accelerator nodes reported high memory pressure. This caused a cascade of latency increases as large language model requests (17B+ parameters) that normally run on Gaudi were forced onto Xeon 6 hardware.\n\nTimeline:\n- 14:23 UTC: Gaudi node memory utilization exceeded 95% threshold\n- 14:24 UTC: Overdrive lane health check failed, routing engine activated fallback rules\n- 14:25 UTC: Performance lane received 4x normal traffic volume\n- 14:28 UTC: p99 latency crossed 10,000ms SLA threshold\n- 14:32 UTC: On-call engineer acknowledged alert and began investigation\n- 14:45 UTC: Root cause identified — a batch summarization job consumed all available HBM\n- 14:48 UTC: Batch job terminated, Gaudi memory freed\n- 14:50 UTC: Overdrive lane restored, latency returned to baseline\n\nRoot Cause: An unthrottled batch summarization workload consumed all 96GB of HBM on the Gaudi accelerator, preventing new inference requests from being scheduled. The batch job lacked resource limits and was not subject to the admission controller\'s token budget.\n\nImpact: 27 minutes of degraded inference performance. 142 requests experienced latency above SLA. Zero requests were dropped due to graceful fallback routing.\n\nAction Items:\n1. Add resource limits to batch generation workloads\n2. Implement token budget admission controller for Gaudi lane\n3. Add HBM utilization alert at 80% threshold\n4. Review fallback routing capacity planning for sustained failover scenarios' },
+  { label: 'Medium', text: 'The monitoring system detected elevated p99 latency on the inference gateway pods in the production namespace. The average response time increased from 850ms to 4,200ms over the last 15 minutes. CPU utilization on the Xeon 6 worker nodes is at 78% while GPU accelerator memory usage remains stable at 42%. No pod restarts or OOM events have been recorded. The issue correlates with a 3x increase in batch generation requests from the analytics pipeline.' },
+  { label: 'Long', text: 'Incident Report: Production Inference Gateway Degradation\n\nSummary: At 14:23 UTC, the AI inference gateway began routing all requests to the CPU-only eco lane after the GPU accelerator nodes reported high memory pressure. This caused a cascade of latency increases as large language model requests (17B+ parameters) that normally run on GPU were forced onto Xeon 6 hardware.\n\nTimeline:\n- 14:23 UTC: GPU node memory utilization exceeded 95% threshold\n- 14:24 UTC: Overdrive lane health check failed, routing engine activated fallback rules\n- 14:25 UTC: Performance lane received 4x normal traffic volume\n- 14:28 UTC: p99 latency crossed 10,000ms SLA threshold\n- 14:32 UTC: On-call engineer acknowledged alert and began investigation\n- 14:45 UTC: Root cause identified — a batch summarization job consumed all available HBM\n- 14:48 UTC: Batch job terminated, GPU memory freed\n- 14:50 UTC: Overdrive lane restored, latency returned to baseline\n\nRoot Cause: An unthrottled batch summarization workload consumed all 96GB of HBM on the GPU accelerator, preventing new inference requests from being scheduled. The batch job lacked resource limits and was not subject to the admission controller\'s token budget.\n\nImpact: 27 minutes of degraded inference performance. 142 requests experienced latency above SLA. Zero requests were dropped due to graceful fallback routing.\n\nAction Items:\n1. Add resource limits to batch generation workloads\n2. Implement token budget admission controller for GPU lane\n3. Add HBM utilization alert at 80% threshold\n4. Review fallback routing capacity planning for sustained failover scenarios' },
 ];
 
 interface ModelResult {
@@ -99,7 +99,7 @@ export default function Tokenizer() {
           <Content component="p" style={{ maxWidth: '780px', fontSize: '1.05rem' }}>
             Text gets split into tokens — small chunks the model processes. More tokens means
             higher cost. Different models split the same text differently. Token count is the
-            trigger that decides whether Intel Xeon 6 or Gaudi handles the request.
+            trigger that decides whether Intel Xeon 6 or GPU handles the request.
           </Content>
         </Content>
       </PageSection>
@@ -313,8 +313,8 @@ export default function Tokenizer() {
               return (
                 <Alert variant="info" isInline title="Cost insight">
                   Running this text on Xeon 6 (Eco) costs ${xeonCost.toFixed(4)} vs ${gaudiCost.toFixed(4)} on
-                  Gaudi — {savings}% savings. The routing engine sends small workloads to Xeon 6 automatically,
-                  reserving Gaudi for tasks that need its memory bandwidth and throughput.
+                  GPU — {savings}% savings. The routing engine sends small workloads to Xeon 6 automatically,
+                  reserving GPU for tasks that need its memory bandwidth and throughput.
                 </Alert>
               );
             })()}
@@ -360,7 +360,7 @@ export default function Tokenizer() {
                             Xeon 6 (Perf)
                           </th>
                           <th style={{ textAlign: 'right', padding: '10px 12px', fontWeight: 700, color: 'var(--rh-color--gaudi)' }}>
-                            Gaudi
+                            GPU
                           </th>
                           <th style={{ textAlign: 'right', padding: '10px 12px', fontWeight: 700 }}>
                             Smart Routing Savings
@@ -372,10 +372,10 @@ export default function Tokenizer() {
                           const ecoCost = eco.cost_estimate * s.count;
                           const perfCost = perf.cost_estimate * s.count;
                           const gaudiCost = gaudi.cost_estimate * s.count;
-                          const allGaudiCost = gaudiCost;
+                          const allGPUCost = gaudiCost;
                           const smartCost = ecoCost;
-                          const saved = allGaudiCost - smartCost;
-                          const savedPct = allGaudiCost > 0 ? (saved / allGaudiCost * 100).toFixed(0) : '0';
+                          const saved = allGPUCost - smartCost;
+                          const savedPct = allGPUCost > 0 ? (saved / allGPUCost * 100).toFixed(0) : '0';
                           return (
                             <tr key={s.label} style={{ borderBottom: '1px solid var(--rh-color--border)' }}>
                               <td style={{ padding: '10px 12px', fontWeight: 600 }}>{s.label}</td>
@@ -402,10 +402,10 @@ export default function Tokenizer() {
                   </div>
 
                   <Alert variant="success" isInline style={{ marginTop: '1rem', maxWidth: '800px' }} title="Why smart routing matters at scale">
-                    If every request ran on Gaudi regardless of complexity, {scales[3].label.toLowerCase()} of
+                    If every request ran on GPU regardless of complexity, {scales[3].label.toLowerCase()} of
                     this text would cost {fmt(gaudi.cost_estimate * 1_000_000)}. With intelligent routing sending
                     small workloads to Xeon 6, the same volume costs {fmt(eco.cost_estimate * 1_000_000)} — saving{' '}
-                    {fmt((gaudi.cost_estimate - eco.cost_estimate) * 1_000_000)} per million requests. Gaudi is
+                    {fmt((gaudi.cost_estimate - eco.cost_estimate) * 1_000_000)} per million requests. GPU is
                     reserved for workloads that actually need its memory bandwidth and throughput.
                   </Alert>
                 </>

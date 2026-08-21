@@ -28,7 +28,7 @@ export default function Overview() {
             Enterprise AI Inference Platform
           </Content>
           <Content component={"p"} style={{ fontSize: '1.15rem', maxWidth: '720px', color: 'var(--pf-t--global--text--color--subtle)' }}>
-            Intel Xeon 6 handles fast, small AI tasks cheaply. Intel Gaudi powers large models
+            Intel Xeon 6 handles fast, small AI tasks cheaply. Intel GPU powers large models
             at scale. One gateway decides which hardware runs each request — and explains every decision.
           </Content>
           <Split hasGutter style={{ marginTop: '1.5rem' }}>
@@ -77,13 +77,13 @@ export default function Overview() {
           <GalleryItem>
             <Card isFullHeight>
               <CardTitle>
-                <Label color="orange" style={{ marginRight: '0.5rem' }}>Intel Gaudi</Label>
+                <Label color="orange" style={{ marginRight: '0.5rem' }}>Intel GPU</Label>
                 Large Model Generation
               </CardTitle>
               <CardBody>
                 <Content>
                   <Content component={"p"}>
-                    Large language models (17B+ parameters) need GPU memory bandwidth. Intel Gaudi
+                    Large language models (17B+ parameters) need GPU memory bandwidth. Intel GPU
                     delivers 100+ tokens/sec generation with 128GB HBM — 10-20x faster than CPU for
                     tasks that demand sustained token generation.
                   </Content>
@@ -133,7 +133,7 @@ export default function Overview() {
             Red Hat OpenShift AI provides the platform that makes this possible at enterprise
             scale — KServe for model serving, operators for lifecycle management, namespace
             isolation for multi-tenant access, and a full observability stack. Intel provides
-            the hardware diversity: Xeon 6 for cost-efficient inference, Gaudi for
+            the hardware diversity: Xeon 6 for cost-efficient inference, GPU for
             high-throughput generation. The routing engine is the bridge between them.
           </Content>
         </Content>
@@ -141,7 +141,7 @@ export default function Overview() {
         <Gallery hasGutter minWidths={{ default: '250px' }} style={{ marginTop: '0.5rem' }}>
           {[
             { num: '1', title: 'Architecture', desc: 'See the platform stack — Intel hardware, Red Hat OpenShift AI, and the routing engine that bridges them.', path: '/architecture' },
-            { num: '2', title: 'Routing Engine', desc: 'Route a request. See the rubric evaluation, lane selection, and why Xeon 6 or Gaudi was chosen.', path: '/overdrive' },
+            { num: '2', title: 'Routing Engine', desc: 'Route a request. See the rubric evaluation, lane selection, and why Xeon 6 or GPU was chosen.', path: '/overdrive' },
             { num: '3', title: 'Try It Live', desc: 'Run RAG, AIOps, and Agent workflows. Watch each step route to the right hardware in real time.', path: '/try-it' },
             { num: '4', title: 'Run at Scale', desc: 'Simulate 25–1,000 requests. See cost savings from intelligent routing vs. GPU-only.', path: '/workload' },
           ].map((step) => (

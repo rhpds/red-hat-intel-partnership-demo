@@ -6,7 +6,7 @@ Demonstrates the full inference continuum:
   1. Embed query on Xeon 6 (OpenVINO, AMX-accelerated)
   2. Vector search (simulated — would use a real vector DB)
   3. Rerank candidates on Xeon 6 (OpenVINO, cross-encoder)
-  4. Generate answer on Gaudi (vLLM, large LLM)
+  4. Generate answer on GPU (vLLM, large LLM)
 
 Every step routes through the inference gateway.
 The response includes a full routing trace showing
@@ -26,7 +26,7 @@ MOCK_MODE = False
 SAMPLE_DOCS = [
     {"id": 1, "text": "OpenShift AI provides a platform for training and serving ML models on Kubernetes with support for GPUs and accelerators."},
     {"id": 2, "text": "Intel Xeon 6 processors include AMX (Advanced Matrix Extensions) which accelerate INT8 and BF16 inference workloads natively on CPU."},
-    {"id": 3, "text": "Intel Gaudi accelerators provide high-bandwidth memory and tensor processing cores optimized for transformer model inference."},
+    {"id": 3, "text": "Intel GPU accelerators provide high-bandwidth memory and tensor processing cores optimized for transformer model inference."},
     {"id": 4, "text": "KServe enables serverless model serving on Kubernetes with autoscaling, canary deployments, and multi-framework support."},
     {"id": 5, "text": "The vLLM inference engine uses PagedAttention for efficient memory management during LLM serving."},
     {"id": 6, "text": "OpenVINO Model Server supports ONNX and OpenVINO IR model formats with automatic hardware optimization."},
@@ -37,7 +37,7 @@ SAMPLE_DOCS = [
 MOCK_RESPONSES = {
     "embeddings": {"routing": {"selected_backend": "openvino-cpu", "accelerator": "xeon6", "reason": "Embeddings are compute-bound, AMX-accelerated on Xeon 6", "latency_ms": 4.2, "cost_estimate_per_1k_tokens": 0.001, "task": "embeddings"}, "result": {"data": [{"embedding": [0.1]*384}]}},
     "reranking": {"routing": {"selected_backend": "openvino-cpu", "accelerator": "xeon6", "reason": "Reranking is latency-sensitive, CPU avoids GPU queue contention", "latency_ms": 8.1, "cost_estimate_per_1k_tokens": 0.001, "task": "reranking"}, "result": {"scores": [0.9, 0.7, 0.3]}},
-    "completion": {"routing": {"selected_backend": "vllm-gaudi", "accelerator": "gaudi", "reason": "Large models (> 3B) need Gaudi HBM and tensor acceleration", "latency_ms": 1200, "cost_estimate_per_1k_tokens": 0.008, "task": "completion"}, "result": {"choices": [{"text": "Intel Xeon 6 processors accelerate AI inference through Advanced Matrix Extensions (AMX), which provide hardware-level acceleration for INT8 and BF16 matrix operations. This enables 2-4x speedup for inference workloads on CPU without requiring dedicated GPU hardware."}]}},
+    "completion": {"routing": {"selected_backend": "vllm-gaudi", "accelerator": "gaudi", "reason": "Large models (> 3B) need GPU HBM and tensor acceleration", "latency_ms": 1200, "cost_estimate_per_1k_tokens": 0.008, "task": "completion"}, "result": {"choices": [{"text": "Intel Xeon 6 processors accelerate AI inference through Advanced Matrix Extensions (AMX), which provide hardware-level acceleration for INT8 and BF16 matrix operations. This enables 2-4x speedup for inference workloads on CPU without requiring dedicated GPU hardware."}]}},
 }
 
 
@@ -141,7 +141,7 @@ def run_rag(query: str, verbose: bool = False):
     trace.append(rerank_result)
     print(f"      -> {rerank_result['backend']} ({rerank_result['latency_ms']:.0f}ms)")
 
-    print("[4/4] Generating answer on Gaudi (vLLM)...")
+    print("[4/4] Generating answer on GPU (vLLM)...")
     gen_result = step_generate(query, rerank_result["top_docs"])
     trace.append(gen_result)
     print(f"      -> {gen_result['backend']} ({gen_result['latency_ms']:.0f}ms)")
@@ -156,7 +156,7 @@ def run_rag(query: str, verbose: bool = False):
     print(f"  Step 2 (search):   {'local':>8}  in-memory")
     print(f"  Step 3 (rerank):   {trace[2]['accelerator']:>8}  {trace[2]['backend']}")
     print(f"  Step 4 (generate): {trace[3]['accelerator']:>8}  {trace[3]['backend']}")
-    print(f"\n  Total: {total_ms:.0f}ms | Xeon 6 handled 3/4 steps | Gaudi handled generation")
+    print(f"\n  Total: {total_ms:.0f}ms | Xeon 6 handled 3/4 steps | GPU handled generation")
 
     if verbose:
         print(f"\nFull trace:")

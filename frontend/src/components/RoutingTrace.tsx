@@ -26,7 +26,7 @@ const HARDWARE_COLORS: Record<string, 'blue' | 'orange' | 'grey' | 'purple'> = {
 
 const HARDWARE_LABELS: Record<string, string> = {
   xeon6: 'Xeon 6',
-  gaudi: 'Gaudi',
+  gaudi: 'GPU',
   postgresql: 'pgvector',
   local: 'Local',
   auto: 'Auto',
@@ -69,7 +69,7 @@ export default function RoutingTrace({ steps, onSwitchHardware }: Props) {
             <Split hasGutter>
               <SplitItem>
                 <Button variant="link" size="sm" onClick={() => onSwitchHardware(step.step, step.hardware === 'gaudi' ? 'xeon6' : 'gaudi')}>
-                  <SyncAltIcon /> Switch to {step.hardware === 'gaudi' ? 'Xeon 6' : 'Gaudi'}
+                  <SyncAltIcon /> Switch to {step.hardware === 'gaudi' ? 'Xeon 6' : 'GPU'}
                 </Button>
               </SplitItem>
             </Split>

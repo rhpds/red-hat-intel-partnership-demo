@@ -47,8 +47,8 @@ handled your request.
 Use the model selector to switch between models:
 
 * *granite-2b-cpu* — fast responses on Xeon 6 (simple questions)
-* *qwen3-14b* — deeper reasoning on Gaudi 3 (complex analysis)
-* *deepseek-r1-distill-qwen-14b* — strong reasoning on Gaudi 3
+* *qwen3-14b* — deeper reasoning on GPU (complex analysis)
+* *deepseek-r1-distill-qwen-14b* — strong reasoning on GPU
 
 Notice how latency and response quality change with each model.
 
@@ -67,19 +67,19 @@ department and selects the optimal model automatically:
 
 |Engineering
 |"Debug the Kafka consumer error"
-|qwen3-14b (Gaudi 3)
+|qwen3-14b (GPU)
 
 |Legal
 |"Review this NDA for liability issues"
-|deepseek-r1-distill-qwen-14b (Gaudi 3)
+|deepseek-r1-distill-qwen-14b (GPU)
 
 |Finance
 |"Forecast Q3 revenue from this data"
-|qwen3-14b (Gaudi 3)
+|qwen3-14b (GPU)
 
 |Security
 |"Assess this CVE for our infrastructure"
-|microsoft-phi-4 (Gaudi 3)
+|microsoft-phi-4 (GPU)
 
 |Executive
 |"Summarize our competitive positioning"

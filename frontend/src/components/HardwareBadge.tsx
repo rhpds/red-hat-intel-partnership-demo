@@ -9,7 +9,7 @@ const colors: Record<string, 'blue' | 'orange' | 'grey'> = {
 
 const labels: Record<string, string> = {
   xeon6: 'Xeon 6',
-  gaudi: 'Gaudi',
+  gaudi: 'GPU',
   local: 'Local',
 };
 

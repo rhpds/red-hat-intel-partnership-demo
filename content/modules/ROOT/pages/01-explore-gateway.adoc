@@ -40,7 +40,7 @@ Observe:
 * Cost estimate is shown for the selected hardware
 
 Now try changing the task to `long_summary` with 24,000 tokens at `high`
-priority. Watch it route to *Overdrive Lane* (Intel Gaudi).
+priority. Watch it route to *Overdrive Lane* (Intel GPU).
 
 == Step 4: Test Failover
 
@@ -48,7 +48,7 @@ Scroll to *Step 1: See Your Infrastructure*.
 
 Toggle the *Overdrive* lane switch to *Unhealthy*.
 
-Now route a request that would normally go to Gaudi (e.g., `incident_rca`,
+Now route a request that would normally go to GPU (e.g., `incident_rca`,
 32,000 tokens, `critical` priority). Observe that it falls back to the
 *Performance Lane* (Xeon 6) with a `fallback_to_performance` reason code.
 

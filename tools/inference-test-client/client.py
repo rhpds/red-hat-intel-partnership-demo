@@ -2,7 +2,7 @@
 """
 Inference Test Client
 
-Tests AI inference services (both CPU and Gaudi paths) and measures performance metrics.
+Tests AI inference services (both CPU and GPU paths) and measures performance metrics.
 
 Usage:
     python client.py --url http://service-url --prompt "Hello world"

@@ -16,13 +16,13 @@ Question: "How does Xeon 6 accelerate AI?"
     |
 [3] Rerank candidates > Xeon 6 / OpenVINO (cross-encoder, <10ms)
     |
-[4] Generate answer ──> Gaudi / vLLM (7B+ LLM, <2s)
+[4] Generate answer ──> GPU / vLLM (7B+ LLM, <2s)
     |
     v
 Answer with citations + routing trace
 ```
 
-Xeon 6 handles 3 of 4 stages. Gaudi only activates for the heavyweight generation step. The gateway returns full routing metadata showing which hardware was selected and why.
+Xeon 6 handles 3 of 4 stages. GPU only activates for the heavyweight generation step. The gateway returns full routing metadata showing which hardware was selected and why.
 
 ## Run
 
@@ -40,5 +40,5 @@ python3 app.py --query "Explain model quantization" --json
 ## Partner Message
 
 > "You don't need GPU for every AI step. Xeon 6 handles embeddings, classification,
-> and reranking at wire speed. Gaudi activates only when you need it.
+> and reranking at wire speed. GPU activates only when you need it.
 > Red Hat OpenShift AI orchestrates the whole thing."

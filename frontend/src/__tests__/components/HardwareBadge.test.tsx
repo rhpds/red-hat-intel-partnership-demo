@@ -8,9 +8,9 @@ describe('HardwareBadge', () => {
     expect(screen.getByText('Xeon 6')).toBeTruthy();
   });
 
-  it('renders Gaudi for gaudi accelerator', () => {
+  it('renders GPU for gaudi accelerator', () => {
     render(<HardwareBadge accelerator="gaudi" />);
-    expect(screen.getByText('Gaudi')).toBeTruthy();
+    expect(screen.getByText('GPU')).toBeTruthy();
   });
 
   it('renders Local for local accelerator', () => {

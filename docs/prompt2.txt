@@ -53,7 +53,7 @@ The system should support three initial inference lanes:
    - expected: higher throughput than eco
 
 3. overdrive
-   - target: Gaudi/vLLM-style route or mock accelerator endpoint
+   - target: GPU/vLLM-style route or mock accelerator endpoint
    - use: long summaries, batch generation, high token estimate
    - expected: high throughput / heavy generation path
 

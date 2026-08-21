@@ -12,7 +12,7 @@ help:
 	@echo "  make test-all          - Run all tests (regression suite)"
 	@echo "  make test-stage-0      - Test Stage 0: Test Infrastructure"
 	@echo "  make test-stage-1      - Test Stage 1: CPU Inference Path"
-	@echo "  make test-stage-2      - Test Stage 2: Gaudi Inference Path"
+	@echo "  make test-stage-2      - Test Stage 2: GPU Inference Path"
 	@echo "  make test-stage-3      - Test Stage 3: Demo Client"
 	@echo "  make test-stage-4      - Test Stage 4: Discovery Tooling"
 	@echo ""
@@ -74,10 +74,10 @@ test-stage-1: install
 	@echo ""
 	@echo "Stage 1 tests complete. Check validation matrix for pass/fail."
 
-# Stage 2: Gaudi Inference Path
+# Stage 2: GPU Inference Path
 test-stage-2: install
 	@echo "========================================="
-	@echo "Testing Stage 2: Gaudi Inference Path"
+	@echo "Testing Stage 2: GPU Inference Path"
 	@echo "========================================="
 	@echo "Running container tests..."
 	$(PYTEST) $(PYTEST_ARGS) tests/test_vllm_gaudi_container.py

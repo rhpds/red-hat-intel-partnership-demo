@@ -570,7 +570,7 @@ export default function LiveWorkflow({ title, subtitle, steps, prompt, runTrigge
 
                 {/* Hardware badge */}
                 <Label color={isDone ? hw.labelColor : 'grey'} isCompact style={{ flexShrink: 0 }}>
-                  {isDone && r.backend ? r.backend : step.hw === 'xeon6' ? 'Xeon 6' : step.hw === 'gaudi' ? 'Gaudi' : 'Local'}
+                  {isDone && r.backend ? r.backend : step.hw === 'xeon6' ? 'Xeon 6' : step.hw === 'gaudi' ? 'GPU' : 'Local'}
                 </Label>
 
                 {/* Latency */}
@@ -638,7 +638,7 @@ export default function LiveWorkflow({ title, subtitle, steps, prompt, runTrigge
         display: 'flex', justifyContent: 'space-between',
       }}>
         <span>
-          {xeonCount} on Xeon 6 &middot; {gaudiCount} on Gaudi{localCount > 0 ? ` · ${localCount} local` : ''}
+          {xeonCount} on Xeon 6 &middot; {gaudiCount} on GPU{localCount > 0 ? ` · ${localCount} local` : ''}
         </span>
         <span style={{ fontWeight: 600 }}>
           {allDone ? `Total: ${Math.round(totalMs)}ms` : running ? 'Running...' : ''}

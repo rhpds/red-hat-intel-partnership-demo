@@ -18,11 +18,11 @@ export default function Architecture() {
         <Content>
           <Content component="h1">Platform Architecture</Content>
           <Content component="p" style={{ maxWidth: '720px' }}>
-            This platform combines Red Hat OpenShift AI with Intel Xeon 6 and Gaudi hardware
-            to deliver enterprise AI inference with intelligent, cost-aware routing. Red Hat
-            provides the platform — OpenShift Container Platform, KServe model serving, operator
-            lifecycle management, multi-tenant isolation, and observability. Intel provides
-            two complementary hardware tiers. The routing engine bridges them.
+            This platform combines Red Hat OpenShift AI with Intel Xeon 6 (CPU) and Intel GPU
+            hardware to deliver enterprise AI inference with intelligent, cost-aware routing.
+            Red Hat provides the platform — OpenShift Container Platform, KServe model serving,
+            operator lifecycle management, multi-tenant isolation, and observability. Intel
+            provides two complementary hardware tiers. The routing engine bridges them.
           </Content>
         </Content>
       </PageSection>
@@ -35,7 +35,7 @@ export default function Architecture() {
             { label: 'Routing Engine', detail: 'Task evaluation · Hardware selection · Cost optimization · Decision logging', color: '#f0ab00' },
             { label: 'Red Hat OpenShift AI', detail: 'KServe model serving · ModelMesh · Data Science Pipelines · Workbenches', color: '#ee0000' },
             { label: 'Red Hat OpenShift Platform', detail: 'Operators · Keycloak SSO · ArgoCD GitOps · Prometheus · Namespace isolation', color: '#ee0000' },
-            { label: 'Intel Hardware', detail: 'Xeon 6 (AMX) — embeddings, classification · Gaudi (HBM) — large model generation', color: '#0071c5' },
+            { label: 'Intel Hardware', detail: 'Xeon 6 (AMX) — embeddings, classification · GPU (HBM) — large model generation', color: '#0071c5' },
           ].map((layer, i) => (
             <div key={i} style={{ background: layer.color, color: '#fff', padding: '0.75rem 1rem', borderRadius: i === 0 ? '6px 6px 0 0' : i === 4 ? '0 0 6px 6px' : '0' }}>
               <strong>{layer.label}</strong>
@@ -64,7 +64,7 @@ export default function Architecture() {
             Real AI pipelines aren't single-step. A RAG pipeline embeds a query, searches a
             knowledge base, reranks candidates, then generates an answer. Each step has
             fundamentally different compute needs. Embeddings are small and fast — ideal for
-            Xeon 6. Generation requires sustained memory bandwidth — ideal for Gaudi.
+            Xeon 6. Generation requires sustained memory bandwidth — ideal for GPU.
           </Content>
           <Content component="p" style={{ maxWidth: '720px', marginBottom: '1rem' }}>
             Without intelligent routing, enterprises either overpay (running everything on GPUs)
@@ -128,7 +128,7 @@ export default function Architecture() {
           <Content component="h3">The Partnership</Content>
           <Content component="p" style={{ maxWidth: '720px' }}>
             Intel provides the hardware diversity that makes cost-aware routing possible — Xeon 6
-            for efficient inference, Gaudi for high-throughput generation. Red Hat provides the
+            for efficient inference, GPU for high-throughput generation. Red Hat provides the
             enterprise platform that makes it operational — OpenShift for container orchestration,
             KServe for model serving, operators for lifecycle management, and namespace isolation
             for multi-tenant delivery. The routing engine ties them together: every response

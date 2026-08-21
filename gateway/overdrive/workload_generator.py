@@ -9,14 +9,14 @@ MULTIMODAL_DEMO_ASSETS = {
     "screenshot": [
         {"url": "/demo-assets/dashboard-latency-spike.svg", "title": "Inference Gateway Latency Spike", "description": "Grafana dashboard showing p99 latency spike from 200ms to 4,500ms with correlated error rate increase."},
         {"url": "/demo-assets/error-rate-dashboard.svg", "title": "Error Rate Monitor", "description": "HTTP 502 error tracking with affected services and incident timeline."},
-        {"url": "/demo-assets/chart-throughput-comparison.svg", "title": "Throughput vs Utilization", "description": "24-hour throughput chart showing Gaudi utilization correlation with request volume."},
+        {"url": "/demo-assets/chart-throughput-comparison.svg", "title": "Throughput vs Utilization", "description": "24-hour throughput chart showing GPU utilization correlation with request volume."},
     ],
     "diagram": [
-        {"url": "/demo-assets/architecture-dual-path.svg", "title": "Dual-Path Routing Architecture", "description": "Three-lane routing diagram: Eco (Xeon 6), Performance (Xeon 6 + AMX), Overdrive (Gaudi)."},
+        {"url": "/demo-assets/architecture-dual-path.svg", "title": "Dual-Path Routing Architecture", "description": "Three-lane routing diagram: Eco (Xeon 6), Performance (Xeon 6 + AMX), Overdrive (GPU)."},
     ],
     "image": [
-        {"url": "/demo-assets/gaudi-accelerator-card.svg", "title": "Intel Gaudi 3 Accelerator", "description": "Intel Gaudi 3 HL-325 PCIe card with 128GB HBM2E and 24 Tensor Cores."},
-        {"url": "/demo-assets/server-rack-xeon6.svg", "title": "2U Rack Server — Xeon 6 + Gaudi", "description": "Rack-mounted servers with CPU worker node and Gaudi worker node."},
+        {"url": "/demo-assets/gaudi-accelerator-card.svg", "title": "Intel GPU Accelerator", "description": "Intel GPU HL-325 PCIe card with 128GB HBM2E and 24 Tensor Cores."},
+        {"url": "/demo-assets/server-rack-xeon6.svg", "title": "2U Rack Server — Xeon 6 + GPU", "description": "Rack-mounted servers with CPU worker node and GPU worker node."},
     ],
     "document": [
         {"url": "/demo-assets/architecture-dual-path.svg", "title": "Platform Architecture Document", "description": "15-page technical architecture document with embedded diagrams."},

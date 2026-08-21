@@ -98,7 +98,7 @@ export default function PublishingHouse() {
                 </div>
                 <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', marginBottom: '6px' }}>
                   {item.hardware.map(hw => (
-                    <Label key={hw} isCompact color={hw.includes('Gaudi') ? 'orange' : hw.includes('TDX') ? 'purple' : 'blue'}>{hw}</Label>
+                    <Label key={hw} isCompact color={hw.includes('GPU') ? 'orange' : hw.includes('TDX') ? 'purple' : 'blue'}>{hw}</Label>
                   ))}
                 </div>
                 <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>

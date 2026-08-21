@@ -137,7 +137,7 @@ class TestVisualizationComponents:
     def test_request_flow_shows_both_tiers(self, frontend_dir):
         content = (frontend_dir / "components" / "RequestFlowDiagram.tsx").read_text()
         assert 'Xeon 6' in content, "Should show Xeon 6 tier"
-        assert 'Gaudi' in content, "Should show Gaudi tier"
+        assert 'GPU' in content, "Should show GPU tier"
 
     def test_workflow_diagrams_exists(self, frontend_dir):
         assert (frontend_dir / "components" / "WorkflowDiagrams.tsx").exists()
@@ -155,12 +155,12 @@ class TestVisualizationComponents:
     def test_hardware_badge_exists(self, frontend_dir):
         assert (frontend_dir / "components" / "HardwareBadge.tsx").exists()
 
-    def test_hardware_badge_has_xeon_and_gaudi(self, frontend_dir):
+    def test_hardware_badge_has_xeon_and_gpu(self, frontend_dir):
         content = (frontend_dir / "components" / "HardwareBadge.tsx").read_text()
         assert 'xeon6' in content
         assert 'gaudi' in content
         assert 'Xeon 6' in content
-        assert 'Gaudi' in content
+        assert 'GPU' in content
 
 
 class TestRAGPipeline:

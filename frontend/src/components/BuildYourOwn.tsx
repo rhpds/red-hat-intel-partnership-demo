@@ -37,7 +37,7 @@ function predictRoute(task: string, modelSize: number): { backend: string; hw: s
   if (task === 'classification') return { backend: 'litellm-cpu', hw: 'xeon6', reason: 'granite-2b-cpu on Xeon 6 — fast classification' };
   if (task === 'reranking') return { backend: 'litellm-cpu', hw: 'xeon6', reason: 'phi3-mini on Xeon 6 — cross-encoder reranking' };
   if (task === 'completion' && modelSize <= 8) return { backend: 'litellm-cpu', hw: 'xeon6', reason: `${modelSize}B model on Xeon 6 — CPU-efficient with AMX` };
-  return { backend: 'litellm-gpu', hw: 'gaudi', reason: `${modelSize}B model on Gaudi — needs HBM and tensor cores` };
+  return { backend: 'litellm-gpu', hw: 'gaudi', reason: `${modelSize}B model on GPU — needs HBM and tensor cores` };
 }
 
 export default function BuildYourOwn() {
@@ -112,7 +112,7 @@ export default function BuildYourOwn() {
         <CardBody>
           <Content component="p" style={{ marginBottom: '1rem', color: 'var(--pf-t--global--text--color--subtle)' }}>
             Pick a task and a model size. Watch how the routing decision changes — lightweight
-            tasks stay on Xeon 6, heavy models route to Gaudi. This is intelligent routing in action.
+            tasks stay on Xeon 6, heavy models route to GPU. This is intelligent routing in action.
           </Content>
 
           {/* Task selector */}
@@ -146,7 +146,7 @@ export default function BuildYourOwn() {
               <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                 {SIZE_MARKS.map(m => {
                   const isSelected = modelSize === m.value;
-                  const isGaudi = m.value > 8;
+                  const isGPU = m.value > 8;
                   return (
                     <button
                       key={m.value}
@@ -155,8 +155,8 @@ export default function BuildYourOwn() {
                       style={{
                         padding: '8px 20px',
                         borderRadius: '6px',
-                        border: `2px solid ${isSelected ? (isGaudi ? 'var(--rh-color--gaudi)' : 'var(--rh-color--xeon6)') : 'var(--rh-color--border)'}`,
-                        background: isSelected ? (isGaudi ? 'var(--rh-color--gaudi-bg)' : 'var(--rh-color--xeon6-bg)') : 'var(--rh-color--surface)',
+                        border: `2px solid ${isSelected ? (isGPU ? 'var(--rh-color--gaudi)' : 'var(--rh-color--xeon6)') : 'var(--rh-color--border)'}`,
+                        background: isSelected ? (isGPU ? 'var(--rh-color--gaudi-bg)' : 'var(--rh-color--xeon6-bg)') : 'var(--rh-color--surface)',
                         cursor: 'pointer',
                         fontWeight: isSelected ? 700 : 400,
                         fontSize: '0.9rem',
@@ -171,7 +171,7 @@ export default function BuildYourOwn() {
               <Content component="small" style={{ display: 'block', marginTop: '8px', color: 'var(--pf-t--global--text--color--subtle)' }}>
                 {SIZE_MARKS.find(m => m.value === modelSize)?.model || ''} — {modelSize <= 8
                   ? `routes to Xeon 6 (≤ 8B threshold)`
-                  : `routes to Gaudi (> 8B threshold)`}
+                  : `routes to GPU (> 8B threshold)`}
               </Content>
             </div>
           )}

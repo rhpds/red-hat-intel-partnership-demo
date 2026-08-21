@@ -32,12 +32,12 @@ class TestReplayComparison:
         result = run_comparison(profile="incident_storm", seed=42)
         assert result["run_a"]["label"] == "Xeon 6 Only"
 
-    def test_run_b_is_xeon_plus_gaudi(self):
+    def test_run_b_is_xeon_plus_gpu(self):
         from overdrive.replay import run_comparison
         result = run_comparison(profile="incident_storm", seed=42)
-        assert result["run_b"]["label"] == "Xeon 6 + Gaudi"
+        assert result["run_b"]["label"] == "Xeon 6 + GPU"
 
-    def test_gaudi_run_is_faster(self):
+    def test_gpu_run_is_faster(self):
         from overdrive.replay import run_comparison
         result = run_comparison(profile="incident_storm", seed=42)
         assert result["run_b"]["p95_latency_ms"] < result["run_a"]["p95_latency_ms"]

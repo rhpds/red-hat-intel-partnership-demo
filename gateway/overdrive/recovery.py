@@ -1,4 +1,4 @@
-"""Recovery Demo — simulate Gaudi failure, fallback, and recovery."""
+"""Recovery Demo — simulate GPU failure, fallback, and recovery."""
 
 import random
 
@@ -23,7 +23,7 @@ def run_recovery_demo(seed: int = 42) -> dict:
     all_results = []
     total_fallbacks = 0
 
-    # Phase 1: Normal operation (Gaudi healthy)
+    # Phase 1: Normal operation (GPU healthy)
     phase1_results = []
     for req in requests[:PHASE_SIZE]:
         decision = engine.evaluate(req)
@@ -35,7 +35,7 @@ def run_recovery_demo(seed: int = 42) -> dict:
     phases.append({
         "name": "normal",
         "label": "Normal Operation",
-        "description": "All three Intel hardware lanes active. Requests route optimally — classification on Xeon 6 Eco, embeddings on Xeon 6 Performance, heavy generation on Gaudi Overdrive.",
+        "description": "All three Intel hardware lanes active. Requests route optimally — classification on Xeon 6 Eco, embeddings on Xeon 6 Performance, heavy generation on GPU Overdrive.",
         "gaudi_healthy": True,
         "requests": len(phase1_results),
         "route_counts": _count_lanes(phase1_results),
@@ -43,7 +43,7 @@ def run_recovery_demo(seed: int = 42) -> dict:
         "fallback_count": 0,
     })
 
-    # Phase 2: Gaudi failure (force fallback to Xeon 6)
+    # Phase 2: GPU failure (force fallback to Xeon 6)
     engine.set_route_health("overdrive", False)
     phase2_results = []
     for req in requests[PHASE_SIZE:PHASE_SIZE * 2]:
@@ -60,8 +60,8 @@ def run_recovery_demo(seed: int = 42) -> dict:
 
     phases.append({
         "name": "failure",
-        "label": "Gaudi Offline — Fallback Active",
-        "description": "Intel Gaudi accelerator goes offline. The routing engine automatically reroutes heavy tasks to Xeon 6 Performance lane. Latency increases but zero requests are dropped.",
+        "label": "GPU Offline — Fallback Active",
+        "description": "Intel GPU accelerator goes offline. The routing engine automatically reroutes heavy tasks to Xeon 6 Performance lane. Latency increases but zero requests are dropped.",
         "gaudi_healthy": False,
         "requests": len(phase2_results),
         "route_counts": _count_lanes(phase2_results),
@@ -69,7 +69,7 @@ def run_recovery_demo(seed: int = 42) -> dict:
         "fallback_count": sum(1 for r in phase2_results if r["fallback"]),
     })
 
-    # Phase 3: Recovery (Gaudi restored)
+    # Phase 3: Recovery (GPU restored)
     engine.set_route_health("overdrive", True)
     phase3_results = []
     for req in requests[PHASE_SIZE * 2:PHASE_SIZE * 3]:
@@ -81,8 +81,8 @@ def run_recovery_demo(seed: int = 42) -> dict:
 
     phases.append({
         "name": "recovery",
-        "label": "Gaudi Restored — Normal Routing Resumed",
-        "description": "Intel Gaudi comes back online. The routing engine detects recovery and resumes optimal routing. Heavy generation tasks return to Gaudi with full throughput.",
+        "label": "GPU Restored — Normal Routing Resumed",
+        "description": "Intel GPU comes back online. The routing engine detects recovery and resumes optimal routing. Heavy generation tasks return to GPU with full throughput.",
         "gaudi_healthy": True,
         "requests": len(phase3_results),
         "route_counts": _count_lanes(phase3_results),
@@ -96,7 +96,7 @@ def run_recovery_demo(seed: int = 42) -> dict:
         "total_requests": len(all_results),
         "requests_dropped": 0,
         "total_fallbacks": total_fallbacks,
-        "insight": f"During Gaudi failure, {total_fallbacks} requests were rerouted to Xeon 6. Zero requests dropped. Latency increased {round(phases[1]['avg_latency_ms'] / max(phases[0]['avg_latency_ms'], 1), 1)}x during fallback, then returned to normal after recovery.",
+        "insight": f"During GPU failure, {total_fallbacks} requests were rerouted to Xeon 6. Zero requests dropped. Latency increased {round(phases[1]['avg_latency_ms'] / max(phases[0]['avg_latency_ms'], 1), 1)}x during fallback, then returned to normal after recovery.",
     }
 
 

@@ -1,6 +1,6 @@
 ---
 # vLLM Semantic Router configuration for Intel-Red Hat AI Inference Platform
-# Maps 6 enterprise departments to optimal models on MAAS (Intel Gaudi/Xeon 6)
+# Maps 6 enterprise departments to optimal models on MAAS (Intel GPU/Xeon 6)
 
 listener:
   address: 0.0.0.0

@@ -19,7 +19,7 @@ const sections = [
     items: [
       { label: 'Platform README', desc: 'Project overview, structure, and current status', path: 'README.md' },
       { label: 'CPU Quickstart', desc: 'Deploy CPU inference on Xeon 6 in 5 minutes', path: 'docs/quickstarts/cpu-hello-world/README.md' },
-      { label: 'Gaudi Quickstart', desc: 'Deploy Gaudi GPU inference with decision guide', path: 'docs/quickstarts/gaudi-hello-world/README.md' },
+      { label: 'GPU Quickstart', desc: 'Deploy GPU inference with decision guide', path: 'docs/quickstarts/gaudi-hello-world/README.md' },
       { label: 'Cluster Discovery', desc: 'Discover cluster capabilities, nodes, and operators', path: 'scripts/discover-cluster.sh' },
     ],
   },
@@ -27,10 +27,10 @@ const sections = [
     title: 'Architecture',
     color: 'red' as const,
     items: [
-      { label: 'Golden Paths', desc: 'Validated deployment paths for CPU and Gaudi', path: 'docs/architecture/golden-paths.md' },
+      { label: 'Golden Paths', desc: 'Validated deployment paths for CPU and GPU', path: 'docs/architecture/golden-paths.md' },
       { label: 'Stakeholder Map', desc: 'Responsibility matrix: Partner, Red Hat, Intel, Rackspace', path: 'docs/architecture/stakeholder-map.md' },
       { label: 'CPU Manifests', desc: 'KServe deployment details for Xeon 6 path', path: 'deploy/cpu-inference/README.md' },
-      { label: 'Gaudi Manifests', desc: 'KServe deployment details for Gaudi path', path: 'deploy/gaudi-inference/README.md' },
+      { label: 'GPU Manifests', desc: 'KServe deployment details for GPU path', path: 'deploy/gaudi-inference/README.md' },
     ],
   },
   {
@@ -50,7 +50,7 @@ const sections = [
       { label: 'Gateway API Docs', desc: 'FastAPI auto-generated interactive documentation', path: '/docs', external: true },
       { label: 'Routing Endpoints', desc: 'POST /v1/route — route a request to the correct Intel hardware tier' },
       { label: 'Overdrive Endpoints', desc: 'POST /v1/overdrive/route, /batch, /status, /health — lane evaluation and batch routing' },
-      { label: 'Analytics Endpoints', desc: 'Cost summary, latency percentiles, routing distribution across Xeon 6 and Gaudi' },
+      { label: 'Analytics Endpoints', desc: 'Cost summary, latency percentiles, routing distribution across Xeon 6 and GPU' },
       { label: 'Governance Endpoints', desc: 'Decision history, approval workflow, risk scoring, and evidence bundles' },
     ],
   },
@@ -69,7 +69,7 @@ const sections = [
     color: 'grey' as const,
     items: [
       { label: 'Ansible Playbooks', desc: 'deploy-platform.yaml — full stack deployment with role-based stages', path: 'ansible/playbooks/' },
-      { label: 'Build Script', desc: 'Container build and push for CPU, Gaudi, and gateway images', path: 'scripts/build-images.sh' },
+      { label: 'Build Script', desc: 'Container build and push for CPU, GPU, and gateway images', path: 'scripts/build-images.sh' },
       { label: 'Podman Compose', desc: 'Local development stack with PostgreSQL, gateway, and frontend', path: 'podman-compose.yaml' },
       { label: 'Model Export', desc: 'Export and cache models for offline deployment', path: 'scripts/export-models.sh' },
     ],
@@ -78,7 +78,7 @@ const sections = [
     title: 'Demo Applications',
     color: 'teal' as const,
     items: [
-      { label: 'Enterprise RAG', desc: 'Embed → search → rerank → generate pipeline across Xeon 6 and Gaudi', path: 'pocs/enterprise-rag/' },
+      { label: 'Enterprise RAG', desc: 'Embed → search → rerank → generate pipeline across Xeon 6 and GPU', path: 'pocs/enterprise-rag/' },
       { label: 'AIOps Copilot', desc: 'Alert classification → RCA → governed action with hardware-aware routing', path: 'pocs/aiops-copilot/' },
       { label: 'Governed Agent', desc: 'Intent → risk → plan → policy validation with Granite on Xeon 6', path: 'pocs/governed-agent/' },
     ],
@@ -94,7 +94,7 @@ export default function Docs() {
           <Content component={"p"} style={{ maxWidth: '720px' }}>
             Learn how the platform works. Deploy it on your own cluster. Extend it with your
             own models, routing rules, and workload profiles. Start with the CPU quickstart
-            for Xeon 6 or the Gaudi quickstart for large model inference.
+            for Xeon 6 or the GPU quickstart for large model inference.
           </Content>
         </Content>
       </PageSection>

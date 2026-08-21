@@ -18,7 +18,7 @@
 #   cpu-inference  — vLLM CPU inference server (port 8000)
 #
 # Not included (require cluster hardware):
-#   gaudi-inference  — needs Intel Gaudi accelerator (coordinate with Ashok)
+#   gpu-inference  — needs Intel GPU accelerator (coordinate with Ashok)
 #   openvino-cpu     — needs KServe/OpenShift AI operator
 
 services:

@@ -3,7 +3,7 @@
 #
 # Dual-path routing through MAAS LiteLLM proxy:
 #   CPU path (Xeon 6 + OpenVINO): small models, classification, embeddings
-#   GPU path (Gaudi 3): large models, complex generation, batch workloads
+#   GPU path: large models, complex generation, batch workloads
 #
 # For direct cluster endpoints, see config.direct.yaml.
 
@@ -62,14 +62,14 @@ routes:
       - model_size_b: 4
         operator: ">"
         backend: maas-gpu
-        reason: "Large model (>4B) on Gaudi 3 — microsoft-phi-4, deepseek-14b, qwen3-14b"
+        reason: "Large model (>4B) on GPU — microsoft-phi-4, deepseek-14b, qwen3-14b"
     default_backend: maas-gpu
-    reason: "Route by model size — small to Xeon 6 CPU, large to Gaudi 3 GPU"
+    reason: "Route by model size — small to Xeon 6 CPU, large to GPU"
     fallback: local
 
   - task: batch_generation
     backend: maas-gpu
-    reason: "Batch workloads on Gaudi 3 — high throughput with HBM bandwidth"
+    reason: "Batch workloads on GPU — high throughput with HBM bandwidth"
     fallback: local
 
   - task: governance

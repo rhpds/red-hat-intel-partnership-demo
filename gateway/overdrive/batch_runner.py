@@ -30,16 +30,16 @@ ROUTING_EXPLANATIONS = {
         "embedding": "Vector encoding — nomic-embed on Xeon 6 with AMX acceleration for fast parallel indexing.",
         "rerank": "Cross-encoder reranking — CodeLlama 7B on Xeon 6 scores document relevance efficiently.",
         "short_summary": "Mid-range summary — CodeLlama 7B on Xeon 6 with AMX handles this at production throughput.",
-        "long_summary": "Fallback from Gaudi — performance lane handles this generation workload on Xeon 6.",
+        "long_summary": "Fallback from GPU — performance lane handles this generation workload on Xeon 6.",
         "rag_question": "RAG retrieval-side — small context questions answered on Xeon 6 without GPU cost.",
     },
     "overdrive": {
-        "long_summary": "Large context generation — Llama Scout 17B needs Gaudi's HBM bandwidth for 16K+ tokens.",
-        "incident_rca": "Complex root cause analysis — multi-step reasoning requires Gaudi's throughput and memory.",
-        "batch_summary": "Batch report generation — 32K+ tokens aggregated on Gaudi at 100+ tokens/sec.",
-        "document_summary": "Long document distillation — Gaudi's 400K context window handles full whitepapers.",
-        "code_summary": "Codebase analysis — sustained generation on Gaudi for comprehensive review output.",
-        "rag_question": "Complex multi-document RAG — large context synthesis routed to Gaudi for deeper reasoning.",
+        "long_summary": "Large context generation — Llama Scout 17B needs GPU HBM bandwidth for 16K+ tokens.",
+        "incident_rca": "Complex root cause analysis — multi-step reasoning requires GPU throughput and memory.",
+        "batch_summary": "Batch report generation — 32K+ tokens aggregated on GPU at 100+ tokens/sec.",
+        "document_summary": "Long document distillation — GPU 400K context window handles full whitepapers.",
+        "code_summary": "Codebase analysis — sustained generation on GPU for comprehensive review output.",
+        "rag_question": "Complex multi-document RAG — large context synthesis routed to GPU for deeper reasoning.",
     },
 }
 
@@ -53,7 +53,7 @@ def _build_routing_reason(lane: str, task_type: str, token_estimate: int, reason
     if lane == "performance":
         return f"Mid-range task ({token_estimate:,} tokens) routed to Xeon 6 Performance with AMX acceleration."
     if lane == "overdrive":
-        return f"Heavy generation ({token_estimate:,} tokens) routed to Gaudi — needs HBM bandwidth."
+        return f"Heavy generation ({token_estimate:,} tokens) routed to GPU — needs HBM bandwidth."
     return f"Unrouted — no lane matched for {task_type} at {token_estimate:,} tokens."
 
 
@@ -80,7 +80,7 @@ def _process_single_request(engine, timing, req, run_id, event_producer):
         page_count=req.page_count,
     )
 
-    hw_label = "Gaudi" if lane == "overdrive" else "Xeon 6"
+    hw_label = "GPU" if lane == "overdrive" else "Xeon 6"
     reason_codes = decision.reason_codes or []
     routing_reason = _build_routing_reason(lane, req.task_type, req.token_estimate, reason_codes)
 

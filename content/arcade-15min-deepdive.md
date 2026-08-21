@@ -13,7 +13,7 @@
 **Action**: Open the demo. Quick scan of landing page, then navigate to Architecture.
 
 **Talk track**:
-> "Intel–Red Hat AI Inference Platform. Two hardware paths — Xeon 6 for lightweight AI tasks, Gaudi 3 for heavy reasoning — with an intelligent routing engine that matches workload to hardware automatically."
+> "Intel–Red Hat AI Inference Platform. Two hardware paths — Xeon 6 for lightweight AI tasks, GPU for heavy reasoning — with an intelligent routing engine that matches workload to hardware automatically."
 
 **Click**: Navigate to Architecture. Point out the stack diagram.
 
@@ -30,7 +30,7 @@
 ### Single Request Routing (60s)
 
 **Talk track**:
-> "Three lanes. Eco runs small requests on Xeon 6. Performance handles mid-range with AMX acceleration. Overdrive uses Gaudi 3 for heavy workloads."
+> "Three lanes. Eco runs small requests on Xeon 6. Performance handles mid-range with AMX acceleration. Overdrive uses GPU for heavy workloads."
 
 **Click**: Route a classification at 500 tokens → Eco lane.
 
@@ -38,7 +38,7 @@
 
 **Click**: Route a long_summary at 24K tokens → Overdrive.
 
-> "24K-token summary goes to Overdrive on Gaudi. Same rubric, different outcome — token count exceeded the CPU threshold."
+> "24K-token summary goes to Overdrive on GPU. Same rubric, different outcome — token count exceeded the CPU threshold."
 
 ### Batch + Failover (90s)
 
@@ -48,9 +48,9 @@
 
 **Wait**: Batch completes. Point out the stacked bar chart.
 
-**Click**: Click "Simulate Gaudi Failure."
+**Click**: Click "Simulate GPU Failure."
 
-> "Gaudi goes down. Before: requests split across all three lanes. After: everything reroutes to Xeon 6. Zero dropped requests — higher latency but no outage. This is automatic graceful degradation with no application changes."
+> "GPU goes down. Before: requests split across all three lanes. After: everything reroutes to Xeon 6. Zero dropped requests — higher latency but no outage. This is automatic graceful degradation with no application changes."
 
 **Click**: Navigate to "Try It Live."
 
@@ -65,7 +65,7 @@
 
 **Click**: Run the first Enterprise RAG scenario.
 
-> "Enterprise RAG. Embed on Xeon 6, search on Xeon 6, rerank on Xeon 6, generate on Gaudi. Three of four steps at CPU pricing — that's where the savings come from."
+> "Enterprise RAG. Embed on Xeon 6, search on Xeon 6, rerank on Xeon 6, generate on GPU. Three of four steps at CPU pricing — that's where the savings come from."
 
 **Click**: Switch to AIOps Copilot, run a scenario.
 
@@ -90,13 +90,13 @@
 
 **Type**: Ask a question about the document. Send.
 
-> "Watch the routing trace on the response — embedding and search on Xeon 6, answer generation on Gaudi. Real-time SSE streaming."
+> "Watch the routing trace on the response — embedding and search on Xeon 6, answer generation on GPU. Real-time SSE streaming."
 
 **Click**: Change Routing Strategy to "Semantic Department."
 
 **Type**: Ask "What are the security implications of this document?"
 
-> "Semantic routing classified that as a Security question and routed to Phi-4 on Gaudi automatically. An HR question about PTO policy would go to Granite 2B on Xeon 6. Six departments, each with its own model — fully customizable."
+> "Semantic routing classified that as a Security question and routed to Phi-4 on GPU automatically. An HR question about PTO policy would go to Granite 2B on Xeon 6. Six departments, each with its own model — fully customizable."
 
 **Click**: Change Governance to "Supervised."
 
@@ -117,7 +117,7 @@
 
 **Click**: Point out the three cost comparison cards.
 
-> "Granite 2B on Xeon 6: fractions of a cent. DeepSeek R1 on Gaudi: several cents. Both give you a good answer for this workload — but at very different price points."
+> "Granite 2B on Xeon 6: fractions of a cent. DeepSeek R1 on GPU: several cents. Both give you a good answer for this workload — but at very different price points."
 
 **Click**: Scroll to the Enterprise Scale Projection table.
 
@@ -134,7 +134,7 @@
 **Click**: Select a question, set Governance to "Locked." Click "Run Agent."
 
 **Talk track**:
-> "Multi-step research agent with governance controls. Five steps: decompose the question on Gaudi, search the knowledge base on Xeon 6, rerank on Xeon 6, synthesize on Gaudi, content review on Xeon 6."
+> "Multi-step research agent with governance controls. Five steps: decompose the question on GPU, search the knowledge base on Xeon 6, rerank on Xeon 6, synthesize on GPU, content review on Xeon 6."
 
 **Wait**: The agent pauses at each step waiting for approval.
 
@@ -153,7 +153,7 @@
 **Click**: Select "Incident Investigation," set depth to "Full Investigation" (5 agents, 3 waves). Click "Launch Swarm."
 
 **Talk track**:
-> "Multi-agent parallel execution. Five agents, three waves. Each agent routes to different hardware based on its task — a log analyzer runs on Xeon 6, a root cause reasoner runs on Gaudi."
+> "Multi-agent parallel execution. Five agents, three waves. Each agent routes to different hardware based on its task — a log analyzer runs on Xeon 6, a root cause reasoner runs on GPU."
 
 **Wait**: Waves execute. Point out the parallel execution visualization.
 
@@ -170,7 +170,7 @@
 **Click**: Click "Simulate Recovery Scenario."
 
 **Talk track**:
-> "Three phases. Normal operation with Gaudi online. Hardware failure — Gaudi goes down, platform reroutes to Xeon 6. Recovery — Gaudi comes back, traffic rebalances."
+> "Three phases. Normal operation with GPU online. Hardware failure — GPU goes down, platform reroutes to Xeon 6. Recovery — GPU comes back, traffic rebalances."
 
 **Wait**: Simulation completes.
 
@@ -196,7 +196,7 @@
 ## Scene 10: Close (30s)
 
 **Talk track**:
-> "That's the full platform. Intelligent routing across Intel Xeon 6 and Gaudi 3. Multi-step workflows, RAG with document upload, multi-agent orchestration, graceful degradation, cost optimization, and enterprise governance — all on Red Hat OpenShift. It's deployable today. Let's talk about running this in your environment."
+> "That's the full platform. Intelligent routing across Intel Xeon 6 and GPU. Multi-step workflows, RAG with document upload, multi-agent orchestration, graceful degradation, cost optimization, and enterprise governance — all on Red Hat OpenShift. It's deployable today. Let's talk about running this in your environment."
 
 ---
 

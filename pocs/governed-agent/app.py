@@ -7,7 +7,7 @@ governed execution with evidence, policy checks, and audit trails:
 
   1. Classify intent on Xeon 6 (OpenVINO) — what is the agent trying to do?
   2. Risk score on Xeon 6 (OpenVINO) — how dangerous is this action?
-  3. Generate execution plan on Gaudi (vLLM) — reasoning and planning
+  3. Generate execution plan on GPU (vLLM) — reasoning and planning
   4. Policy validation — is this allowed?
   5. Decision: allow / deny / escalate — with evidence bundle
 """
@@ -55,7 +55,7 @@ RISK_AMPLIFIERS = {
 
 MOCK_RESPONSES = {
     "classification": {"routing": {"selected_backend": "openvino-cpu", "accelerator": "xeon6", "reason": "Classification models run efficiently on CPU with ONNX/OpenVINO", "latency_ms": 3.2, "cost_estimate_per_1k_tokens": 0.001, "task": "classification"}, "result": {"label": "restart_pod", "confidence": 0.82}},
-    "completion": {"routing": {"selected_backend": "vllm-gaudi", "accelerator": "gaudi", "reason": "Large models (> 3B) need Gaudi HBM and tensor acceleration", "latency_ms": 980, "cost_estimate_per_1k_tokens": 0.008, "task": "completion"}, "result": {"choices": [{"text": "1. Cordon the affected node to prevent new pods scheduling\n2. Identify the OOM-killed pods with oc get pods --field-selector=status.phase=Failed\n3. Delete the failed pods: oc delete pod <name>\n4. Verify new pods start with correct memory limits\n5. Uncordon the node\n\nRollback: If new pods also OOM, revert to previous deployment revision with oc rollout undo"}]}},
+    "completion": {"routing": {"selected_backend": "vllm-gaudi", "accelerator": "gaudi", "reason": "Large models (> 3B) need GPU HBM and tensor acceleration", "latency_ms": 980, "cost_estimate_per_1k_tokens": 0.008, "task": "completion"}, "result": {"choices": [{"text": "1. Cordon the affected node to prevent new pods scheduling\n2. Identify the OOM-killed pods with oc get pods --field-selector=status.phase=Failed\n3. Delete the failed pods: oc delete pod <name>\n4. Verify new pods start with correct memory limits\n5. Uncordon the node\n\nRollback: If new pods also OOM, revert to previous deployment revision with oc rollout undo"}]}},
 }
 
 
@@ -225,7 +225,7 @@ def run_governed_agent(request_text: str, verbose: bool = False):
         print(f"         Amplifiers: {', '.join(risk_result['amplifiers_triggered'])}")
     print(f"         Backend: {risk_result['backend']} ({risk_result['latency_ms']:.0f}ms)")
 
-    print("[3/4] Planning execution on Gaudi...")
+    print("[3/4] Planning execution on GPU...")
     plan_result = step_plan(request_text, intent_result["intent"], risk_result["risk_level"])
     trace.append(plan_result)
     print(f"      -> Backend: {plan_result['backend']} ({plan_result['latency_ms']:.0f}ms)")
@@ -269,7 +269,7 @@ def run_governed_agent(request_text: str, verbose: bool = False):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Governed Agent Execution Demo")
-    parser.add_argument("--request", default="Restart the inference pods in the gaudi namespace to clear the OOM state")
+    parser.add_argument("--request", default="Restart the inference pods in the gpu-inference namespace to clear the OOM state")
     parser.add_argument("--gateway", default=None)
     parser.add_argument("--mock", action="store_true", help="Run without gateway (simulated responses)")
     parser.add_argument("--verbose", action="store_true")

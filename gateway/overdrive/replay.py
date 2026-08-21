@@ -55,13 +55,13 @@ def run_comparison(profile: str = "incident_storm", seed: int = 42) -> dict:
             "total_duration_ms": dur_a,
         },
         "run_b": {
-            "label": "Xeon 6 + Gaudi",
-            "description": "Intelligent routing — small tasks on Xeon 6, heavy tasks on Gaudi",
+            "label": "Xeon 6 + GPU",
+            "description": "Intelligent routing — small tasks on Xeon 6, heavy tasks on GPU",
             "p95_latency_ms": metrics_b["p95_latency_ms"],
             "requests_per_second": metrics_b["requests_per_second"],
             "route_counts": metrics_b["route_counts"],
             "total_duration_ms": dur_b,
         },
         "speedup": speedup,
-        "insight": f"Adding Intel Gaudi delivers {speedup}x faster p95 latency. Heavy generation tasks that take {int(metrics_a['p95_latency_ms'])}ms on CPU-only complete in {int(metrics_b['p95_latency_ms'])}ms with Gaudi acceleration.",
+        "insight": f"Adding Intel GPU delivers {speedup}x faster p95 latency. Heavy generation tasks that take {int(metrics_a['p95_latency_ms'])}ms on CPU-only complete in {int(metrics_b['p95_latency_ms'])}ms with GPU acceleration.",
     }

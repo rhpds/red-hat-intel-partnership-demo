@@ -7,7 +7,7 @@
 | Model Size | Hardware | Cost/1K tokens | Throughput
 | ≤2B params | Xeon 6 (local) | $0 (local) | 26 t/s
 | ≤4B params | Xeon 6 (MAAS) | $0.0004 | 24-30 t/s
-| >4B params | Gaudi 3 (MAAS) | $0.001 | 37-60 t/s
+| >4B params | GPU (MAAS) | $0.001 | 37-60 t/s
 |===
 
 == Right-Sizing with CheckSum

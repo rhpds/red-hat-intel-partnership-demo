@@ -39,7 +39,7 @@ function ControlSelect({ label, value, options, onChange }: {
           <SelectOption key={opt} value={opt}>
             {opt === 'auto' ? 'Auto-route'
               : opt === 'xeon6' ? 'Xeon 6 Only'
-              : opt === 'gaudi' ? 'Gaudi Only'
+              : opt === 'gaudi' ? 'GPU Only'
               : opt === 'standard' ? 'Standard (task-type)'
               : opt === 'semantic' ? 'Semantic Department'
               : opt === 'vllm-sr' ? 'vLLM Semantic Router'
