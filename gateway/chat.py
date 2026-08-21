@@ -1,9 +1,10 @@
 """Chat session management — multi-turn conversations with SSE streaming."""
 
-import re
 import uuid
 from dataclasses import dataclass, field
 from typing import AsyncGenerator, Optional, List, Dict
+
+from utils import sanitize_chunk as _sanitize_chunk
 
 SSE_EVENT_TYPES = {"step", "token", "routing_decision", "done", "error"}
 
@@ -25,18 +26,6 @@ class ChatSession:
     tenant_id: Optional[str] = None
     config: ChatConfig = field(default_factory=ChatConfig)
     messages: List[Dict] = field(default_factory=list)
-
-
-def _sanitize_chunk(text: str) -> str:
-    """Strip prompt-injection markers from RAG chunk text."""
-    text = re.sub(
-        r'(?i)(system\s*:|assistant\s*:|<<\s*SYS\s*>>|<\|im_start\|>|<\|im_end\|>|\[INST\]|\[/INST\])',
-        '[filtered]',
-        text,
-    )
-    text = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]', '', text)
-    text = re.sub(r'===\s*END\s+CONTEXT\s*===', '[filtered]', text)
-    return text
 
 
 def build_context(messages: list[dict], rag_chunks: list[dict],

@@ -9,25 +9,12 @@ Three classification strategies:
 from __future__ import annotations
 
 import os
-import re
 import time
-import math
 import yaml
 from pathlib import Path
 from typing import Optional
 
-
-def _sanitize_input(text: str) -> str:
-    """Strip prompt-injection markers from user text before LLM classification."""
-    if not text:
-        return ""
-    text = re.sub(
-        r'(?i)(system\s*:|assistant\s*:|<<\s*SYS\s*>>|<\|im_start\|>|<\|im_end\|>|\[INST\]|\[/INST\])',
-        '[filtered]',
-        text,
-    )
-    text = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]', '', text)
-    return text
+from utils import sanitize_prompt as _sanitize_input, cosine_similarity as _cosine_similarity
 
 
 def _load_departments() -> dict:
@@ -335,10 +322,3 @@ def calculate_annual_savings(dept_id: str, queries_per_day: int = 1000) -> dict:
     }
 
 
-def _cosine_similarity(a: list, b: list) -> float:
-    dot = sum(x * y for x, y in zip(a, b))
-    norm_a = math.sqrt(sum(x * x for x in a))
-    norm_b = math.sqrt(sum(x * x for x in b))
-    if norm_a == 0 or norm_b == 0:
-        return 0.0
-    return dot / (norm_a * norm_b)

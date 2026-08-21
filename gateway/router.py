@@ -28,6 +28,9 @@ from routing_policy import RoutingPolicy, load_config
 import db
 from api import api_router
 from tenant_api import tenant_router
+from utils import sanitize_prompt as _sanitize_prompt, cosine_similarity
+from knowledge import SEARCH_KNOWLEDGE_BASE
+from governance import RISK_SCORE_MAP, record_governance_decision, postprocess_governance
 
 try:
     import local_inference
@@ -47,8 +50,6 @@ logger = logging.getLogger(__name__)
 
 CPU_MODELS = {"granite-2b-cpu", "phi3-mini-cpu", "qwen25-3b-cpu", "llama-31-70b-cpu"}
 LANE_MODEL_MAP = {"eco": "granite-2b-cpu", "performance": "phi3-mini-cpu", "overdrive": "deepseek-r1-distill-qwen-14b"}
-RISK_SCORE_MAP = {"low": 0.2, "medium": 0.5, "high": 0.8, "critical": 1.0, "pass": 0.1, "fail": 0.9}
-
 API_KEY = os.getenv("API_KEY", "")
 
 
@@ -167,20 +168,6 @@ class RouteResponse(BaseModel):
     result: Any = None
     routing: RoutingMetadata
     error: Optional[str] = None
-
-
-def _sanitize_prompt(text: str) -> str:
-    """Sanitize user input to mitigate prompt injection in templated LLM calls."""
-    if not text:
-        return ""
-    text = text[:10000]
-    text = re.sub(
-        r'(?i)(system\s*:|assistant\s*:|<<\s*SYS\s*>>|<\|im_start\|>|<\|im_end\|>|\[INST\]|\[/INST\])',
-        '[filtered]',
-        text,
-    )
-    text = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]', '', text)
-    return text
 
 
 def _build_payload(request: RouteRequest, task: str, backend=None) -> tuple:
@@ -359,76 +346,8 @@ def _postprocess_result(task: str, result: dict, prompt: str = "") -> dict:
             ],
             "total_documents": len(paragraphs),
         }
-    if task not in ("governance", "policy") or "risk_level" in result or "verdict" in result:
-        return result
-    text = ""
-    choices = result.get("choices", [])
-    if choices:
-        c = choices[0]
-        msg = c.get("message") or {}
-        text = c.get("text", "") or msg.get("content") or msg.get("reasoning_content") or ""
-    action = prompt.lower()
-    if task == "governance":
-        if "delete" in action or "destroy" in action or "drop" in action:
-            risk, dec = "critical", "deny"
-        elif "restart" in action and "production" in action:
-            risk, dec = "high", "escalate"
-        elif any(kw in action for kw in ["read", "list", "get", "view", "describe", "logs"]):
-            risk, dec = "low", "approve"
-        else:
-            risk, dec = "medium", "escalate"
-        justifications = {
-            ("critical", "deny"): f"DENIED — Destructive action classified as critical risk.",
-            ("high", "escalate"): f"ESCALATED — Production-impacting change requires review.",
-            ("low", "approve"): f"APPROVED — Read-only operation auto-approved per policy.",
-            ("medium", "escalate"): f"ESCALATED — Action requires human review.",
-        }
-        result = {
-            "model": result.get("model", ""),
-            "risk_level": risk,
-            "decision": dec,
-            "justification": justifications.get((risk, dec), text),
-            "analysis": text,
-            "evidence": {"input": prompt, "model": result.get("model", "")},
-        }
-    elif task == "policy":
-        compliant = True
-        violations = []
-        if "delete" in action or "destroy" in action or "drop" in action:
-            compliant = False
-            violations.append("Destructive action requires elevated approval")
-        if "production" in action or "prod " in action:
-            violations.append("Production environment changes require change management approval")
-            if "restart" in action or "delete" in action:
-                compliant = False
-        if not compliant:
-            analysis = f"FAIL — {len(violations)} policy violation(s) detected: {'; '.join(violations)}. Manual review and approval required."
-        elif violations:
-            analysis = f"PASS with advisories — {len(violations)} notice(s): {'; '.join(violations)}. Proceed with caution."
-        else:
-            analysis = "PASS — No policy violations detected. Action is compliant with all security policies."
-        result = {
-            "model": result.get("model", ""),
-            "compliant": compliant,
-            "verdict": "pass" if compliant else "fail",
-            "violations": violations,
-            "analysis": analysis,
-            "evidence": {"input": prompt, "model": result.get("model", "")},
-        }
-    return result
+    return postprocess_governance(task, result, prompt)
 
-
-SEARCH_KNOWLEDGE_BASE = [
-    {"id": "xeon6-amx", "text": "Intel Xeon 6 processors include Advanced Matrix Extensions (AMX) that accelerate AI inference workloads with hardware-level INT8 and BF16 matrix operations, delivering up to 10x throughput improvement for transformer models."},
-    {"id": "gaudi3-arch", "text": "Intel GPU accelerators are purpose-built for deep learning with 128GB HBM2E memory and 24 Tensor Processor Cores, providing 2x throughput improvement for large language model inference."},
-    {"id": "openshift-ai", "text": "Red Hat OpenShift AI integrates KServe for model serving, provides a model registry, supports distributed training, and includes built-in monitoring on heterogeneous Intel hardware."},
-    {"id": "kserve", "text": "KServe is a Kubernetes-native model serving framework providing serverless inference with autoscaling, canary deployments, and multi-model serving via custom ServingRuntimes."},
-    {"id": "vllm", "text": "vLLM is a high-throughput inference engine using PagedAttention for efficient memory management, supporting OpenAI-compatible APIs on both Intel CPUs and GPU accelerators."},
-    {"id": "openvino", "text": "OpenVINO Model Server optimizes inference for Intel hardware with INT8 quantization, dynamic batching, and multi-model serving for embedding and reranking workloads on Xeon 6."},
-    {"id": "rag", "text": "Retrieval-Augmented Generation combines document retrieval with language model generation to reduce hallucination and ground responses in factual content."},
-    {"id": "routing", "text": "The inference gateway routes requests to optimal hardware based on task type and model size — embeddings to Xeon 6 CPUs for cost efficiency, large model generation to GPU accelerators."},
-    {"id": "hybrid", "text": "The hybrid CPU-GPU architecture reduces inference costs by 60-70% compared to GPU-only deployments by splitting workloads between Xeon 6 and GPU based on task requirements."},
-]
 
 _search_embeddings_cache: dict = {}
 
@@ -458,10 +377,7 @@ async def _handle_search_via_embeddings(http_client, backend, query: str, start)
 
     scores = []
     for i, doc_emb in _search_embeddings_cache.items():
-        dot = sum(a * b for a, b in zip(q_emb, doc_emb))
-        mag_q = sum(a * a for a in q_emb) ** 0.5
-        mag_d = sum(a * a for a in doc_emb) ** 0.5
-        score = dot / (mag_q * mag_d) if mag_q and mag_d else 0
+        score = cosine_similarity(q_emb, doc_emb)
         scores.append((i, score))
 
     scores.sort(key=lambda x: x[1], reverse=True)
@@ -494,10 +410,7 @@ async def _handle_rerank_via_embeddings(http_client, backend, query: str, texts:
     results = []
     for i, text in enumerate(texts):
         doc_emb = data[i + 1]["embedding"]
-        dot = sum(a * b for a, b in zip(q_emb, doc_emb))
-        mag_q = sum(a * a for a in q_emb) ** 0.5
-        mag_d = sum(a * a for a in doc_emb) ** 0.5
-        score = dot / (mag_q * mag_d) if mag_q and mag_d else 0
+        score = cosine_similarity(q_emb, doc_emb)
         results.append({"index": i, "relevance_score": round(score, 4), "text": text})
 
     results.sort(key=lambda x: x["relevance_score"], reverse=True)
@@ -683,19 +596,10 @@ async def route_request(request: RouteRequest, raw_request: Request):
                     reason=f"local fallback: {decision.backend} unreachable",
                     model=request.model, model_size_b=request.model_size_b,
                 )
-                if request.task in ("governance", "policy") and isinstance(local_result, dict):
-                    risk_level = local_result.get("risk_level", local_result.get("verdict", "unknown"))
-                    decision_val = local_result.get("decision", local_result.get("verdict", "unknown"))
-                    await db.insert_governance_decision(
-                        request_id=req_id,
-                        source=f"workflow-{request.task}",
-                        intent=request.prompt or request.text or "",
-                        risk_score=RISK_SCORE_MAP.get(risk_level, 0.5),
-                        risk_level=risk_level,
-                        decision=decision_val,
-                        reason=local_result.get("justification", local_result.get("analysis", "")),
-                        evidence=local_result.get("evidence", {}),
-                    )
+                await record_governance_decision(
+                    db, req_id, request.task,
+                    request.prompt or request.text or "", local_result,
+                )
                 REQUEST_COUNT.labels(task=request.task, backend="local", status="success").inc()
                 ROUTING_DECISIONS.labels(
                     task=request.task, backend="local",
@@ -753,19 +657,10 @@ async def route_request(request: RouteRequest, raw_request: Request):
         model_size_b=request.model_size_b,
     )
 
-    if request.task in ("governance", "policy") and isinstance(result, dict):
-        risk_level = result.get("risk_level", result.get("verdict", "unknown"))
-        decision_val = result.get("decision", result.get("verdict", "unknown"))
-        await db.insert_governance_decision(
-            request_id=req_id,
-            source=f"workflow-{request.task}",
-            intent=request.prompt or request.text or "",
-            risk_score=RISK_SCORE_MAP.get(risk_level, 0.5),
-            risk_level=risk_level,
-            decision=decision_val,
-            reason=result.get("justification", result.get("analysis", "")),
-            evidence=result.get("evidence", {}),
-        )
+    await record_governance_decision(
+        db, req_id, request.task,
+        request.prompt or request.text or "", result,
+    )
 
     return RouteResponse(
         result=result,

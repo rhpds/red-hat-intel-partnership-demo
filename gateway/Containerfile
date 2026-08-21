@@ -21,6 +21,9 @@ COPY local_inference.py .
 COPY chat.py .
 COPY rag.py .
 COPY semantic_router.py .
+COPY utils.py .
+COPY knowledge.py .
+COPY governance.py .
 COPY departments.yaml .
 COPY vllm-sr-config.yaml .
 COPY __init__.py .

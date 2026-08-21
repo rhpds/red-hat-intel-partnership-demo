@@ -50,14 +50,13 @@ class TestConsolidatedConstants:
         for lane in ("eco", "performance", "overdrive"):
             assert lane in section
 
-    def test_risk_score_map_is_module_level(self, router_ast):
-        names = [n.targets[0].id for n in ast.walk(router_ast)
-                 if isinstance(n, ast.Assign) and n.targets and isinstance(n.targets[0], ast.Name)]
-        assert "RISK_SCORE_MAP" in names
+    def test_risk_score_map_available(self, router_source):
+        assert "RISK_SCORE_MAP" in router_source
 
-    def test_risk_score_map_has_all_levels(self, router_source):
-        idx = router_source.find("RISK_SCORE_MAP")
-        section = router_source[idx:idx + 200]
+    def test_risk_score_map_has_all_levels(self, gateway_dir):
+        source = (gateway_dir / "governance.py").read_text()
+        idx = source.find("RISK_SCORE_MAP")
+        section = source[idx:idx + 200]
         for level in ("low", "medium", "high", "critical", "pass", "fail"):
             assert f'"{level}"' in section
 

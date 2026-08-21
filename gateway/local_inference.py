@@ -9,6 +9,8 @@ import os
 import logging
 import time
 
+from knowledge import LOCAL_KNOWLEDGE_BASE as KNOWLEDGE_BASE
+
 logger = logging.getLogger(__name__)
 
 LOCAL_FALLBACK_ENABLED = os.getenv("LOCAL_FALLBACK_ENABLED", "false").lower() == "true"
@@ -54,19 +56,6 @@ def get_model_info() -> dict:
         "device": "cpu",
     }
 
-
-KNOWLEDGE_BASE = [
-    {"id": "xeon6-amx", "text": "Intel Xeon 6 processors include Advanced Matrix Extensions (AMX) that accelerate AI inference workloads. AMX provides hardware-level support for INT8 and BF16 matrix operations, delivering up to 10x throughput improvement for transformer models compared to previous generation Xeon processors without AMX."},
-    {"id": "gaudi3-arch", "text": "Intel GPU accelerators are purpose-built for deep learning training and inference. Each GPU device has 96GB of HBM2e memory and 24 Tensor Processor Cores. For large language model inference, GPU provides 2x the throughput of the previous generation while maintaining cost efficiency."},
-    {"id": "openshift-ai", "text": "Red Hat OpenShift AI is a platform for building, deploying, and managing AI/ML models on OpenShift. It integrates KServe for model serving, provides a model registry, supports distributed training, and includes built-in monitoring. Models can be served on heterogeneous hardware including Intel Xeon CPUs and GPU accelerators."},
-    {"id": "kserve-serving", "text": "KServe is a Kubernetes-native model serving framework that provides serverless inference with autoscaling, canary deployments, and multi-model serving. On OpenShift, KServe manages ServingRuntimes that define how models are loaded and served. It supports custom runtimes for vLLM, OpenVINO, and other inference engines."},
-    {"id": "vllm-engine", "text": "vLLM is a high-throughput inference engine optimized for large language models. It uses PagedAttention for efficient memory management and continuous batching for maximum GPU utilization. vLLM supports OpenAI-compatible APIs and can run on both Intel CPUs (with optimizations for AMX) and Intel GPU accelerators."},
-    {"id": "openvino-opt", "text": "OpenVINO Model Server (OVMS) optimizes inference for Intel hardware. It supports model compression with INT8 quantization, dynamic batching, and multi-model serving. For embedding and reranking workloads, OVMS on Xeon 6 with AMX provides low-latency inference at a fraction of the cost of GPU-based solutions."},
-    {"id": "rag-pattern", "text": "Retrieval-Augmented Generation (RAG) combines document retrieval with language model generation. The pipeline typically includes: embedding the query, searching a vector database, reranking retrieved documents, and generating an answer using the top documents as context. This reduces hallucination and grounds responses in factual content."},
-    {"id": "inference-routing", "text": "The Intel-Red Hat inference gateway routes requests to optimal hardware based on task type and model size. Embedding, classification, and reranking tasks are routed to Xeon 6 CPUs for cost efficiency. Large model generation tasks above 3B parameters are routed to Intel GPU accelerators for maximum throughput."},
-    {"id": "governance", "text": "AI governance in enterprise deployments requires audit trails for every inference decision. The platform logs routing decisions, model versions, input/output metadata, and approval workflows. Risk scoring and policy checks ensure that high-impact actions require human approval before execution."},
-    {"id": "hybrid-arch", "text": "The hybrid CPU-GPU architecture allows organizations to optimize cost and performance. Xeon 6 CPUs handle high-volume, low-latency tasks like embeddings and classification at minimal cost. GPU accelerators handle compute-intensive generation tasks that require large model inference. This split can reduce inference costs by 60-70% compared to GPU-only deployments."},
-]
 
 _corpus_embeddings = None
 
