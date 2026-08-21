@@ -45,6 +45,10 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 
+CPU_MODELS = {"granite-2b-cpu", "phi3-mini-cpu", "qwen25-3b-cpu", "llama-31-70b-cpu"}
+LANE_MODEL_MAP = {"eco": "granite-2b-cpu", "performance": "phi3-mini-cpu", "overdrive": "deepseek-r1-distill-qwen-14b"}
+RISK_SCORE_MAP = {"low": 0.2, "medium": 0.5, "high": 0.8, "critical": 1.0, "pass": 0.1, "fail": 0.9}
+
 API_KEY = os.getenv("API_KEY", "")
 
 
@@ -529,8 +533,7 @@ async def route_request(request: RouteRequest, raw_request: Request):
             dept = classification.get("department_label", "General")
             strategy_reason = f"vLLM SR: {dept} → {classification['model']} (signal-driven)"
         all_backends = policy.list_backends()
-        cpu_models = {"granite-2b-cpu", "phi3-mini-cpu", "qwen25-3b-cpu", "llama-31-70b-cpu"}
-        if request.model in cpu_models:
+        if request.model in CPU_MODELS:
             backend = next((b for b in all_backends if b.accelerator == "xeon6"), None)
         else:
             backend = next((b for b in all_backends if b.accelerator == "gaudi"), None) or (all_backends[0] if all_backends else None)
@@ -683,13 +686,11 @@ async def route_request(request: RouteRequest, raw_request: Request):
                 if request.task in ("governance", "policy") and isinstance(local_result, dict):
                     risk_level = local_result.get("risk_level", local_result.get("verdict", "unknown"))
                     decision_val = local_result.get("decision", local_result.get("verdict", "unknown"))
-                    risk_score = {"low": 0.2, "medium": 0.5, "high": 0.8, "critical": 1.0,
-                                  "pass": 0.1, "fail": 0.9}.get(risk_level, 0.5)
                     await db.insert_governance_decision(
                         request_id=req_id,
                         source=f"workflow-{request.task}",
                         intent=request.prompt or request.text or "",
-                        risk_score=risk_score,
+                        risk_score=RISK_SCORE_MAP.get(risk_level, 0.5),
                         risk_level=risk_level,
                         decision=decision_val,
                         reason=local_result.get("justification", local_result.get("analysis", "")),
@@ -755,13 +756,11 @@ async def route_request(request: RouteRequest, raw_request: Request):
     if request.task in ("governance", "policy") and isinstance(result, dict):
         risk_level = result.get("risk_level", result.get("verdict", "unknown"))
         decision_val = result.get("decision", result.get("verdict", "unknown"))
-        risk_score = {"low": 0.2, "medium": 0.5, "high": 0.8, "critical": 1.0,
-                      "pass": 0.1, "fail": 0.9}.get(risk_level, 0.5)
         await db.insert_governance_decision(
             request_id=req_id,
             source=f"workflow-{request.task}",
             intent=request.prompt or request.text or "",
-            risk_score=risk_score,
+            risk_score=RISK_SCORE_MAP.get(risk_level, 0.5),
             risk_level=risk_level,
             decision=decision_val,
             reason=result.get("justification", result.get("analysis", "")),
@@ -901,8 +900,7 @@ async def platform_status():
             lat = r.get("latency_ms", 0)
             inp = r.get("input_tokens", 0)
             out = r.get("output_tokens", 0)
-            model_map = {"eco": "granite-2b-cpu", "performance": "phi3-mini-cpu", "overdrive": "deepseek-r1-distill-qwen-14b"}
-            model_name = model_map.get(lane, "unknown")
+            model_name = LANE_MODEL_MAP.get(lane, "unknown")
             ms = model_stats[model_name]
             ms["count"] += 1
             ms["total_latency"] += lat
@@ -952,8 +950,7 @@ async def platform_status():
                 lat = r.get("latency_ms", 0)
                 inp = r.get("input_tokens", 0)
                 out = r.get("output_tokens", 0)
-                model_map = {"eco": "granite-2b-cpu", "performance": "phi3-mini-cpu", "overdrive": "deepseek-r1-distill-qwen-14b"}
-                model_name = model_map.get(lane, "unknown")
+                model_name = LANE_MODEL_MAP.get(lane, "unknown")
                 ms = model_stats[model_name]
                 ms["count"] += 1
                 ms["total_latency"] += lat
@@ -1103,14 +1100,20 @@ import threading
 
 _runs_lock = threading.Lock()
 _workload_runs: dict = {}
-_WORKLOAD_EXPIRY_SECONDS = 600
+_agent_runs: dict = {}
+_training_runs: dict = {}
+_swarm_runs: dict = {}
+_RUN_EXPIRY_SECONDS = 600
 
 
 def _cleanup_old_runs():
     now = time.time()
-    expired = [k for k, v in _workload_runs.items() if now - v.get("started_at", now) > _WORKLOAD_EXPIRY_SECONDS]
-    for k in expired:
-        _workload_runs.pop(k, None)
+    for store in (_workload_runs, _agent_runs, _swarm_runs, _training_runs):
+        expired = [k for k, v in store.items()
+                   if v.get("status") in ("complete", "completed", "error")
+                   and now - v.get("started_at", now) > _RUN_EXPIRY_SECONDS]
+        for k in expired:
+            store.pop(k, None)
 
 
 @app.post("/v1/workload/run")
@@ -1181,9 +1184,6 @@ async def workload_status(run_id: str):
     return run
 
 
-_agent_runs: dict = {}
-
-
 class AgentResearchRequest(BaseModel):
     question: str = Field(min_length=5, max_length=500)
     governance_mode: str = Field(default="open", pattern=r"^(open|supervised|locked)$")
@@ -1195,8 +1195,9 @@ async def agent_research(req: AgentResearchRequest, raw_request: Request):
     check_rate_limit(raw_request.client.host)
     import uuid
     run_id = f"agent-{uuid.uuid4().hex[:8]}"
-    run_state = {"run_id": run_id, "status": "running", "steps": []}
+    run_state = {"run_id": run_id, "status": "running", "steps": [], "started_at": time.time()}
     with _runs_lock:
+        _cleanup_old_runs()
         _agent_runs[run_id] = run_state
 
     def _run():
@@ -1239,10 +1240,6 @@ async def agent_approve(run_id: str, step_name: str):
     return {"approved": False, "detail": f"Step '{step_name}' not awaiting approval"}
 
 
-_training_runs: dict = {}
-_swarm_runs: dict = {}
-
-
 class SwarmRunRequest(BaseModel):
     scenario: str = "incident"
     seed: int = 42
@@ -1254,8 +1251,9 @@ async def swarm_run(req: SwarmRunRequest, raw_request: Request):
     check_rate_limit(raw_request.client.host)
     import uuid as _uuid
     run_id = f"swarm-{_uuid.uuid4().hex[:8]}"
-    run_state = {"run_id": run_id, "status": "running", "agent_results": [], "timeline": [], "type": "swarm"}
+    run_state = {"run_id": run_id, "status": "running", "agent_results": [], "timeline": [], "type": "swarm", "started_at": time.time()}
     with _runs_lock:
+        _cleanup_old_runs()
         _swarm_runs[run_id] = run_state
 
     def _run():
@@ -1299,8 +1297,9 @@ async def training_run(req: TrainingRunRequest, raw_request: Request):
     check_rate_limit(raw_request.client.host)
     import uuid as _uuid
     run_id = f"train-{_uuid.uuid4().hex[:8]}"
-    run_state = {"run_id": run_id, "status": "running"}
+    run_state = {"run_id": run_id, "status": "running", "started_at": time.time()}
     with _runs_lock:
+        _cleanup_old_runs()
         _training_runs[run_id] = run_state
 
     def _run():
@@ -1613,7 +1612,7 @@ async def send_chat_message(session_id: str, request: Request):
             chosen_backend = cpu_backend
         elif config.hardware_override == "gaudi" and gpu_backend:
             chosen_backend = gpu_backend
-        elif chosen_model in ("granite-2b-cpu", "phi3-mini-cpu", "qwen25-3b-cpu", "llama-31-70b-cpu"):
+        elif chosen_model in CPU_MODELS:
             chosen_backend = cpu_backend or (all_backends[0] if all_backends else None)
         else:
             chosen_backend = gpu_backend or (all_backends[0] if all_backends else None)
