@@ -24,6 +24,9 @@ COPY semantic_router.py .
 COPY utils.py .
 COPY knowledge.py .
 COPY governance.py .
+COPY runs.py .
+COPY chat_endpoints.py .
+COPY extras.py .
 COPY departments.yaml .
 COPY vllm-sr-config.yaml .
 COPY __init__.py .

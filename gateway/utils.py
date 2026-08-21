@@ -1,12 +1,41 @@
 """
 Shared utilities for the inference gateway.
 
-Sanitization and similarity functions used across router, chat,
-and semantic_router modules.
+Sanitization, similarity, and rate limiting functions used across
+router, runs, chat, and semantic_router modules.
 """
 
 import math
+import os
 import re
+import time
+from collections import defaultdict
+from fastapi import HTTPException
+
+
+_rate_limits: dict = defaultdict(list)
+_rate_limit_last_cleanup = 0.0
+RATE_LIMIT_RPM = int(os.getenv("RATE_LIMIT_RPM", "85"))
+_RATE_LIMIT_MAX_KEYS = 10000
+
+
+def check_rate_limit(client_ip: str, tenant_id: str = ""):
+    if not RATE_LIMIT_RPM:
+        return
+    key = f"{tenant_id}:{client_ip}" if tenant_id else client_ip
+    now = time.time()
+    _rate_limits[key] = [t for t in _rate_limits[key] if now - t < 60]
+    if len(_rate_limits[key]) >= RATE_LIMIT_RPM:
+        raise HTTPException(status_code=429, detail="Rate limit exceeded")
+    _rate_limits[key].append(now)
+    global _rate_limit_last_cleanup
+    if now - _rate_limit_last_cleanup > 60:
+        _rate_limit_last_cleanup = now
+        stale = [k for k, v in _rate_limits.items() if not v]
+        for k in stale:
+            del _rate_limits[k]
+        if len(_rate_limits) > _RATE_LIMIT_MAX_KEYS:
+            _rate_limits.clear()
 
 
 def sanitize_prompt(text: str, max_length: int = 10000) -> str:
