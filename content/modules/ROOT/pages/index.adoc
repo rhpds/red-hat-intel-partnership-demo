@@ -33,7 +33,7 @@ classification, reranking — fast and cost-efficient
 for 17B+ parameter models
 
 |*Red Hat OpenShift AI*
-|Enterprise platform providing KServe model serving, Keycloak SSO, ArgoCD GitOps,
+|Target enterprise platform providing KServe model serving, Keycloak SSO, ArgoCD GitOps,
 Prometheus observability, and namespace isolation for multi-tenant access
 
 |*MAAS LiteLLM*

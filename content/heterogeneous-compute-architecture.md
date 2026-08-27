@@ -14,6 +14,12 @@ This platform eliminates the binary by combining two complementary Intel hardwar
 
 ## Platform Stack
 
+> **Architecture status:** The gateway, MAAS/LiteLLM routing, PostgreSQL/pgvector,
+> Prometheus metrics, OpenShift OAuth, and semantic router are present in the
+> current demo. KServe-managed CPU/GPU endpoints, vLLM with the OpenVINO plugin,
+> Keycloak realm integration, ModelMesh, and ArgoCD reconciliation describe the
+> target OpenShift AI architecture and require deployment-specific validation.
+
 ```
 ┌──────────────────────────────────────────────────────────────────┐
 │  Applications                                                    │
@@ -24,17 +30,17 @@ This platform eliminates the binary by combining two complementary Intel hardwar
 │  Decision logging · Governance gates · Audit trails              │
 ├──────────────────────────────────────────────────────────────────┤
 │  Red Hat OpenShift AI                                            │
-│  KServe model serving · ModelMesh · Pipelines · Workbenches   v  │
+│  KServe model serving · ModelMesh · Pipelines · Workbenches      │
 ├──────────────────────────────────────────────────────────────────┤
 │  Red Hat OpenShift Container Platform                            │
-│  Operators · Keycloak SSO · ArgoCD GitOps · Prometheus        v  │
+│  Operators · Keycloak SSO · ArgoCD GitOps · Prometheus           │
 │  Namespace isolation · Multi-tenant delivery                     │
 ├──────────────────────────────────────────────────────────────────┤
 │  Intel Hardware                                                  │
 │  ┌──────────────────────┐  ┌──────────────────────┐              │
 │  │  Intel Xeon 6 (CPU)  │  │  Intel GPU           │              │
 │  │  AMX acceleration    │  │  HBM bandwidth       │              │
-│  │  OpenVINO runtime    │  │  vLLM runtime        │              │
+│  │  vLLM + OpenVINO     │  │  vLLM runtime        │              │
 │  │                      │  │                      │              │
 │  │  Embeddings          │  │  Large generation    │              │
 │  │  Classification      │  │  Complex reasoning   │              │
@@ -117,7 +123,10 @@ The default strategy uses a rule-based routing table. Each task type maps to a b
 | Batch generation | maas-gpu | GPU | Sustained throughput workloads |
 | Governance | maas-cpu | Xeon 6 | Fast policy checks via small model |
 
-Every route has a fallback chain: primary backend → fallback backend → local inference (TinyLlama 1.1B). No request is ever dropped.
+Every route can use a fallback chain: primary backend → configured fallback
+backend → optional local inference. The gateway attempts each available path;
+if none can serve the request, it returns an explicit error or queues the
+advanced Overdrive request for retry.
 
 ### Semantic Department Routing
 
@@ -166,7 +175,7 @@ For advanced workload management, the Overdrive engine extends standard routing 
          │                 │      │                  │     │                   │
          │  granite-2b-cpu │      │  phi3-mini-cpu   │     │  deepseek-r1-14b  │
          │  Xeon 6         │      │  Xeon 6          │     │  GPU              │
-         │  OpenVINO       │      │  OpenVINO        │     │  vLLM             │
+         │ vLLM+OpenVINO   │      │ vLLM+OpenVINO    │     │  vLLM             │
          │                 │      │                  │     │                   │
          │  ≤4K tokens     │      │  ≤16K tokens     │     │  ≤64K tokens      │
          │  ≤8s latency    │      │  ≤5s latency     │     │  ≤10s latency     │
@@ -190,13 +199,15 @@ For advanced workload management, the Overdrive engine extends standard routing 
 
 | Lane | Model | Hardware | Token Limit | Tasks |
 |------|-------|----------|-------------|-------|
-| **Eco** | granite-2b-cpu | Xeon 6 / OpenVINO | 4K | classification, image classification, screenshot classification |
-| **Performance** | phi3-mini-cpu | Xeon 6 / OpenVINO | 16K | embedding, reranking, short/long summary, RAG Q&A, OCR, visual similarity |
+| **Eco** | granite-2b-cpu | Xeon 6 / vLLM + OpenVINO (target) | 4K | classification, image classification, screenshot classification |
+| **Performance** | phi3-mini-cpu | Xeon 6 / vLLM + OpenVINO (target) | 16K | embedding, reranking, short/long summary, RAG Q&A, OCR, visual similarity |
 | **Overdrive** | deepseek-r1-14b | GPU / vLLM | 64K | incident RCA, batch summary, code/document summary, chart interpretation, multimodal analysis |
 
 ### Rubric Evaluation
 
-Every routing decision is validated against a 5-check rubric before dispatch:
+The current Overdrive implementation validates four route checks before
+dispatch. Latency target is an input to routing-matrix selection rather than a
+separate rubric result:
 
 | Check | What It Validates | Fail Action |
 |-------|-------------------|-------------|
@@ -204,7 +215,9 @@ Every routing decision is validated against a 5-check rubric before dispatch:
 | Endpoint health | Backend responds to health probe | Try fallback lane |
 | Supports task type | Lane's capability list includes this task | Try fallback lane |
 | Token within limit | Request fits lane's max token capacity | Try fallback lane |
-| Latency target met | Lane's max latency ≤ request's target | Try fallback lane |
+
+The target architecture may promote latency target validation to a fifth
+explicit rubric check after it is implemented and tested end to end.
 
 If the primary lane fails rubric checks, the engine tries the fallback lane with health-only validation. If all lanes fail, the request queues for retry.
 
@@ -261,7 +274,12 @@ Every pipeline follows this principle: use GPU only for steps that require it.
 
 The cost savings compound because the most frequent steps (embeddings, search, classification, governance) are also the lightest — they run on CPU at a fraction of GPU cost.
 
-### Cost Impact
+### Illustrative Cost Impact
+
+The following values use configured demonstration rates and an illustrative
+workload mix. They are not production price commitments or benchmark results.
+Actual savings depend on model choice, input/output token mix, concurrency,
+utilization, infrastructure cost, and fallback frequency.
 
 | Scenario | GPU-Only Cost | Heterogeneous Cost | Savings |
 |----------|--------------|-------------------|---------|
@@ -276,12 +294,12 @@ The cost savings compound because the most frequent steps (embeddings, search, c
 ### Intel Xeon 6 (CPU Path)
 
 - **Acceleration**: Intel AMX (Advanced Matrix Extensions) for INT8/BF16 matrix operations
-- **Runtime**: OpenVINO optimized model serving
+- **Target runtime**: vLLM serving API with the OpenVINO platform plugin for Intel-optimized CPU execution
 - **Models**: Granite 2B, Phi-3 Mini 3.8B, Qwen 2.5 3B (all ≤4B parameters)
-- **Serving**: KServe InferenceService with OpenVINO runtime, 1-5 replicas, concurrency 10
+- **Serving**: Target KServe InferenceService with vLLM + OpenVINO, 1-5 replicas, concurrency 10; the current demo reaches MAAS/LiteLLM CPU model aliases
 - **Strengths**: Low latency for small models, high throughput for embeddings, cost-efficient at scale
 - **Tasks**: Embeddings, classification, reranking, search, governance, policy checks, small-model Q&A
-- **Cost**: $0.0004 per 1K tokens
+- **Illustrative rate**: $0.0004 per 1K tokens
 
 ### Intel GPU (GPU Path)
 
@@ -291,7 +309,7 @@ The cost savings compound because the most frequent steps (embeddings, search, c
 - **Serving**: KServe InferenceService with vLLM GPU runtime, 1-3 replicas, concurrency 5
 - **Strengths**: Complex reasoning, long-context generation, batch processing
 - **Tasks**: Large model generation, multi-turn reasoning, deep analysis, batch workloads
-- **Cost**: $0.001 per 1K tokens (2.5x CPU, still 95%+ below frontier API pricing)
+- **Illustrative rate**: $0.001 per 1K tokens
 
 ### Why Two Tiers
 
@@ -303,7 +321,9 @@ The routing engine matches the compute profile to the hardware profile — every
 
 ## Resilience: Graceful Degradation
 
-When GPU hardware fails, the platform does not drop requests. The routing engine detects the failure and reroutes to Xeon 6:
+When GPU hardware fails, the recovery demonstration models a successful
+fallback to Xeon 6. In a real deployment, fallback is best-effort and depends
+on a healthy compatible backend with sufficient capacity:
 
 ```
 Phase 1 — Normal Operation
@@ -322,7 +342,10 @@ Phase 3 — Recovery
   Overdrive  → GPU        ✓ restored
 ```
 
-**Zero dropped requests** during the entire failure/recovery cycle. GPU-class requests continue on CPU with higher latency until recovery. No operator intervention required — the engine rebalances automatically when GPU health probes pass again.
+In the deterministic recovery simulation, all generated requests complete
+during the failure/recovery cycle. Production deployments must surface,
+queue, or retry requests when no viable backend is available; zero loss is an
+operational objective, not an unconditional gateway guarantee.
 
 The fallback chain at the infrastructure level mirrors this:
 
@@ -330,7 +353,9 @@ The fallback chain at the infrastructure level mirrors this:
 Primary backend → Fallback backend → Local inference (TinyLlama 1.1B)
 ```
 
-Local inference is a last-resort TinyLlama model bundled in the gateway container itself, ensuring the platform can serve responses even if both MAAS backends are unreachable.
+Local inference is an optional last-resort TinyLlama path. Model weights are
+downloaded or pre-cached separately and the path must be enabled and healthy;
+the gateway image does not bundle the model weights.
 
 ---
 
@@ -367,7 +392,7 @@ The platform supports isolated multi-tenant access for partner organizations:
 
 | Layer | Mechanism |
 |-------|-----------|
-| **Identity** | Keycloak SSO with per-tenant realm mappings; JWT carries tenant_id, slug, tier, scopes |
+| **Identity** | Current demo: OpenShift OAuth proxy plus gateway JWT/API-key support. Target: Keycloak SSO with per-tenant realm mappings |
 | **API access** | API keys (SHA256-hashed, `irh-` prefixed) scoped to tenant; 3 tiers (pilot, partner, internal) |
 | **Data** | PostgreSQL row-level security — every table filtered by `app.current_tenant_id` session variable |
 | **Compute** | Per-namespace ResourceQuota (8 CPU / 32Gi default) and LimitRange (max 4 CPU / 16Gi per container) |
@@ -423,9 +448,12 @@ Three tiers with progressive hardening:
 | **test** | 2 | 85 RPM | 10Gi | 2 CPU |
 | **prod** | 3 | 120 RPM | 50Gi | 2 CPU |
 
-### GitOps — ArgoCD
+### Target GitOps — ArgoCD
 
-An ArgoCD Application pointing at `deploy/cluster/` provides continuous reconciliation. Manual sync policy ensures human approval before changes reach the cluster.
+The target operating model uses an ArgoCD Application pointing at
+`deploy/cluster/` for continuous reconciliation, with manual sync for human
+approval. The current infra01 demo is built, pushed, and restarted directly and
+does not yet have a demo-specific ArgoCD Application.
 
 ### Tekton CI/CD
 
@@ -444,7 +472,7 @@ Container images publish to `quay.io/redhat-gpte/` with both SHA and `latest` ta
 
 **Intel** provides the hardware diversity that makes heterogeneous routing possible — Xeon 6 with AMX for efficient small-model inference, GPU with HBM for high-throughput generation. Two tiers, each optimized for its class of workload.
 
-**Red Hat** provides the enterprise platform that makes it operational — OpenShift for container orchestration, KServe for model serving, OpenVINO for CPU-optimized runtimes, operators for lifecycle management, namespace isolation for multi-tenant delivery, and observability for production monitoring.
+**Red Hat** provides the enterprise platform that makes it operational — OpenShift for container orchestration, KServe and the vLLM serving interface, operators for lifecycle management, namespace isolation for multi-tenant delivery, and observability for production monitoring. The target Xeon 6 path uses the vLLM OpenVINO platform plugin for Intel-optimized CPU execution.
 
 **The routing engine** bridges them: every response includes which hardware was selected, why, the latency, and the cost — full transparency that enterprises require for compliance and cost management.
 
@@ -461,7 +489,7 @@ Container images publish to `quay.io/redhat-gpte/` with both SHA and `latest` ta
 | microsoft-phi-4 | 14B | Security | Structured output, compact efficiency |
 | llama-31-70b | 70B | Executive strategy | Largest available, complex reasoning |
 
-### CPU Models (via MAAS/LiteLLM on Intel Xeon 6 + OpenVINO)
+### CPU Models (current: MAAS/LiteLLM aliases; target: vLLM + OpenVINO on Intel Xeon 6)
 
 | Model | Parameters | Primary Use | Strengths |
 |-------|-----------|-------------|-----------|
@@ -474,4 +502,4 @@ Container images publish to `quay.io/redhat-gpte/` with both SHA and `latest` ta
 
 | Model | Parameters | Purpose |
 |-------|-----------|---------|
-| TinyLlama 1.1B | 1.1B | Last-resort fallback bundled in gateway container |
+| TinyLlama 1.1B | 1.1B | Optional last-resort fallback; weights downloaded or pre-cached separately |

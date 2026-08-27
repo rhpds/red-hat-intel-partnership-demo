@@ -58,7 +58,7 @@
 
 "A 24K-token summary goes to Overdrive on GPU. Same four checks, different outcome — the token count exceeded the Xeon 6 limit, so it routes to GPU automatically."
 
-"Now watch what happens when GPU goes down. The platform detects the failure and reroutes to Xeon 6. Zero dropped requests. Higher latency, yes — but no outage. When GPU recovers, traffic flows back automatically."
+"Now watch what happens when GPU goes down. In this controlled run, the platform detects the failure and reroutes every generated request to Xeon 6. Higher latency, yes — but the configured fallback remains available. When GPU recovers, traffic flows back automatically."
 
 ### Scene 4 — Multi-Step Workflows (120s)
 
@@ -106,7 +106,7 @@
 
 "Ten mixed requests. Watch the route distribution build — the engine splits them across lanes based on what each request actually needs."
 
-"GPU goes down. Before: requests split across all three lanes. After: everything reroutes to Xeon 6. Zero dropped requests — higher latency but no outage. This is automatic graceful degradation with no application changes."
+"GPU goes down. Before: requests split across all three lanes. After: the controlled workload reroutes to Xeon 6. Higher latency, but the compatible fallback remains available. Requests with no viable backend must be queued, retried, or surfaced explicitly."
 
 ### Scene 3 — Multi-Step Workflows (90s)
 
@@ -152,7 +152,7 @@
 
 "Three phases. Normal operation with GPU online. Hardware failure — GPU goes down, platform reroutes to Xeon 6. Recovery — GPU comes back, traffic rebalances."
 
-"The headline: zero requests dropped across all three phases. Latency increased during the failure — that's expected — but no request was lost. This is production-grade resilience."
+"In this deterministic recovery run, every generated request completed across all three phases. Latency increased during the failure — that's expected — and the trace shows the fallback path. In production, requests are queued, retried, or surfaced explicitly if no compatible backend remains available."
 
 ### Scene 9 — Governance Audit (45s)
 

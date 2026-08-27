@@ -50,7 +50,7 @@
 
 **Click**: Click "Simulate GPU Failure."
 
-> "GPU goes down. Before: requests split across all three lanes. After: everything reroutes to Xeon 6. Zero dropped requests — higher latency but no outage. This is automatic graceful degradation with no application changes."
+> "GPU goes down. Before: requests split across all three lanes. After: the controlled workload reroutes to Xeon 6. Higher latency, but the compatible fallback remains available. Requests with no viable backend must be queued, retried, or surfaced explicitly."
 
 **Click**: Navigate to "Try It Live."
 
@@ -174,7 +174,7 @@
 
 **Wait**: Simulation completes.
 
-> "The headline: zero requests dropped across all three phases. Latency increased during the failure — that's expected — but no request was lost. This is production-grade resilience."
+> "In this deterministic recovery run, every generated request completed across all three phases. Latency increased during the failure — that's expected — and the trace shows the fallback path. In production, requests are queued, retried, or surfaced explicitly if no compatible backend remains available."
 
 **Click**: Navigate to "Governance Audit."
 
@@ -206,7 +206,7 @@
 2. **Cost optimization at scale** — millions saved by routing small tasks to CPU
 3. **Multi-step independence** — each pipeline step routed to optimal hardware
 4. **Governance at every layer** — risk scoring, policy checks, locked mode, full audit trail
-5. **Production resilience** — zero dropped requests during hardware failure
+5. **Resilience controls** — demonstrated fallback during a controlled hardware-failure scenario
 6. **Multi-agent scaling** — parallel execution with hardware-aware routing per agent
 7. **Semantic intelligence** — department-based routing maps business context to models
 8. **Enterprise-ready** — OpenShift, multi-tenant, SSO, auditable, deployable in an hour

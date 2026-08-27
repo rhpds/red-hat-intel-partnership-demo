@@ -14,14 +14,14 @@ Frontend (React/PatternFly 6) → Gateway (FastAPI) → MAAS/LiteLLM → Intel H
 
 **Gateway** routes requests across 17 models served on Intel hardware via MAAS:
 - **Intel GPU**: qwen3-14b, deepseek-r1-distill-qwen-14b, microsoft-phi-4, llama-31-70b
-- **Intel Xeon 6 CPU** (OpenVINO): granite-2b-cpu, phi3-mini-cpu, qwen25-3b-cpu
+- **Intel Xeon 6 CPU**: current MAAS/LiteLLM CPU aliases use OpenVINO-optimized serving; target OpenShift AI deployments use vLLM with the OpenVINO platform plugin
 
 ## Features
 
 - **Semantic Department Routing** — 4 classification strategies (rules, embedding, LLM, vLLM Semantic Router) route queries to optimal models per department
 - **Interactive RAG Chat** — Document upload (PDF, DOCX, TXT), embedding search, SSE streaming
 - **Model Comparison** — Side-by-side comparison of routing strategies with cost/latency metrics
-- **Multi-Tenant** — Per-tenant namespaces, Keycloak SSO, scoped LiteLLM virtual keys
+- **Multi-Tenant** — Tenant-aware JWT/API-key support and namespace controls; Keycloak realm integration is part of the target packaged architecture
 - **Cost Optimization** — Right-size hardware to workload, annual savings vs frontier models
 
 ## Quick Start

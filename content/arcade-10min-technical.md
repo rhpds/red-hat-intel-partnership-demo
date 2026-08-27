@@ -59,7 +59,7 @@
 
 **Click**: Scroll to "See It at Scale." Click "Simulate GPU Failure."
 
-> "Now watch what happens when GPU goes down. The platform detects the failure and reroutes to Xeon 6. Zero dropped requests. Higher latency, yes — but no outage. When GPU recovers, traffic flows back automatically."
+> "Now watch what happens when GPU goes down. In this controlled run, the platform detects the failure and reroutes every generated request to Xeon 6. Higher latency, yes — but the configured fallback remains available. When GPU recovers, traffic flows back automatically."
 
 **Click**: Navigate to "Try It Live."
 
@@ -144,7 +144,7 @@
 
 1. **Rubric-based routing** — every decision is auditable with a 4-check pipeline
 2. **Multi-step workflows route each step independently** — 3 of 4 RAG steps on CPU
-3. **Graceful degradation** — zero dropped requests during hardware failure
+3. **Graceful degradation** — successful fallback in the controlled hardware-failure scenario
 4. **Governance built in** — risk scoring, policy checks, escalation
 5. **Semantic department routing** — automatic model selection by business domain
 6. **Interactive + auditable** — every chat response shows its routing trace
