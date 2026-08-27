@@ -1,0 +1,41 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: intel-cpu-runtime-benchmark
+  labels:
+    purpose: cpu-runtime-benchmark
+    owner: jkershaw
+---
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: cpu-runtime-benchmark
+  namespace: intel-cpu-runtime-benchmark
+spec:
+  hard:
+    requests.cpu: "72"
+    limits.cpu: "72"
+    requests.memory: 160Gi
+    limits.memory: 160Gi
+    pods: "6"
+    persistentvolumeclaims: "2"
+    requests.storage: 200Gi
+---
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: cpu-runtime-benchmark
+  namespace: intel-cpu-runtime-benchmark
+spec:
+  limits:
+    - type: Container
+      max:
+        cpu: "64"
+        memory: 128Gi
+      defaultRequest:
+        cpu: "1"
+        memory: 2Gi
+      default:
+        cpu: "1"
+        memory: 2Gi
+

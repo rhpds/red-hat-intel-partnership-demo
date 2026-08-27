@@ -1,0 +1,38 @@
+apiVersion: image.openshift.io/v1
+kind: ImageStream
+metadata:
+  name: vllm-openvino
+  namespace: intel-cpu-runtime-benchmark
+---
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  name: vllm-openvino
+  namespace: intel-cpu-runtime-benchmark
+spec:
+  runPolicy: Serial
+  source:
+    type: Git
+    git:
+      uri: https://github.com/rhpds/red-hat-intel-partnership-demo.git
+      ref: main
+    contextDir: benchmarks/cpu-runtime/vllm-openvino
+  strategy:
+    type: Docker
+    dockerStrategy:
+      dockerfilePath: Containerfile
+      buildArgs:
+        - name: VLLM_OPENVINO_COMMIT
+          value: 80830b7e184cc109ac92f26582e6173602910b36
+  resources:
+    requests:
+      cpu: "8"
+      memory: 16Gi
+    limits:
+      cpu: "8"
+      memory: 16Gi
+  output:
+    to:
+      kind: ImageStreamTag
+      name: vllm-openvino:0.8.4-80830b7
+

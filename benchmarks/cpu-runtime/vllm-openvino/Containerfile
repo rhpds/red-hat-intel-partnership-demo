@@ -1,0 +1,31 @@
+FROM ubuntu:22.04
+
+ARG VLLM_OPENVINO_COMMIT=80830b7e184cc109ac92f26582e6173602910b36
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    PIP_NO_CACHE_DIR=1 \
+    HOME=/tmp \
+    HF_HOME=/models/hf-cache \
+    VLLM_TARGET_DEVICE=empty
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      ca-certificates git python3 python3-pip python3-dev build-essential \
+      libnuma1 libjemalloc2 && \
+    rm -rf /var/lib/apt/lists/*
+
+WORKDIR /opt/vllm-openvino
+RUN git clone https://github.com/vllm-project/vllm-openvino.git . && \
+    git checkout "${VLLM_OPENVINO_COMMIT}" && \
+    python3 -m pip install --upgrade pip setuptools wheel && \
+    PIP_EXTRA_INDEX_URL=https://download.pytorch.org/whl/cpu \
+      python3 -m pip install -v . && \
+    python3 -m pip uninstall -y triton && \
+    python3 -c "import openvino, vllm, vllm_openvino; print(openvino.__version__, vllm.__version__)"
+
+RUN mkdir -p /models /tmp && chgrp -R 0 /models /tmp /opt/vllm-openvino && \
+    chmod -R g=u /models /tmp /opt/vllm-openvino
+
+EXPOSE 8000
+
+ENTRYPOINT ["python3", "-m", "vllm.entrypoints.openai.api_server"]
+

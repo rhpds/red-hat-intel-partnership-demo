@@ -1,0 +1,93 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vllm-openvino-benchmark
+  namespace: intel-cpu-runtime-benchmark
+  labels:
+    app: vllm-openvino-benchmark
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: vllm-openvino-benchmark
+  template:
+    metadata:
+      labels:
+        app: vllm-openvino-benchmark
+        benchmark-runtime: vllm-openvino
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: ocp-rac-maas-worker06
+      containers:
+        - name: vllm-openvino
+          image: image-registry.openshift-image-registry.svc:5000/intel-cpu-runtime-benchmark/vllm-openvino:0.8.4-80830b7
+          args:
+            - --model
+            - OpenVINO/Phi-3.5-mini-instruct-int4-ov
+            - --served-model-name
+            - phi35-mini-int4
+            - --host
+            - 0.0.0.0
+            - --port
+            - "8000"
+            - --max-model-len
+            - "4096"
+            - --enable-chunked-prefill
+            - --max-num-batched-tokens
+            - "256"
+          env:
+            - name: HOME
+              value: /tmp
+            - name: HF_HOME
+              value: /models/hf-cache
+            - name: VLLM_OPENVINO_KVCACHE_SPACE
+              value: "64"
+            - name: VLLM_OPENVINO_KV_CACHE_PRECISION
+              value: u8
+            - name: VLLM_USE_V1
+              value: "1"
+          ports:
+            - name: http
+              containerPort: 8000
+          resources:
+            requests:
+              cpu: "64"
+              memory: 128Gi
+            limits:
+              cpu: "64"
+              memory: 128Gi
+          volumeMounts:
+            - name: model-cache
+              mountPath: /models
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 120
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+      volumes:
+        - name: model-cache
+          persistentVolumeClaim:
+            claimName: cpu-runtime-model-cache
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vllm-openvino-benchmark
+  namespace: intel-cpu-runtime-benchmark
+spec:
+  selector:
+    app: vllm-openvino-benchmark
+  ports:
+    - name: http
+      port: 8000
+      targetPort: http
+

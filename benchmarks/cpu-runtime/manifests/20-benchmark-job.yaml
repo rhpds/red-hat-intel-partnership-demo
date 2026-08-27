@@ -1,0 +1,64 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: cpu-runtime-benchmark-job
+  namespace: intel-cpu-runtime-benchmark
+parameters:
+  - name: RUNTIME
+    required: true
+  - name: SERVICE
+    required: true
+  - name: API_PREFIX
+    required: true
+  - name: REQUESTS
+    value: "100"
+  - name: WARMUP
+    value: "10"
+objects:
+  - apiVersion: batch/v1
+    kind: Job
+    metadata:
+      name: benchmark-${RUNTIME}
+      namespace: intel-cpu-runtime-benchmark
+    spec:
+      backoffLimit: 0
+      template:
+        metadata:
+          labels:
+            app: cpu-benchmark-client
+        spec:
+          restartPolicy: Never
+          nodeSelector:
+            kubernetes.io/hostname: ocp-rac-maas-worker04
+          containers:
+            - name: benchmark
+              image: registry.access.redhat.com/ubi9/python-311:latest
+              command: [python3, /benchmark/benchmark.py]
+              args:
+                - --base-url
+                - http://${SERVICE}:8000
+                - --api-prefix
+                - ${API_PREFIX}
+                - --model
+                - phi35-mini-int4
+                - --runtime
+                - ${RUNTIME}
+                - --requests
+                - ${REQUESTS}
+                - --warmup
+                - ${WARMUP}
+              resources:
+                requests:
+                  cpu: "4"
+                  memory: 8Gi
+                limits:
+                  cpu: "4"
+                  memory: 8Gi
+              volumeMounts:
+                - name: benchmark-client
+                  mountPath: /benchmark
+                  readOnly: true
+          volumes:
+            - name: benchmark-client
+              configMap:
+                name: cpu-benchmark-client
