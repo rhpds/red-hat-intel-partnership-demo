@@ -7,7 +7,8 @@ This benchmark compares two serving stacks on the same Intel Xeon 6767P node:
 
 Both serve `OpenVINO/Phi-3.5-mini-instruct-int4-ov` with identical CPU and
 memory limits. The runtimes run sequentially on
-`ocp-rac-maas-worker06` to avoid cross-runtime contention.
+`ocp-rac-maas-worker01` to avoid cross-runtime contention and use an available
+node-local persistent volume.
 
 ## Safety boundary
 
@@ -36,14 +37,14 @@ cell by default.
 
 ## Build and run
 
-The vLLM-OpenVINO image is built inside the isolated namespace because no
-prebuilt upstream image is available:
+No prebuilt upstream vLLM-OpenVINO image is available. Build the pinned source
+locally for amd64 and push it to Quay, then create the isolated cluster assets:
 
 ```bash
+./build-vllm-openvino.sh
+# Create a namespace-scoped `quay-pull` image pull secret when the repository is private.
 oc apply -f manifests/00-safety.yaml
 oc apply -f manifests/01-storage.yaml
-oc apply -f manifests/02-vllm-openvino-build.yaml
-oc start-build vllm-openvino --follow -n intel-cpu-runtime-benchmark
 
 ./run-benchmark.sh ovms
 ./run-benchmark.sh vllm-openvino
@@ -57,7 +58,7 @@ REQUESTS=5 WARMUP=1 ./run-benchmark.sh ovms
 REQUESTS=5 WARMUP=1 ./run-benchmark.sh vllm-openvino
 ```
 
-The runtime is pinned to worker06. The client is pinned to worker04 so load
+The runtime is pinned to worker01. The client is pinned to worker04 so load
 generation does not consume the CPU allocation being measured.
 
 Do not run both runtime deployments simultaneously. Do not change the selected

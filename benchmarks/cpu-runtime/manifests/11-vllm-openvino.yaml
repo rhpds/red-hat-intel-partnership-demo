@@ -18,11 +18,13 @@ spec:
         app: vllm-openvino-benchmark
         benchmark-runtime: vllm-openvino
     spec:
+      imagePullSecrets:
+        - name: quay-pull
       nodeSelector:
-        kubernetes.io/hostname: ocp-rac-maas-worker06
+        kubernetes.io/hostname: ocp-rac-maas-worker01
       containers:
         - name: vllm-openvino
-          image: image-registry.openshift-image-registry.svc:5000/intel-cpu-runtime-benchmark/vllm-openvino:0.8.4-80830b7
+          image: quay.io/redhat-gpte/intel-vllm-openvino@sha256:15447d0731eac53456fff5053c1f550253dc38cd69df30294e7853e427992d3d
           args:
             - --model
             - OpenVINO/Phi-3.5-mini-instruct-int4-ov
@@ -90,4 +92,3 @@ spec:
     - name: http
       port: 8000
       targetPort: http
-

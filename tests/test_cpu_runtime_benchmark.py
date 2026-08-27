@@ -46,7 +46,7 @@ def test_both_runtimes_pin_to_same_non_gpu_node():
     for manifest in ("10-ovms.yaml", "11-vllm-openvino.yaml"):
         deployment = yaml_documents(manifest)[0]
         selector = deployment["spec"]["template"]["spec"]["nodeSelector"]
-        assert selector == {"kubernetes.io/hostname": "ocp-rac-maas-worker06"}
+        assert selector == {"kubernetes.io/hostname": "ocp-rac-maas-worker01"}
 
 
 def test_safety_quota_caps_benchmark():

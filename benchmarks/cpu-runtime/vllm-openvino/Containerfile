@@ -22,10 +22,14 @@ RUN git clone https://github.com/vllm-project/vllm-openvino.git . && \
     python3 -m pip uninstall -y triton && \
     python3 -c "import openvino, vllm, vllm_openvino; print(openvino.__version__, vllm.__version__)"
 
+# The pinned Optimum Intel commit declares nncf>=2.16 without an upper bound,
+# but NNCF 3.x removed APIs that this commit imports.
+RUN python3 -m pip install "nncf>=2.16,<3" && \
+    python3 -c "from optimum.intel import OVModelForCausalLM; import nncf; print(nncf.__version__)"
+
 RUN mkdir -p /models /tmp && chgrp -R 0 /models /tmp /opt/vllm-openvino && \
     chmod -R g=u /models /tmp /opt/vllm-openvino
 
 EXPOSE 8000
 
 ENTRYPOINT ["python3", "-m", "vllm.entrypoints.openai.api_server"]
-

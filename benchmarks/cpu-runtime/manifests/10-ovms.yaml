@@ -19,7 +19,7 @@ spec:
         benchmark-runtime: ovms
     spec:
       nodeSelector:
-        kubernetes.io/hostname: ocp-rac-maas-worker06
+        kubernetes.io/hostname: ocp-rac-maas-worker01
       containers:
         - name: ovms
           image: openvino/model_server:2025.3
@@ -80,4 +80,3 @@ spec:
     - name: http
       port: 8000
       targetPort: http
-
