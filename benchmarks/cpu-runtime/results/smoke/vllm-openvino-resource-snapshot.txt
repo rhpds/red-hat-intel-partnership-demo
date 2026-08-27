@@ -1,0 +1,2 @@
+NAME                                      CPU(cores)   MEMORY(bytes)
+vllm-openvino-benchmark-f5d769dc5-nv8bn   60248m       7958Mi

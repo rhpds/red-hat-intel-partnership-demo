@@ -1,0 +1,2 @@
+NAME                                      CPU(cores)   MEMORY(bytes)
+vllm-openvino-benchmark-f5d769dc5-dfjkz   64026m       76164Mi

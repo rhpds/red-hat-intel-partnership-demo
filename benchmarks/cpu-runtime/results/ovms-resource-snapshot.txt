@@ -1,0 +1,2 @@
+NAME                              CPU(cores)   MEMORY(bytes)
+ovms-benchmark-67d94b8f66-4s26m   61428m       70422Mi
